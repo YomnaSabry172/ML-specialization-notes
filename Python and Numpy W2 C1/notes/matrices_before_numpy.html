@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Session 2 — Matrices Before NumPy (Full Explanation)</title>
+<style>
+  :root{
+    --navy:#0d3b66;
+    --navy-dark:#0a2c4d;
+    --gold:#e0982f;
+    --bg:#ffffff;
+    --panel:#eef3f8;
+    --text:#1c2733;
+    --muted:#5a6b7b;
+    --good:#dff0d8;
+    --warn:#fdebd0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.65;
+    font-size:17px;
+    max-width:900px;
+    margin:0 auto;
+    padding:30px 22px 80px;
+  }
+  h1{
+    color:var(--navy);
+    font-size:2rem;
+    border-bottom:4px solid var(--gold);
+    padding-bottom:10px;
+    margin-top:0;
+  }
+  h2{
+    color:var(--navy);
+    font-size:1.4rem;
+    margin-top:48px;
+    padding:10px 14px;
+    background:var(--panel);
+    border-left:6px solid var(--navy);
+    border-radius:4px;
+  }
+  h3{
+    color:var(--navy-dark);
+    font-size:1.1rem;
+    margin-top:26px;
+  }
+  .kicker{
+    color:var(--gold);
+    font-weight:700;
+    letter-spacing:0.06em;
+    font-size:0.85rem;
+    text-transform:uppercase;
+    margin-top:10px;
+  }
+  p{margin:12px 0;}
+  .box{
+    background:var(--panel);
+    border-radius:8px;
+    padding:16px 18px;
+    margin:16px 0;
+  }
+  .why{
+    background:var(--navy);
+    color:#fff;
+    border-radius:8px;
+    padding:16px 20px;
+    margin:16px 0;
+  }
+  .why h4{margin:0 0 8px 0; font-size:1rem; color:var(--gold);}
+  .why ul{margin:6px 0 0 0; padding-left:20px;}
+  .example{
+    background:#fff;
+    border:2px dashed #cfd9e3;
+    border-radius:8px;
+    padding:16px 18px;
+    margin:16px 0;
+  }
+  .example h4{margin:0 0 8px 0; color:var(--navy);}
+  table{
+    border-collapse:collapse;
+    width:100%;
+    margin:14px 0;
+    font-size:0.96rem;
+  }
+  th, td{
+    border:1px solid #d6dee6;
+    padding:8px 12px;
+    text-align:center;
+  }
+  th{
+    background:var(--navy);
+    color:#fff;
+  }
+  tr:nth-child(even) td{background:#f7fafc;}
+  .highlight td{background:var(--warn) !important; font-weight:700;}
+  code, .code{
+    font-family:"SF Mono", Consolas, monospace;
+    background:#eef3f8;
+    border-radius:4px;
+    padding:2px 6px;
+    font-size:0.92rem;
+    color:var(--navy-dark);
+  }
+  pre{
+    background:#0a2c4d;
+    color:#e8f0f7;
+    padding:14px 18px;
+    border-radius:8px;
+    overflow-x:auto;
+    font-family:"SF Mono", Consolas, monospace;
+    font-size:0.9rem;
+  }
+  .matrix-row{
+    display:flex;
+    justify-content:center;
+    gap:40px;
+    flex-wrap:wrap;
+    margin:20px 0;
+  }
+  .matrix{
+    display:inline-block;
+    text-align:center;
+  }
+  .matrix .label{
+    font-weight:700;
+    color:var(--navy);
+    margin-bottom:6px;
+  }
+  .matrix table{width:auto; margin:0 auto;}
+  .matrix td{
+    min-width:40px;
+    font-weight:600;
+    color:var(--navy-dark);
+  }
+  .arrow{
+    align-self:center;
+    font-size:1.8rem;
+    color:var(--gold);
+  }
+  .note{
+    font-size:0.92rem;
+    color:var(--muted);
+    font-style:italic;
+  }
+  .toc{
+    background:var(--panel);
+    border-radius:8px;
+    padding:18px 24px;
+    margin:20px 0 30px;
+  }
+  .toc a{color:var(--navy-dark); text-decoration:none;}
+  .toc a:hover{text-decoration:underline;}
+  .toc li{margin:4px 0;}
+  .flow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    flex-wrap:wrap;
+    margin:18px 0;
+  }
+  .flow .step{
+    background:var(--navy);
+    color:#fff;
+    padding:10px 16px;
+    border-radius:8px;
+    font-weight:600;
+    text-align:center;
+  }
+  .flow .op{color:var(--gold); font-size:1.5rem; font-weight:700;}
+  svg{display:block; margin:20px auto;}
+  .callout-q{
+    border-left:6px solid var(--gold);
+    background:#fff8ec;
+    padding:10px 16px;
+    margin:16px 0;
+    border-radius:4px;
+    font-weight:600;
+  }
+  .divider{
+    border:none;
+    border-top:2px solid var(--panel);
+    margin:40px 0;
+  }
+  .footer-note{
+    margin-top:60px;
+    padding:16px 20px;
+    background:var(--navy);
+    color:#fff;
+    border-radius:8px;
+    text-align:center;
+    font-size:0.95rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="kicker">NTI Summer Training — Machine Learning Basics — Session 2</div>
+<h1>Matrices Before NumPy — Full Walkthrough</h1>
+<p class="note">This is the "why + how" behind every slide in your Session 2 deck, expanded so you can follow it in real time during the session without needing to fill gaps afterward. Read top to bottom — each idea builds on the one before it.</p>
+
+<div class="toc">
+<strong>Contents</strong>
+<ol>
+<li><a href="#s1">Why ML starts from a table</a></li>
+<li><a href="#s2">What a matrix actually is</a></li>
+<li><a href="#s3">Turning real data into a matrix (house prices)</a></li>
+<li><a href="#s4">Linear regression as a matrix equation</a></li>
+<li><a href="#s5">The dot product</a></li>
+<li><a href="#s6">The cross product</a></li>
+<li><a href="#s7">Shape</a></li>
+<li><a href="#s8">Rows = samples, columns = features</a></li>
+<li><a href="#s9">Scalar, vector, matrix, tensor</a></li>
+<li><a href="#s10">Images are numbers</a></li>
+<li><a href="#s11">Indexing</a></li>
+<li><a href="#s12">Train / test split</a></li>
+<li><a href="#s13">Element-wise operations</a></li>
+<li><a href="#s14">Broadcasting</a></li>
+<li><a href="#s15">Transpose</a></li>
+<li><a href="#s16">Transpose for comparing features</a></li>
+<li><a href="#s17">Correlation heatmap</a></li>
+<li><a href="#s18">Special matrices</a></li>
+<li><a href="#s19">Data types</a></li>
+<li><a href="#s20">Why NumPy instead of plain Python lists</a></li>
+<li><a href="#s21">Putting it all together</a></li>
+</ol>
+</div>
+
+<h2 id="s1">1. Why Machine Learning Starts From a Table</h2>
+<p>Before any model, any algorithm, any line of code — there is always a <strong>table</strong>. This is the single most important habit to build: whatever the problem (predicting grades, house prices, detecting a disease from an image), the very first step is arranging what you know into rows and columns.</p>
+
+<table>
+<tr><th>Student</th><th>Study Hours</th><th>Attendance</th><th>Final Grade</th></tr>
+<tr><td>Ahmed</td><td>8</td><td>90%</td><td class="highlight">Pass</td></tr>
+<tr><td>Mona</td><td>3</td><td>60%</td><td>Fail</td></tr>
+<tr><td>Omar</td><td>6</td><td>75%</td><td class="highlight">Pass</td></tr>
+</table>
+
+<div class="box">
+<strong>The rule:</strong> Each <em>row</em> = one student (one example/observation). Each <em>column</em> = one piece of information about that student (a "feature").
+</div>
+
+<div class="why">
+<h4>Why this matters for the model</h4>
+<ul>
+<li>The model never sees "Ahmed" or "Mona" as people — it only sees the numbers in their rows.</li>
+<li>It learns patterns by looking down each column: does higher study hours line up with Pass? Does higher attendance line up with Pass?</li>
+<li><strong>More useful columns → better predictions.</strong> If you added "Sleep hours" and that's genuinely related to passing, it could help.</li>
+<li><strong>Bad or unclear columns confuse the model.</strong> If you added "Student's favorite color," it adds noise — no real signal, just distraction.</li>
+</ul>
+</div>
+
+<p><strong>The connection to matrices:</strong> once you strip away the row/column labels ("Ahmed", "Study Hours", etc.) and keep only the pure numbers, that table <em>becomes</em> a matrix. This is exactly what the handwritten arrows on the slide are showing — pulling the number columns (8, 3, 6) and (90, 60, 75) out of the table.</p>
+
+<div class="callout-q">Key idea: a table with labels is for humans. A matrix of pure numbers is for the model.</div>
+
+<hr class="divider">
+
+<h2 id="s2">2. What a Matrix Actually Is</h2>
+<p>A <strong>matrix</strong> is just a grid of numbers arranged in rows and columns — nothing more mysterious than that. Here's the example matrix from your slide:</p>
+
+<div class="matrix">
+<table>
+<tr><td>7</td><td>8</td><td>6</td><td>9</td></tr>
+<tr><td>4</td><td class="highlight">5</td><td>3</td><td>6</td></tr>
+<tr><td>9</td><td>7</td><td>8</td><td>8</td></tr>
+</table>
+</div>
+
+<p>This is a matrix with <strong>3 rows and 4 columns</strong>. Every single position (called a "cell" or "entry") holds one number.</p>
+
+<div class="box">
+<strong>Simple meaning, translated to ML language:</strong>
+<ul>
+<li><strong>Rows = samples</strong> → each row is one "thing" you're studying: one person, one image, one product, one house.</li>
+<li><strong>Columns = features</strong> → each column is one measurable property of that thing: age, price, score, area.</li>
+<li><strong>Cells = values</strong> → the actual number for that sample/feature combination.</li>
+</ul>
+</div>
+
+<p>So the cell highlighted in the middle (value <code>5</code>) means: "sample #2, feature #2, has value 5." That's all a matrix cell ever means — a value at the intersection of one sample and one feature.</p>
+
+<hr class="divider">
+
+<h2 id="s3">3. Turning Real Data Into a Matrix (House Price Example)</h2>
+<p>Let's watch the transformation happen end-to-end using the house price data from the slide.</p>
+
+<h3>Step 1 — Start with a normal table (with labels)</h3>
+<table>
+<tr><th>House</th><th>Area</th><th>Rooms</th><th>Age</th><th>RealPrice</th></tr>
+<tr><td>House 1</td><td class="highlight">120</td><td class="highlight">3</td><td class="highlight">10</td><td>1.8M</td></tr>
+<tr><td>House 2</td><td class="highlight">85</td><td class="highlight">2</td><td class="highlight">20</td><td>1.1M</td></tr>
+</table>
+
+<div class="why">
+<h4>What the model will use this for</h4>
+<ul>
+<li><strong>Area, Rooms, and Age</strong> are the <strong>input features</strong> — what we feed the model.</li>
+<li><strong>Price</strong> is the <strong>target</strong> — the answer we're trying to predict.</li>
+<li>Next step: remove the text labels ("House 1", "Area"...) and keep only the numbers → that's the matrix.</li>
+</ul>
+</div>
+
+<h3>Step 2 — Strip the labels, keep only numbers</h3>
+<div class="matrix-row">
+<div class="matrix">
+<div class="label">Feature Matrix X (2 houses × 3 features)</div>
+<table>
+<tr><td>120</td><td>3</td><td>10</td></tr>
+<tr><td>85</td><td>2</td><td>20</td></tr>
+</table>
+</div>
+</div>
+<p class="note">Notice: the "House" column and the "RealPrice" column are gone. X only holds the <em>input</em> numbers. The price becomes a separate target vector, often called <code>y</code>.</p>
+
+<hr class="divider">
+
+<h2 id="s4">4. Linear Regression as a Matrix Problem</h2>
+<p>This is the single most important slide in the whole session — it's where matrices stop being an abstract idea and become the actual mechanism a model uses to predict something.</p>
+
+<h3>1. The feature matrix X</h3>
+<div class="matrix-row">
+<div class="matrix">
+<div class="label">X (rows = houses, columns = Area, Rooms, Age)</div>
+<table>
+<tr><td>120</td><td>3</td><td>10</td></tr>
+<tr><td>85</td><td>2</td><td>20</td></tr>
+</table>
+</div>
+</div>
+
+<h3>2. The weight vector w</h3>
+<p>The model doesn't know yet how important Area is compared to Rooms or Age. So it invents three unknown numbers — <strong>weights</strong> — one per feature:</p>
+<div class="matrix-row">
+<div class="matrix">
+<div class="label">w (3 × 1)</div>
+<table>
+<tr><td>w1</td></tr>
+<tr><td>w2</td></tr>
+<tr><td>w3</td></tr>
+</table>
+</div>
+</div>
+<p><strong>w1</strong> tells you how much Area matters, <strong>w2</strong> how much Rooms matter, <strong>w3</strong> how much Age matters. Training a model literally means <em>searching for good values of w1, w2, w3</em>. Everything else in the pipeline exists to make that search possible.</p>
+
+<h3>3. Matrix multiplication — one calculation, every house at once</h3>
+<div class="flow">
+<div class="step">X<br>(2×3)</div>
+<div class="op">×</div>
+<div class="step">w<br>(3×1)</div>
+<div class="op">=</div>
+<div class="step">result<br>(2×1)</div>
+</div>
+
+<table>
+<tr><th colspan="3">X</th><th></th><th>w</th><th></th><th colspan="1">result</th></tr>
+<tr>
+<td>120</td><td>3</td><td>10</td>
+<td class="arrow" style="border:none;">·</td>
+<td>w1</td>
+<td class="arrow" style="border:none;">=</td>
+<td>120·w1 + 3·w2 + 10·w3</td>
+</tr>
+<tr>
+<td>85</td><td>2</td><td>20</td>
+<td class="arrow" style="border:none;"></td>
+<td>w2 / w3</td>
+<td class="arrow" style="border:none;"></td>
+<td>85·w1 + 2·w2 + 20·w3</td>
+</tr>
+</table>
+
+<div class="why">
+<h4>Why matrix multiplication instead of one house at a time?</h4>
+<ul>
+<li>Each row of X is multiplied against the <em>same</em> weight vector w, term-by-term, then summed. That row-by-row combining is exactly what "matrix multiplication" means.</li>
+<li>Doing this as ONE matrix multiplication computes the prediction for <strong>every house simultaneously</strong> — instead of writing a separate formula per house. With 1000 houses, this saves you from writing 1000 equations by hand.</li>
+</ul>
+</div>
+
+<h3>4. The final formula</h3>
+<div class="box" style="text-align:center; font-size:1.3rem; font-weight:700; color:var(--navy);">
+ŷ = Xw + b
+</div>
+<p>Read this as: <strong>"predicted price" = (features matrix) × (weights) + (bias).</strong></p>
+<ul>
+<li><code>ŷ</code> ("y_hat") means <em>the model's prediction</em>, not the true answer.</li>
+<li><code>b</code> is a "bias" — one extra number added to every prediction, like a baseline starting price before features adjust it.</li>
+<li>This single formula, once w and b are learned, gives you the prediction for House 1, House 2, House 3... all houses, all at once.</li>
+</ul>
+
+<div class="callout-q">This is why matrices matter: the entire "engine" of linear regression is one multiplication. Every model you'll study later (logistic regression, neural networks) is a variation on this same X·w + b pattern, repeated and stacked.</div>
+
+<hr class="divider">
+
+<h2 id="s5">5. The Dot Product — Turning Many Numbers Into One Score</h2>
+<p>The dot product is the actual arithmetic operation happening inside <code>X·w</code> above, for a single row. It's worth isolating and understanding on its own.</p>
+
+<table>
+<tr><th>Feature</th><th>House value</th><th>Model weight</th><th>Meaning</th></tr>
+<tr><td>Area</td><td>120</td><td class="highlight">High</td><td>Important</td></tr>
+<tr><td>Rooms</td><td>3</td><td>Medium</td><td>Useful</td></tr>
+<tr><td>Age</td><td>10</td><td>Low</td><td>Less important</td></tr>
+</table>
+
+<div class="box" style="text-align:center; font-weight:600;">
+dot product = feature1·weight1 + feature2·weight2 + feature3·weight3
+</div>
+
+<p><strong>In plain words:</strong> you multiply each feature by how important it is, then add all those contributions into a single number. That single number is the model's overall "score" or prediction for that one row.</p>
+
+<div class="why">
+<h4>Why the dot product is everywhere in ML</h4>
+<ul>
+<li>It combines many feature values into one meaningful score.</li>
+<li>Linear regression uses it directly to make predictions (as you just saw).</li>
+<li>Recommendation systems use it to measure how similar two items or two people's preferences are.</li>
+<li>Neural networks use a dot product inside <em>every single neuron</em>, in every layer. If you understand the dot product now, a huge part of "how neural networks work" later becomes just repetition of this same idea.</li>
+</ul>
+</div>
+
+<div class="example">
+<h4>Worked example</h4>
+<p>Using Area=120, Rooms=3, Age=10 and imagined weights w1=0.01, w2=0.05, w3=-0.02:</p>
+<p><code>dot product = 120×0.01 + 3×0.05 + 10×(-0.02) = 1.2 + 0.15 - 0.2 = 1.15</code></p>
+<p>That 1.15 (after scaling and adding bias) becomes the predicted price contribution.</p>
+</div>
+
+<hr class="divider">
+
+<h2 id="s6">6. The Cross Product — a Different Tool for a Different Job</h2>
+<p>Don't confuse this with the dot product — they answer different questions and produce different kinds of results.</p>
+
+<div class="matrix-row">
+<div class="matrix"><div class="label">a</div><table><tr><td>2</td></tr><tr><td>1</td></tr><tr><td>0</td></tr></table></div>
+<div class="matrix"><div class="label">b</div><table><tr><td>0</td></tr><tr><td>1</td></tr><tr><td>0</td></tr></table></div>
+<div class="matrix"><div class="label">a × b</div><table><tr><td>0</td></tr><tr><td>0</td></tr><tr><td>2</td></tr></table></div>
+</div>
+
+<div class="box">
+<strong>Dot product</strong> → gives you <strong>one number</strong> (a score, "how much do these two things align").<br>
+<strong>Cross product</strong> → gives you <strong>a new vector</strong>, one that points perpendicular (at a right angle) to the two original vectors.
+</div>
+
+<div class="why">
+<h4>Where the cross product is used</h4>
+<ul>
+<li>3D geometry and computer graphics.</li>
+<li>Computer vision and camera direction.</li>
+<li>Robotics and movement in 3D space.</li>
+<li>Finding surface direction in images or 3D objects (e.g., which way a surface is "facing").</li>
+</ul>
+</div>
+
+<p><strong>Important note from the slide:</strong> the dot product is used constantly in basic ML (regression, classification, neural nets). The cross product only shows up when your data genuinely has a 3D spatial/directional meaning — so for most of this course, you'll lean on the dot product far more.</p>
+
+<hr class="divider">
+
+<h2 id="s7">7. Shape — The Size of Your Data</h2>
+<div class="box" style="text-align:center; font-size:1.2rem; font-weight:700; color:var(--navy);">
+shape = rows × columns
+</div>
+
+<div class="matrix">
+<table>
+<tr><td>7</td><td>8</td><td>6</td><td>9</td></tr>
+<tr><td>4</td><td>5</td><td>3</td><td>6</td></tr>
+<tr><td>9</td><td>7</td><td>8</td><td>8</td></tr>
+</table>
+</div>
+<p style="text-align:center;">This matrix has shape <strong>3 × 4</strong> (3 rows, 4 columns).</p>
+
+<div class="example">
+<h4>Real-world reading of shape</h4>
+<p><strong>House features → 1000 × 5</strong> means: 1000 houses (samples), 5 features per house (like Area, Rooms, Age, Location, Year Built).</p>
+</div>
+
+<div class="why">
+<h4>Why shape matters so much</h4>
+<ul>
+<li>Before you multiply two matrices (like X·w earlier), their shapes must be <em>compatible</em> — the number of columns in X must match the number of rows in w. Shape mismatches are the #1 cause of NumPy errors you'll hit later.</li>
+<li>Shape tells you instantly how much data you have and how many features describe each sample — critical for planning training time, memory, and model design.</li>
+</ul>
+</div>
+
+<hr class="divider">
+
+<h2 id="s8">8. Rows Are Samples, Columns Are Features (Applied Again)</h2>
+<table>
+<tr><th>House</th><th>Area</th><th>Rooms</th><th>Age</th><th>Price</th></tr>
+<tr><td>House 1</td><td>120</td><td>3</td><td>10</td><td class="highlight">1.8M</td></tr>
+<tr><td>House 2</td><td>85</td><td>2</td><td>20</td><td>1.1M</td></tr>
+<tr><td>House 3</td><td>160</td><td>4</td><td>5</td><td class="highlight">2.7M</td></tr>
+</table>
+
+<div class="why">
+<h4>Effect on the model</h4>
+<ul>
+<li>The model uses the feature columns (Area, Rooms, Age) to predict the target column (Price).</li>
+<li>Area, Rooms, and Age genuinely help predict price — bigger area and more rooms generally correlate with higher price, while more age often correlates with lower price.</li>
+<li><strong>If a feature isn't actually useful, it adds noise</strong> — it doesn't help the model and can even make training less stable, because the model wastes effort trying to find a pattern that doesn't exist.</li>
+</ul>
+</div>
+
+<p>This reinforces slide 1's big idea but now you can see it fully connected to the matrix machinery: this table's Area/Rooms/Age columns literally become the X matrix, and Price becomes y — exactly the ingredients for <code>ŷ = Xw + b</code>.</p>
+
+<hr class="divider">
+
+<h2 id="s9">9. Scalar, Vector, Matrix, Tensor — The Full Family</h2>
+<p>These four words describe increasing levels of "how many numbers, arranged how."</p>
+
+<table>
+<tr><th>Name</th><th>Simple meaning</th><th>Easy ML example</th><th>Effect on model</th></tr>
+<tr><td><strong>Scalar</strong></td><td>One single number</td><td>Accuracy = 92%</td><td>One result used to evaluate the model</td></tr>
+<tr><td><strong>Vector</strong></td><td>One list of numbers</td><td>One house: [area, rooms, age]</td><td>One sample goes into the model</td></tr>
+<tr><td><strong>Matrix</strong></td><td>A table (rows × columns)</td><td>All houses in the dataset</td><td>Many samples train the model at once</td></tr>
+<tr><td><strong>Tensor</strong></td><td>Many dimensions (stacked matrices)</td><td>Many color images</td><td>Used throughout deep learning</td></tr>
+</table>
+
+<div class="box">
+<strong>Think of it as zooming out, one level at a time:</strong><br>
+scalar (1 number) → vector (a row of numbers) → matrix (rows of vectors, a full table) → tensor (a stack of matrices, e.g. many tables at once, or a table with an extra dimension like color channels in an image).
+</div>
+
+<div class="example">
+<h4>Concrete comparison</h4>
+<ul>
+<li><strong>Scalar:</strong> "the temperature is 25" — just one number.</li>
+<li><strong>Vector:</strong> "today's weather = [25°C, 60% humidity, 10km/h wind]" — one row describing one day.</li>
+<li><strong>Matrix:</strong> a whole week of weather, one row per day — 7 rows × 3 columns.</li>
+<li><strong>Tensor:</strong> a whole year of weather for 12 different cities — now you have day × feature × city, a 3-dimensional block of numbers.</li>
+</ul>
+</div>
+
+<hr class="divider">
+
+<h2 id="s10">10. Images Are Also Numbers</h2>
+<p>This is one of the most important "aha" moments in ML: a picture, to a computer, is nothing but a matrix (or tensor, for color) of numbers.</p>
+
+<div class="matrix">
+<table>
+<tr><td style="background:#111;color:#fff;">12</td><td style="background:#333;color:#fff;">45</td><td style="background:#555;color:#fff;">80</td><td style="background:#888;color:#fff;">130</td><td style="background:#bbb;">190</td></tr>
+<tr><td style="background:#1a1a1a;color:#fff;">30</td><td style="background:#3c3c3c;color:#fff;">60</td><td style="background:#606060;color:#fff;">115</td><td style="background:#999;color:#fff;">170</td><td style="background:#ccc;">220</td></tr>
+<tr><td style="background:#0a0a0a;color:#fff;">8</td><td style="background:#282828;color:#fff;">40</td><td style="background:#4a4a4a;color:#fff;">100</td><td style="background:#787878;color:#fff;">150</td><td style="background:#dcdcdc;">240</td></tr>
+</table>
+</div>
+<p class="note" style="text-align:center;">Each pixel has a number. Dark cells = small numbers (close to 0 = black). Light cells = large numbers (close to 255 = white).</p>
+
+<div class="why">
+<h4>Effect on the model</h4>
+<ul>
+<li>The model doesn't "see" the picture the way you do — it just sees a matrix of pixel intensity values.</li>
+<li>A grayscale image is a single 2D matrix. A color image is a <strong>tensor</strong> — typically 3 stacked matrices, one each for Red, Green, and Blue channels.</li>
+<li>Changing pixel values (brightness, contrast, noise) directly changes what patterns the model can learn — this is why image preprocessing (normalizing pixel values, resizing) matters so much in computer vision.</li>
+</ul>
+</div>
+
+<p>This connects directly back to the <code>ŷ = Xw + b</code> formula: even in image-based models, at some point the pixel matrix gets flattened or processed and multiplied by learned weights — same underlying mechanism, applied to a much bigger matrix.</p>
+
+<hr class="divider">
+
+<h2 id="s11">11. Indexing — Choosing Part of the Data</h2>
+<table>
+<tr><th>Student</th><th>Age</th><th>Hours</th><th>Grade</th></tr>
+<tr><td>Ahmed</td><td>21</td><td class="highlight">8</td><td>Pass</td></tr>
+<tr><td>Mona</td><td>22</td><td class="highlight">3</td><td>Fail</td></tr>
+<tr><td>Omar</td><td>20</td><td class="highlight">6</td><td>Pass</td></tr>
+</table>
+
+<div class="box">
+<strong>Indexing = picking a specific slice of your matrix</strong> instead of using the whole thing at once.
+<ul>
+<li><strong>Choose one row</strong> → picks out one student entirely (all their features).</li>
+<li><strong>Choose one column</strong> → picks out just "study hours" for every student.</li>
+<li><strong>Choose many rows</strong> → e.g. "give me only the training rows."</li>
+</ul>
+</div>
+
+<div class="why">
+<h4>Why indexing matters</h4>
+<p>You almost never use 100% of your data for one single purpose. You constantly need to pull out subsets: one column to analyze, a batch of rows to train on, a single row to test a prediction. Indexing is the tool that lets you do that precisely and efficiently, without physically copying or retyping data.</p>
+</div>
+
+<hr class="divider">
+
+<h2 id="s12">12. Train and Test — Indexing Applied to Splitting Data</h2>
+<div class="flow">
+<div class="step">Training data<br>(model learns here)</div>
+<div class="op">+</div>
+<div class="step">Testing data<br>(we check honesty here)</div>
+</div>
+
+<table>
+<tr><th>Rows</th><th>Use</th><th>Why</th></tr>
+<tr><td class="highlight" style="background:var(--good);">1 to 800</td><td>Train</td><td>Model learns patterns</td></tr>
+<tr><td class="highlight">801 to 1000</td><td>Test</td><td>We measure real performance</td></tr>
+</table>
+
+<div class="why">
+<h4>Why we never train and test on the same rows</h4>
+<ul>
+<li><strong>Training data:</strong> the model adjusts its weights (w) by looking at these rows repeatedly. Usually the larger chunk — e.g., the first 80% of rows.</li>
+<li><strong>Testing data:</strong> held back completely during training, used only afterward to check whether the model actually learned general patterns — or just memorized the training examples.</li>
+<li>If you tested on the same data you trained on, the model could score perfectly just by "memorizing," giving you a false sense that it works well on new, unseen houses/students/images.</li>
+</ul>
+</div>
+<p>This split is done entirely through <strong>indexing</strong>: <code>X[0:800]</code> for training, <code>X[800:1000]</code> for testing — this is literally the exact indexing concept from the previous slide, applied at scale.</p>
+
+<hr class="divider">
+
+<h2 id="s13">13. Element-Wise Operations — Same Operation, Every Cell</h2>
+<table>
+<tr><th>Employee</th><th>Salary</th></tr>
+<tr><td>Ahmed</td><td>18000</td></tr>
+<tr><td>Mona</td><td>25000</td></tr>
+<tr><td>Omar</td><td>32000</td></tr>
+</table>
+<div style="text-align:center; font-size:1.4rem; color:var(--navy); font-weight:700;">× 0.00001</div>
+<table>
+<tr><th>Employee</th><th>ScaledSalary</th></tr>
+<tr><td>Ahmed</td><td class="highlight">0.18</td></tr>
+<tr><td>Mona</td><td class="highlight">0.25</td></tr>
+<tr><td>Omar</td><td class="highlight">0.32</td></tr>
+</table>
+
+<div class="why">
+<h4>Effect on the model</h4>
+<ul>
+<li>"Element-wise" means the same operation is applied to every single cell independently — no cell affects another.</li>
+<li>Scaling salary from thousands down to a 0–1-ish range makes the numbers easier for a model to handle (large raw numbers like 32000 can dominate calculations and slow down or destabilize training).</li>
+<li>The relative pattern between employees stays exactly the same — just smaller, easier numbers.</li>
+<li>NumPy can multiply an entire column at once with one instruction — no loop needed, which is both faster and much less code.</li>
+</ul>
+</div>
+
+<hr class="divider">
+
+<h2 id="s14">14. Broadcasting — Using One Value Across Many Rows</h2>
+<table>
+<tr><th>Student</th><th>Score</th><th>ClassMean</th><th>Score − Mean</th></tr>
+<tr><td>Ahmed</td><td>90</td><td class="highlight">75</td><td>15</td></tr>
+<tr><td>Mona</td><td>60</td><td class="highlight">75</td><td>-15</td></tr>
+<tr><td>Omar</td><td>75</td><td class="highlight">75</td><td>0</td></tr>
+</table>
+
+<div class="box">
+<strong>Broadcasting</strong> = applying one single value against many values, without physically writing that value out over and over.
+</div>
+
+<div class="why">
+<h4>Why broadcasting is useful</h4>
+<ul>
+<li>Here, "75" (the class mean) is one number, but it needs to be subtracted from every student's score.</li>
+<li>NumPy automatically "stretches" (broadcasts) that single value across the whole column logically — you never manually type 75 three times.</li>
+<li>This is exactly how you'd center data before many ML algorithms (subtracting the mean is a very common preprocessing step).</li>
+</ul>
+</div>
+
+<hr class="divider">
+
+<h2 id="s15">15. Transpose — Flipping Rows Into Columns</h2>
+<div class="matrix-row">
+<div class="matrix">
+<div class="label">Original (Samples × Features)</div>
+<table>
+<tr><th></th><th>Feature 1</th><th>Feature 2</th></tr>
+<tr><th>Sample 1</th><td>5</td><td>9</td></tr>
+<tr><th>Sample 2</th><td>7</td><td>4</td></tr>
+</table>
+</div>
+<div class="arrow">→</div>
+<div class="matrix">
+<div class="label">Transposed (Features × Samples)</div>
+<table>
+<tr><th></th><th>Sample 1</th><th>Sample 2</th></tr>
+<tr><th>Feature 1</th><td>5</td><td>7</td></tr>
+<tr><th>Feature 2</th><td>9</td><td>4</td></tr>
+</table>
+</div>
+</div>
+
+<div class="why">
+<h4>Why transpose matters</h4>
+<ul>
+<li>Sometimes a formula or a function needs the data oriented the "other way" — features as rows instead of samples as rows.</li>
+<li>Transpose is essential for making shapes <em>match</em> before matrix multiplication — remember from Section 4 that the inner dimensions of two matrices must line up. If they don't, transposing one of them often fixes it.</li>
+</ul>
+</div>
+<p>Notation: transpose is written with a small <code>T</code> — X<sup>T</sup> means "X, flipped."</p>
+
+<hr class="divider">
+
+<h2 id="s16">16. Transpose in Use — Comparing Features to Each Other</h2>
+<table>
+<tr><th>House</th><th>Area</th><th>Rooms</th><th>Age</th></tr>
+<tr><td>House 1</td><td>120</td><td>3</td><td>10</td></tr>
+<tr><td>House 2</td><td>85</td><td>2</td><td>20</td></tr>
+<tr><td>House 3</td><td>160</td><td>4</td><td>5</td></tr>
+</table>
+
+<div class="callout-q">Question this answers: Is area related to rooms? Is age related to price? Which features tend to move together?</div>
+
+<div class="box">
+<strong>What transpose does here:</strong> X has rows as houses. X<sup>T</sup> flips the view so that rows become features instead.<br>
+<strong>Why it helps:</strong> multiplying X<sup>T</sup> by X compares <em>every feature against every other feature</em> — this is exactly how you build a correlation matrix (next section).
+</div>
+
+<hr class="divider">
+
+<h2 id="s17">17. Correlation Heatmap — Which Features Move Together</h2>
+<table>
+<tr><th></th><th>Area</th><th>Rooms</th><th>Age</th></tr>
+<tr><th>Area</th><td class="highlight">1.00</td><td class="highlight">0.92</td><td>-0.30</td></tr>
+<tr><th>Rooms</th><td class="highlight">0.92</td><td class="highlight">1.00</td><td>-0.20</td></tr>
+<tr><th>Age</th><td>-0.30</td><td>-0.20</td><td class="highlight">1.00</td></tr>
+</table>
+
+<div class="why">
+<h4>How to read it</h4>
+<ul>
+<li>A big <strong>positive</strong> value (close to +1.00) → strong relationship, both features increase together (Area and Rooms: 0.92, very strongly related — makes sense, bigger houses tend to have more rooms).</li>
+<li>A small value (close to 0) → weak relationship.</li>
+<li>A <strong>negative</strong> value → one feature goes up while the other goes down (Area and Age: -0.30, meaning newer houses tend to be slightly larger, in this made-up data).</li>
+<li>The diagonal is always 1.00 — every feature is perfectly related to itself.</li>
+</ul>
+</div>
+
+<div class="why">
+<h4>Why this helps the model</h4>
+<ul>
+<li>You learn which features are connected before you even start training.</li>
+<li>You can detect <strong>redundant information</strong> — if two features are almost perfectly correlated (like Area and Rooms here), you may only need one of them; keeping both adds little value and can sometimes cause instability in certain models.</li>
+</ul>
+</div>
+
+<hr class="divider">
+
+<h2 id="s18">18. Special Matrices — Reusable Building Blocks</h2>
+<div class="matrix-row">
+<div class="matrix">
+<div class="label">Zero Matrix</div>
+<table><tr><td>0</td><td>0</td></tr><tr><td>0</td><td>0</td></tr></table>
+<p class="note">Use it to start empty predictions, counts, masks, or sums.</p>
+</div>
+<div class="matrix">
+<div class="label">Identity Matrix</div>
+<table><tr><td class="highlight">1</td><td>0</td></tr><tr><td>0</td><td class="highlight">1</td></tr></table>
+<p class="note">Use it when you need a matrix that keeps other values unchanged when multiplied.</p>
+</div>
+<div class="matrix">
+<div class="label">Diagonal Matrix</div>
+<table><tr><td class="highlight">2</td><td>0</td></tr><tr><td>0</td><td class="highlight">5</td></tr></table>
+<p class="note">Use it to scale each feature by its own individual value.</p>
+</div>
+</div>
+
+<div class="box">
+Think of these as "starter templates," the same way you might reach for a blank spreadsheet (zero matrix), a "do nothing, just pass through" template (identity matrix), or a per-column scaling sheet (diagonal matrix).
+</div>
+
+<hr class="divider">
+
+<h2 id="s19">19. Data Types — Why NumPy Needs to Know What Kind of Number You Have</h2>
+<table>
+<tr><th>Column</th><th>Good type</th><th>Bad problem</th><th>Effect on model</th></tr>
+<tr><td>Age</td><td class="highlight">integer</td><td>Stored as text ("21" instead of 21)</td><td>Cannot calculate correctly</td></tr>
+<tr><td>Price</td><td class="highlight">float</td><td>Mixed with words ("1.8M")</td><td>Training may fail</td></tr>
+<tr><td>Passed?</td><td class="highlight">boolean</td><td>Many spellings ("yes", "Y", "true")</td><td>Labels become unclear</td></tr>
+</table>
+
+<div class="box" style="text-align:center; font-weight:700; color:var(--navy);">
+Simple rule: Clean types make clean calculations.
+</div>
+<p>If "Age" is accidentally stored as text (like the string <code>"21"</code> instead of the number <code>21</code>), NumPy can't do math on it — you'd get an error or nonsense results. This is why data cleaning (converting columns to the correct type) always comes before feeding data into NumPy arrays or models.</p>
+
+<hr class="divider">
+
+<h2 id="s20">20. Why Not Just Use Python Lists?</h2>
+<table>
+<tr><th>Python list</th><th>NumPy array</th></tr>
+<tr><td>Good for general-purpose Python</td><td>Built specifically for numeric data</td></tr>
+<tr><td>Can hold mixed data types together</td><td>Fast, even with very large datasets</td></tr>
+<tr><td>Slow for many numeric operations</td><td>Has a clear shape, dtype, and axes</td></tr>
+<tr><td>Shape is not clearly defined</td><td>Used as the foundation of nearly every ML library</td></tr>
+</table>
+
+<div class="why">
+<h4>NumPy makes ML work faster and clearer</h4>
+<ol>
+<li><strong>Speed</strong> — NumPy operations run in optimized, compiled code under the hood, dramatically faster than looping through a Python list by hand.</li>
+<li><strong>Simple code</strong> — one line (<code>X * 0.00001</code>) replaces a manual loop over every row and column.</li>
+<li><strong>ML foundation</strong> — every major ML/DL library (scikit-learn, TensorFlow, PyTorch) is built around the same array/matrix ideas NumPy uses. Everything you learned today — shape, indexing, broadcasting, dot product, transpose — transfers directly.</li>
+</ol>
+</div>
+
+<hr class="divider">
+
+<h2 id="s21">21. Now NumPy Makes Sense</h2>
+<p>Every concept above is preparation for one purpose: so that when you open NumPy and see functions like <code>.shape</code>, <code>.dot()</code>, <code>.T</code>, or slicing like <code>X[0:800]</code>, none of it feels new — it's just a Python name attached to an idea you already understand.</p>
+
+<div class="box">
+<strong>Quick mental map — concept → NumPy tool you'll meet next:</strong>
+<ul>
+<li>Matrix → <code>numpy.array()</code></li>
+<li>Shape → <code>.shape</code></li>
+<li>Indexing → <code>X[row, column]</code> or slicing <code>X[0:800]</code></li>
+<li>Element-wise operations & broadcasting → <code>X * 0.00001</code>, <code>score - mean</code></li>
+<li>Dot product → <code>np.dot(X, w)</code> or <code>X @ w</code></li>
+<li>Transpose → <code>X.T</code></li>
+<li>Zero / Identity / Diagonal → <code>np.zeros()</code>, <code>np.eye()</code>, <code>np.diag()</code></li>
+</ul>
+</div>
+
+<div class="footer-note">
+We are ready for arrays, shape, indexing, broadcasting, aggregation, and vectorized calculation — the next session builds directly on everything above.
+</div>
+
+</body>
+</html>
