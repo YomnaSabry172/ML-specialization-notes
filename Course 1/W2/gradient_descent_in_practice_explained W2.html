@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gradient Descent in Practice</title>
+<style>
+  :root{
+    --bg:#faf9f7; --card:#fff; --ink:#1f2328; --sub:#5b6470;
+    --accent:#2563eb; --accent2:#d97706; --good:#0f766e; --line:#e5e7eb;
+  }
+  body{font-family:'Georgia','Segoe UI',serif;background:var(--bg);color:var(--ink);
+    max-width:900px;margin:0 auto;padding:40px 24px 100px;line-height:1.65;}
+  h1{font-size:1.9em;border-bottom:3px solid var(--accent);padding-bottom:12px;}
+  h2{margin-top:2.6em;color:var(--accent);font-size:1.4em;border-top:1px solid var(--line);padding-top:1em;}
+  h3{color:var(--accent2);margin-top:1.6em;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:20px 24px;margin:18px 0;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+  .why{background:#fff7ed;border-left:5px solid var(--accent2);padding:14px 18px;
+    margin:16px 0;border-radius:0 8px 8px 0;}
+  .why strong{color:var(--accent2);}
+  .formula{background:#f1f5f9;border-radius:8px;padding:14px 18px;text-align:center;
+    font-size:1.1em;margin:14px 0;overflow-x:auto;}
+  code,.mono{font-family:'Consolas',monospace;background:#f1f5f9;padding:1px 6px;
+    border-radius:4px;font-size:0.95em;}
+  table{width:100%;border-collapse:collapse;margin:16px 0;}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top;}
+  th{background:#eef2ff;color:var(--accent);}
+  .toc{background:#f1f5f9;border-radius:8px;padding:16px 24px;}
+  .toc a{color:var(--accent);text-decoration:none;}
+  .badge{display:inline-block;background:var(--good);color:white;font-size:0.75em;
+    padding:2px 10px;border-radius:12px;margin-left:8px;}
+  .src{font-size:0.85em;color:var(--sub);}
+  svg{max-width:100%;background:#fff;border-radius:8px;}
+  hr{border:none;border-top:1px solid var(--line);margin:2.4em 0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<h1>Gradient Descent in Practice</h1>
+<p class="mono" style="color:var(--sub)">Course 1, Week 2 — Feature Scaling → Convergence → Learning Rate → Feature Engineering → Polynomial Regression</p>
+
+<div class="toc">
+  <strong>On this page</strong><br>
+  1. <a href="#scaling">Feature scaling — why & how (3 methods)</a><br>
+  2. <a href="#convergence">Checking gradient descent for convergence</a><br>
+  3. <a href="#alpha">Choosing the learning rate</a><br>
+  4. <a href="#lab03">Lab03 code: scaling + learning rate together</a><br>
+  5. <a href="#engineering">Feature engineering</a><br>
+  6. <a href="#poly">Polynomial regression + Lab04 code</a><br>
+  7. <a href="#summary">One-paragraph summary of the whole week</a>
+</div>
+
+<h2 id="scaling">1. Feature scaling — why & how</h2>
+
+<h3>The problem</h3>
+<p>Say you're predicting house price from <code>x1</code> = size (300–2000 sqft) and <code>x2</code> = bedrooms (0–5). Because <code>x1</code> is a much bigger number than <code>x2</code>, a *good* model ends up needing a *tiny* <code>w1</code> (like 0.1) and a *large* <code>w2</code> (like 50), just so both terms land in a sensible range when predicting price.</p>
+
+<div class="why">
+  <strong>Why does that break gradient descent?</strong><br>
+  Because <code>w1</code> gets multiplied by a huge number (up to 2000), even a tiny nudge to <code>w1</code> swings the cost a lot — the cost function is very sensitive to <code>w1</code>. <code>w2</code> gets multiplied by a small number (up to 5), so the cost is much less sensitive to it. Plotted as a contour map (rings = equal-cost levels, like elevation lines), this produces a tall, narrow, elongated bowl instead of a nice round one.
+</div>
+
+<div class="card">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <text x="150" y="20" font-size="14" fill="#1f2328" text-anchor="middle" font-weight="bold">Unscaled: narrow, skinny contours</text>
+  <g transform="translate(150,140)">
+    <ellipse cx="0" cy="0" rx="120" ry="30" fill="none" stroke="#2563eb" stroke-width="2"/>
+    <ellipse cx="0" cy="0" rx="80" ry="20" fill="none" stroke="#2563eb" stroke-width="2"/>
+    <ellipse cx="0" cy="0" rx="40" ry="10" fill="none" stroke="#2563eb" stroke-width="2"/>
+    <circle cx="-100" cy="20" r="4" fill="#d97706"/>
+    <path d="M -100 20 L -70 5 L -50 -2 L -20 2 L 0 0" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="4,3"/>
+  </g>
+  <text x="150" y="240" font-size="12" fill="var(--sub)" text-anchor="middle">Zig-zag path — slow convergence</text>
+
+  <text x="480" y="20" font-size="14" fill="#1f2328" text-anchor="middle" font-weight="bold">Scaled: round contours</text>
+  <g transform="translate(480,140)">
+    <circle cx="0" cy="0" r="80" fill="none" stroke="#0f766e" stroke-width="2"/>
+    <circle cx="0" cy="0" r="55" fill="none" stroke="#0f766e" stroke-width="2"/>
+    <circle cx="0" cy="0" r="28" fill="none" stroke="#0f766e" stroke-width="2"/>
+    <circle cx="-65" cy="45" r="4" fill="#d97706"/>
+    <path d="M -65 45 L 0 0" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="4,3"/>
+  </g>
+  <text x="480" y="240" font-size="12" fill="var(--sub)" text-anchor="middle">Straight path — fast convergence</text>
+</svg>
+</div>
+
+<p>Gradient descent takes steps roughly perpendicular to the contour lines. On the skinny bowl, that direction doesn't point at the center — so the path bounces back and forth (zig-zags) while making slow overall progress. On the round bowl, it heads almost straight for the minimum.</p>
+
+<h3>Three ways to scale</h3>
+<table>
+<tr><th>Method</th><th>Formula</th><th>Notes</th></tr>
+<tr><td><strong>Max (divide by max)</strong></td>
+    <td class="formula" style="margin:0">x' = x / x_max</td>
+    <td>Simplest. Result lands in (0, 1] if all values ≥ 0.</td></tr>
+<tr><td><strong>Mean normalization</strong></td>
+    <td class="formula" style="margin:0">x' = (x − μ) / (x_max − x_min)</td>
+    <td>Centers data around 0; range roughly [−1, 1].</td></tr>
+<tr><td><strong>Z-score normalization</strong></td>
+    <td class="formula" style="margin:0">x' = (x − μ) / σ</td>
+    <td>μ = mean, σ = standard deviation. Most commonly used in practice (and in Lab03/Lab04).</td></tr>
+</table>
+
+<div class="why">
+  <strong>Rule of thumb:</strong> aim for each feature roughly in [−1, 1] (loosely — [−3, 3] or [−0.3, 0.3] are fine too). If a feature's range is already small (like [−2, 0.5]), scaling is optional. If it's huge (like [−100, 100]) or tiny (like [−0.001, 0.001]) compared to other features, scale it. There's almost never harm in scaling — when in doubt, do it.
+</div>
+
+<hr>
+
+<h2 id="convergence">2. Checking gradient descent for convergence</h2>
+<p>The tool: plot cost <code>J</code> (vertical axis) against <strong>iteration number</strong> (horizontal axis) — not against a parameter like <code>w</code>. This is called a <strong>learning curve</strong>.</p>
+
+<div class="card">
+<svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg">
+  <text x="160" y="18" font-size="13" font-weight="bold" text-anchor="middle">Healthy: J decreases every iteration</text>
+  <g transform="translate(60,30)">
+    <line x1="0" y1="0" x2="0" y2="170" stroke="#333"/>
+    <line x1="0" y1="170" x2="200" y2="170" stroke="#333"/>
+    <path d="M 0 10 C 40 60, 80 130, 200 160" fill="none" stroke="#0f766e" stroke-width="3"/>
+    <text x="-10" y="10" font-size="10" text-anchor="end">J</text>
+    <text x="200" y="185" font-size="10" text-anchor="middle">iterations</text>
+  </g>
+  <text x="480" y="18" font-size="13" font-weight="bold" text-anchor="middle">Unhealthy: α too large / bug</text>
+  <g transform="translate(380,30)">
+    <line x1="0" y1="0" x2="0" y2="170" stroke="#333"/>
+    <line x1="0" y1="170" x2="200" y2="170" stroke="#333"/>
+    <path d="M 0 100 L 30 40 L 60 130 L 90 20 L 120 150 L 150 10 L 180 160" fill="none" stroke="#dc2626" stroke-width="2.5"/>
+    <text x="-10" y="10" font-size="10" text-anchor="end">J</text>
+    <text x="200" y="185" font-size="10" text-anchor="middle">iterations</text>
+  </g>
+</svg>
+</div>
+
+<p><strong>Reading the curve:</strong> a flattening curve (e.g. barely moving after iteration ~300–400) signals gradient descent has more or less converged. The exact number of iterations needed varies enormously between problems — sometimes 30, sometimes 100,000 — which is exactly why you look at the curve instead of guessing a fixed number in advance.</p>
+
+<p><strong>Automatic convergence test:</strong> declare convergence if <code>J</code> drops by less than a small threshold <code>ε</code> (e.g. <code>0.001</code>) in one iteration. In practice, picking a good <code>ε</code> is fiddly, so eyeballing the learning curve is usually more reliable.</p>
+
+<div class="why">
+  <strong>Key debugging fact:</strong> with a small enough learning rate, J should decrease on <em>every single</em> iteration — no exceptions. If J ever goes up, either α is too large, or there's a bug (classic bug: writing <code>w = w + α·∂J/∂w</code> instead of <code>w = w − α·∂J/∂w</code>, which walks <em>away</em> from the minimum).
+</div>
+
+<hr>
+
+<h2 id="alpha">3. Choosing the learning rate α</h2>
+
+<div class="grid2">
+<div class="card">
+<svg viewBox="0 0 260 180" xmlns="http://www.w3.org/2000/svg">
+  <text x="130" y="16" font-size="12" font-weight="bold" text-anchor="middle">α too large — overshoots</text>
+  <path d="M 20 150 Q 130 20 240 150" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <circle cx="60" cy="90" r="4" fill="#dc2626"/>
+  <circle cx="190" cy="100" r="4" fill="#dc2626"/>
+  <circle cx="80" cy="55" r="4" fill="#dc2626"/>
+  <path d="M 60 90 L 190 100 L 80 55" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,3"/>
+</svg>
+</div>
+<div class="card">
+<svg viewBox="0 0 260 180" xmlns="http://www.w3.org/2000/svg">
+  <text x="130" y="16" font-size="12" font-weight="bold" text-anchor="middle">α good — steady descent</text>
+  <path d="M 20 150 Q 130 20 240 150" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <circle cx="50" cy="100" r="4" fill="#0f766e"/>
+  <circle cx="80" cy="65" r="4" fill="#0f766e"/>
+  <circle cx="110" cy="35" r="4" fill="#0f766e"/>
+  <circle cx="130" cy="20" r="4" fill="#0f766e"/>
+  <path d="M 50 100 L 80 65 L 110 35 L 130 20" fill="none" stroke="#0f766e" stroke-width="1.5" stroke-dasharray="3,3"/>
+</svg>
+</div>
+</div>
+
+<p>If α is too small, gradient descent works correctly but crawls — needs a huge number of iterations. If α is too large, each step can overshoot the minimum, causing J to bounce or even increase every iteration.</p>
+
+<h3>Practical search strategy</h3>
+<p>Try a range of values, each roughly 3× the previous: <code>0.001 → 0.003 → 0.01 → 0.03 → 0.1 → ...</code> Run gradient descent for just a handful of iterations at each, plot J vs. iterations, and find:</p>
+<ol>
+  <li>The largest α that's clearly <em>too</em> large (J bounces/increases)</li>
+  <li>The smallest α that's clearly too small (barely moves)</li>
+  <li>Pick close to the largest value that still decreases J rapidly <em>and consistently</em></li>
+</ol>
+
+<div class="why">
+  <strong>Debugging trick:</strong> set α to something extremely small on purpose. If J still doesn't decrease every iteration even then, the problem isn't α — it's a bug in the code (not a tuning issue).
+</div>
+
+<hr>
+
+<h2 id="lab03">4. Lab03 code: scaling + learning rate together</h2>
+<p>This lab runs the housing gradient descent from Lab02, but now with feature scaling applied, and demonstrates the effect of different α values directly.</p>
+
+<h3>Z-score normalization in code</h3>
+<div class="formula">μⱼ = mean of column j &nbsp;&nbsp; σⱼ = std of column j &nbsp;&nbsp; X_norm[:,j] = (X[:,j] − μⱼ) / σⱼ</div>
+<div class="formula">
+mu = np.mean(X, axis=0)<br>
+sigma = np.std(X, axis=0)<br>
+X_norm = (X − mu) / sigma
+</div>
+<p><code>axis=0</code> means "compute the mean/std down each column" — i.e., per feature, across all m examples — matching the formula's per-feature μⱼ, σⱼ.</p>
+
+<h3>Effect observed in the lab</h3>
+<table>
+<tr><th>Setup</th><th>Result</th></tr>
+<tr><td>Raw features, small α (e.g. <code>9.9e-7</code>)</td><td>Extremely slow convergence — matches Section 1's "skinny bowl" problem</td></tr>
+<tr><td>Raw features, larger α</td><td>Cost diverges/oscillates — matches Section 3's "α too large"</td></tr>
+<tr><td>Z-score scaled features, α = <code>1.0e-1</code></td><td>Converges quickly and smoothly, much larger α tolerated safely</td></tr>
+</table>
+<div class="why">
+  <strong>Why scaling lets you use a much bigger α:</strong> once every feature is roughly the same scale, the cost function's contours are close to circular (Section 1), so a much larger step size stays stable without overshooting in any one direction.
+</div>
+
+<hr>
+
+<h2 id="engineering">5. Feature engineering</h2>
+<p><strong>Feature engineering</strong> = using domain knowledge to create new, more useful features from the ones you already have — usually by transforming or combining original features.</p>
+<p>Classic example: given lot <code>width (x1)</code> and <code>depth (x2)</code>, you might suspect the <em>area</em> matters more for price than width/depth separately. So engineer:</p>
+<div class="formula">x3 = x1 × x2 &nbsp;&nbsp;(area)</div>
+<div class="formula">f(x) = w1·x1 + w2·x2 + w3·x3 + b</div>
+<p>Gradient descent then decides — via the learned weights — whether width, depth, or area (or some mix) is actually most predictive. This one idea (engineering new features from existing ones) is also the gateway to fitting curves, not just straight lines — that's polynomial regression, next.</p>
+
+<hr>
+
+<h2 id="poly">6. Polynomial regression + Lab04, explained slowly</h2>
+
+<p>Let's start from the actual problem, not the terminology. Forget "polynomial regression" as a phrase for a second.</p>
+
+<h3>Step 1 — the problem in one picture</h3>
+<p>You have data that looks like a curve. A straight line, no matter how you rotate/shift it, can never bend to match a curve. That's it — that's the entire motivation.</p>
+
+<div class="card">
+<svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="150" y="18" font-size="13" font-weight="bold" text-anchor="middle">Straight line trying to fit a curve</text>
+  <g transform="translate(40,30)">
+    <line x1="0" y1="160" x2="220" y2="160" stroke="#333"/>
+    <line x1="0" y1="0" x2="0" y2="160" stroke="#333"/>
+    <!-- data points roughly y = x^2 -->
+    <circle cx="10" cy="155" r="3" fill="#d97706"/>
+    <circle cx="40" cy="145" r="3" fill="#d97706"/>
+    <circle cx="70" cy="120" r="3" fill="#d97706"/>
+    <circle cx="100" cy="90" r="3" fill="#d97706"/>
+    <circle cx="130" cy="55" r="3" fill="#d97706"/>
+    <circle cx="160" cy="30" r="3" fill="#d97706"/>
+    <circle cx="190" cy="8" r="3" fill="#d97706"/>
+    <!-- best fit straight line, clearly missing most points -->
+    <line x1="0" y1="150" x2="220" y2="15" stroke="#2563eb" stroke-width="2"/>
+  </g>
+  <text x="150" y="210" font-size="11" text-anchor="middle" fill="var(--sub)">blue line = best straight-line fit — misses almost every point</text>
+
+  <text x="480" y="18" font-size="13" font-weight="bold" text-anchor="middle">Curve fitted using x²</text>
+  <g transform="translate(370,30)">
+    <line x1="0" y1="160" x2="220" y2="160" stroke="#333"/>
+    <line x1="0" y1="0" x2="0" y2="160" stroke="#333"/>
+    <circle cx="10" cy="155" r="3" fill="#d97706"/>
+    <circle cx="40" cy="145" r="3" fill="#d97706"/>
+    <circle cx="70" cy="120" r="3" fill="#d97706"/>
+    <circle cx="100" cy="90" r="3" fill="#d97706"/>
+    <circle cx="130" cy="55" r="3" fill="#d97706"/>
+    <circle cx="160" cy="30" r="3" fill="#d97706"/>
+    <circle cx="190" cy="8" r="3" fill="#d97706"/>
+    <path d="M 10 158 Q 100 158 190 8" fill="none" stroke="#0f766e" stroke-width="2.5"/>
+  </g>
+  <text x="480" y="210" font-size="11" text-anchor="middle" fill="var(--sub)">green curve = fit using x² — passes right through the points</text>
+</svg>
+</div>
+
+<h3>Step 2 — the actual trick (this is the only idea in the whole topic)</h3>
+<p>Linear regression can only draw straight lines <em>with respect to whatever features you hand it</em>. So instead of changing the algorithm, we trick it: we hand it a new feature, <code>x²</code>, instead of (or alongside) <code>x</code>.</p>
+
+<div class="formula">Old model:&nbsp; f(x) = w·x + b &nbsp;&nbsp;&nbsp;→ always a straight line</div>
+<div class="formula">New model:&nbsp; f(x) = w1·x + w2·x² + b &nbsp;&nbsp;&nbsp;→ can bend into a curve</div>
+
+<div class="why">
+  <strong>Why does adding x² let a "straight-line algorithm" draw a curve?</strong><br>
+  Gradient descent doesn't know or care what <code>x</code> and <code>x²</code> "mean." It just sees two numbers per example and finds the best <code>w1, w2, b</code> to combine them. Since <code>x²</code> grows differently than <code>x</code> (1, 4, 9, 16, 25... instead of 1, 2, 3, 4, 5...), multiplying it by a weight and adding it in bends the output curve — even though, from the algorithm's point of view, it's still doing the exact same "weights times features, summed" computation as always. Nothing about gradient descent changed. We just gave it a more useful input.
+</div>
+
+<h3>Step 3 — why "linear" regression can still draw a curve (this is the confusing part)</h3>
+<p>"Linear" describes how the <strong>parameters</strong> (<code>w1, w2, b</code>) enter the formula — each one is just multiplied by something and added, never squared, never multiplied by each other. It says nothing about whether the resulting graph is a straight line.</p>
+
+<p>Look at the formula two different ways — once treating <code>x</code> as the variable, once treating <code>w</code> as the variable:</p>
+
+<div class="grid2">
+<div class="card">
+<strong>View 1 — is it linear in x?</strong>
+<div class="formula">f(x) = w1·x + w2·x² + b</div>
+<p>No. <code>x</code> appears squared. That's exactly what bends the graph into a curve when you plot <code>f</code> against <code>x</code>.</p>
+</div>
+<div class="card">
+<strong>View 2 — is it linear in w?</strong>
+<div class="formula">f(w1, w2) = x·w1 + x²·w2 + b</div>
+<p>Yes. Relabel <code>x</code> as "a" and <code>x²</code> as "c" (just numbers once you plug in a data point) — it's literally <code>a·w1 + c·w2 + b</code>. Just weights, multiplied by known numbers, added up. No <code>w²</code>, no <code>w1·w2</code>, nothing.</p>
+</div>
+</div>
+
+<p>Gradient descent's entire job is to search over <code>w1, w2, b</code> — it never touches <code>x</code>. So the question that actually matters for "is this linear regression" is View 2, not View 1. That's the whole trick, made concrete:</p>
+
+<table>
+<tr><th>x</th><th>x² (the engineered feature)</th><th>f = w1·x + w2·x² + b, with w1=1, w2=1, b=0</th></tr>
+<tr><td>1</td><td>1</td><td>1·1 + 1·1 = 2</td></tr>
+<tr><td>2</td><td>4</td><td>1·2 + 1·4 = 6</td></tr>
+<tr><td>3</td><td>9</td><td>1·3 + 1·9 = 12</td></tr>
+<tr><td>4</td><td>16</td><td>1·4 + 1·16 = 20</td></tr>
+</table>
+<p>Look at the output column: 2, 6, 12, 20 — the gaps between them (4, 6, 8) are growing, not constant. A straight line always has constant gaps. This growing-gap pattern is precisely what makes the plotted graph curve upward, even though every single step of computing it was just "multiply by a weight, add" — genuinely linear arithmetic in <code>w</code>.</p>
+
+<div class="why">
+  <strong>One-line version to remember:</strong> the algorithm (gradient descent, the update rule, the whole "machinery") only ever sees numbers times weights, summed — it's blind to the fact that one of those numbers happens to be another number squared. The curve is a side effect of what you fed in, not something the algorithm does differently.
+</div>
+
+<h3>Step 4 — quadratic vs. cubic (choosing how it bends), visually</h3>
+<p>Compare the two shapes directly, and the numbers behind them:</p>
+
+<table>
+<tr><th>x</th><th>x² (quadratic term)</th><th>x³ (cubic term)</th></tr>
+<tr><td>−2</td><td>4</td><td>−8</td></tr>
+<tr><td>−1</td><td>1</td><td>−1</td></tr>
+<tr><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>2</td><td>4</td><td>8</td></tr>
+</table>
+<p>Notice: <code>x²</code> is always positive (a negative x, once squared, still adds a positive number) — that's why a pure quadratic eventually curls back down on both ends, like a U or an upside-down U. <code>x³</code> keeps the sign of x — negative x stays negative, positive x stays positive — so a cubic term keeps pushing the curve in one consistent direction instead of curling back.</p>
+
+<div class="card">
+<svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="150" y="18" font-size="13" font-weight="bold" text-anchor="middle">Quadratic: curls back down</text>
+  <g transform="translate(40,25)">
+    <line x1="0" y1="170" x2="220" y2="170" stroke="#333"/>
+    <line x1="110" y1="0" x2="110" y2="170" stroke="#333"/>
+    <path d="M 10 160 Q 110 20 210 160" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+  </g>
+  <text x="150" y="210" font-size="11" text-anchor="middle" fill="var(--sub)">house price shouldn't do this as size grows</text>
+
+  <text x="480" y="18" font-size="13" font-weight="bold" text-anchor="middle">Cubic: keeps climbing</text>
+  <g transform="translate(370,25)">
+    <line x1="0" y1="170" x2="220" y2="170" stroke="#333"/>
+    <line x1="110" y1="0" x2="110" y2="170" stroke="#333"/>
+    <path d="M 10 160 C 80 165, 90 140, 110 100 C 130 60, 140 20, 210 8" fill="none" stroke="#0f766e" stroke-width="2.5"/>
+  </g>
+  <text x="480" y="210" font-size="11" text-anchor="middle" fill="var(--sub)">keeps rising — more plausible for price vs size</text>
+</svg>
+</div>
+
+<p>So the choice isn't arbitrary — you're picking a shape family based on which one won't produce nonsense predictions at the edges of your data (like a giant mansion predicted to cost less than a small house).</p>
+
+<h3>Step 5 — Lab04, cell by cell, in plain language</h3>
+
+<div class="why" style="background:#eef2ff;border-left-color:var(--accent);">
+<strong>What the lab is actually testing, in one sentence:</strong> "if I give gradient descent the right engineered feature, does it fit perfectly — and if I give it several features including a useless one, does it figure out on its own which one matters?"
+</div>
+
+<table>
+<tr><th>Cell</th><th>What's happening</th><th>What you should notice</th></tr>
+<tr>
+  <td><strong>Cell A</strong></td>
+  <td>Target is <code>y = 1 + x²</code> (a parabola). Model is only given plain <code>x</code>.<br><code class="mono">X = x.reshape(-1,1)</code></td>
+  <td>Bad fit — exactly like the left picture above. This is the "before" baseline.</td>
+</tr>
+<tr>
+  <td><strong>Cell B</strong></td>
+  <td>Same target. Now the feature is replaced with <code>x²</code> itself:<br><code class="mono">X = x**2</code></td>
+  <td>Near-perfect fit. The model learned <code>w ≈ 1</code>, meaning it found <code>f = 1·x² + b</code> — it basically rediscovered the true formula, because now it's genuinely a straight-line relationship (y vs. x², not y vs. x).</td>
+</tr>
+<tr>
+  <td><strong>Cell C</strong></td>
+  <td>Now target is <code>y = x²</code>, but the model is handed <em>three</em> features at once:<br><code class="mono">X = np.c_[x, x**2, x**3]</code><br>(<code>np.c_</code> just glues the three columns side by side into one matrix)</td>
+  <td>Only <code>x²</code> is actually needed. After training, its weight ends up much larger than the weights on <code>x</code> and <code>x³</code> — gradient descent quietly "figured out" which feature mattered by shrinking the useless ones toward zero, without being told which one was correct.</td>
+</tr>
+<tr>
+  <td><strong>Cell D</strong> (the 3-panel scatter plot)</td>
+  <td>Plots <code>y</code> against each engineered feature separately, side by side: y-vs-x, y-vs-x², y-vs-x³.</td>
+  <td>Only the y-vs-x² panel looks like a straight line. That's the visual proof for <em>why</em> gradient descent favored <code>x²</code> in Cell C — linear regression is always secretly looking for "which feature has a straight-line relationship with y," and x² is the one that does.</td>
+</tr>
+<tr>
+  <td><strong>Cell E</strong> (scaling)</td>
+  <td><code>x</code> ranges ~1–20, <code>x²</code> ranges ~1–400, <code>x³</code> ranges ~1–8000 — wildly different sizes. So before training, Z-score normalize:<br><code class="mono">X = zscore_normalize_features(X)</code></td>
+  <td>Exact same reasoning as Section 1 of this page (skinny bowl → round bowl). This is the direct payoff: once scaled, a much bigger learning rate (<code>alpha=1e-1</code> instead of tiny fractions) works without diverging, and training is far faster.</td>
+</tr>
+<tr>
+  <td><strong>Cell F</strong> (cos curve)</td>
+  <td>Target is now <code>y = cos(x/2)</code> — not even a polynomial. Features are <code>x, x², x³, ..., x¹³</code>, all Z-score scaled.</td>
+  <td>Just showing the ceiling of this trick: with enough engineered features and scaling, plain linear regression can approximate a fairly complex curve. Not something you'd do casually — it's here to show the range of what feature engineering can stretch to.</td>
+</tr>
+</table>
+
+<div class="why">
+  <strong>The one habit to take away from this whole lab:</strong> after engineering new features (especially powers), always check their ranges before training. If they differ a lot, scale — same rule as Section 1, just triggered by feature engineering instead of by naturally different units.
+</div>
+
+<hr>
+
+<h2 id="summary">7. One-paragraph summary of the whole week</h2>
+<p class="card">Multiple linear regression generalizes single-feature regression by bundling weights into a vector, letting the model and gradient descent be written compactly using dot products. When features have very different scales, gradient descent's cost surface becomes a narrow, skewed bowl and convergence gets slow or unstable — feature scaling (max-normalize, mean-normalize, or Z-score) fixes this by putting all features on comparable ranges. Plotting cost vs. iteration (a learning curve) is how you check whether gradient descent is actually converging and whether the learning rate α is well chosen — too small crawls, too large overshoots or diverges. Feature engineering — creating new features from existing ones, including powers like x² and x³ — lets this same linear-regression machinery fit curves instead of just straight lines (polynomial regression), with feature scaling becoming even more essential since engineered powers can have drastically different ranges.</p>
+
+<p class="src">Sources used beyond the lecture transcripts/labs: general definitions of Z-score normalization and standard deviation are standard statistics concepts (consistent with definitions on GeeksforGeeks/Wikipedia); no content was copied verbatim — all explanations above are written from scratch based on the course material you provided plus general ML knowledge.</p>
+
+</body>
+</html>

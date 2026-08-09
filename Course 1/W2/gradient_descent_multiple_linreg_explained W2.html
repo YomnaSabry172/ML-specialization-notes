@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gradient Descent for Multiple Linear Regression</title>
+<style>
+  :root{
+    --bg:#faf9f7;
+    --card:#ffffff;
+    --ink:#1f2328;
+    --sub:#5b6470;
+    --accent:#2563eb;
+    --accent2:#d97706;
+    --good:#0f766e;
+    --line:#e5e7eb;
+  }
+  body{
+    font-family: 'Georgia', 'Segoe UI', serif;
+    background:var(--bg);
+    color:var(--ink);
+    max-width:840px;
+    margin:0 auto;
+    padding:40px 24px 100px;
+    line-height:1.6;
+  }
+  h1{
+    font-size:1.9em;
+    border-bottom:3px solid var(--accent);
+    padding-bottom:12px;
+  }
+  h2{
+    margin-top:2.4em;
+    color:var(--accent);
+    font-size:1.35em;
+  }
+  h3{
+    color:var(--accent2);
+    margin-top:1.6em;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px 24px;
+    margin:18px 0;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .why{
+    background:#fff7ed;
+    border-left:5px solid var(--accent2);
+    padding:14px 18px;
+    margin:16px 0;
+    border-radius:0 8px 8px 0;
+  }
+  .why strong{ color:var(--accent2); }
+  .formula{
+    background:#f1f5f9;
+    border-radius:8px;
+    padding:14px 18px;
+    text-align:center;
+    font-size:1.15em;
+    margin:14px 0;
+    overflow-x:auto;
+  }
+  code, .mono{
+    font-family:'Consolas', monospace;
+    background:#f1f5f9;
+    padding:1px 6px;
+    border-radius:4px;
+    font-size:0.95em;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:16px 0;
+  }
+  th, td{
+    border:1px solid var(--line);
+    padding:10px 12px;
+    text-align:left;
+    vertical-align:top;
+  }
+  th{
+    background:#eef2ff;
+    color:var(--accent);
+  }
+  .step{
+    display:flex;
+    gap:14px;
+    margin:14px 0;
+    align-items:flex-start;
+  }
+  .step .num{
+    background:var(--accent);
+    color:white;
+    width:28px;
+    height:28px;
+    min-width:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    font-size:0.9em;
+  }
+  .toc{
+    background:#f1f5f9;
+    border-radius:8px;
+    padding:16px 24px;
+  }
+  .toc a{ color:var(--accent); text-decoration:none; }
+  .badge{
+    display:inline-block;
+    background:var(--good);
+    color:white;
+    font-size:0.75em;
+    padding:2px 10px;
+    border-radius:12px;
+    margin-left:8px;
+  }
+  hr{ border:none; border-top:1px solid var(--line); margin:2.4em 0; }
+</style>
+</head>
+<body>
+
+<h1>Gradient Descent for Multiple Linear Regression</h1>
+<p class="mono" style="color:var(--sub)">Course 1, Week 2 — after "multiple features" and "vectorization"</p>
+
+<div class="toc">
+  <strong>On this page</strong><br>
+  1. <a href="#recap">Where we're coming from</a><br>
+  2. <a href="#vector">Rewriting everything with vectors</a><br>
+  3. <a href="#gd">Gradient descent itself, one feature vs n features</a><br>
+  4. <a href="#normal">The normal equation (just a side note)</a><br>
+  5. <a href="#code">Lab02 code: same formulas, in NumPy</a><br>
+  6. <a href="#summary">One-paragraph summary</a>
+</div>
+
+<h2 id="recap">1. Where we're coming from</h2>
+<p>Back with <strong>one</strong> feature, the model was <code>f(x) = w·x + b</code>, with one <code>w</code> and one <code>b</code>. Now we have <strong>multiple</strong> features — say a house has size, number of bedrooms, age, etc. That means we need one weight per feature: <code>w₁, w₂, ..., wₙ</code>, plus the same single <code>b</code> as before.</p>
+
+<p>The model becomes:</p>
+<div class="formula">f(x) = w₁x₁ + w₂x₂ + ... + wₙxₙ + b</div>
+
+<p>That's fine, but writing out a long sum every time — for the model, for the cost function, for every gradient descent update — gets messy fast. That messiness is the actual problem this lesson solves.</p>
+
+<h2 id="vector">2. Rewriting everything with vectors</h2>
+
+<p>Instead of treating <code>w₁</code> through <code>wₙ</code> as <em>n separate numbers</em>, just line them up into one object:</p>
+
+<div class="formula">
+  <strong>w</strong> = [w₁&nbsp;&nbsp;w₂&nbsp;&nbsp;...&nbsp;&nbsp;wₙ] &nbsp;&nbsp;→&nbsp; a vector of length n
+</div>
+
+<p><code>b</code> stays exactly as it was — just one plain number, not part of the vector. Only the weights got bundled together, because there's one weight per feature, but only one bias for the whole model.</p>
+
+<div class="why">
+  <strong>Why bother bundling w₁...wₙ into one vector w?</strong><br>
+  Not for a new mathematical trick — it's a <em>notational compression</em>. It lets you write one version of the model/cost/gradient-descent formulas that automatically works whether you have 2 features or 200. And practically, it maps directly onto NumPy: <code>w</code> becomes a 1-D array, and operations on it become fast vectorized NumPy operations instead of slow Python loops (this is the "vectorization" part from the previous lab).
+</div>
+
+<h3>The model, in vector form</h3>
+<p>The long sum <code>w₁x₁ + w₂x₂ + ... + wₙxₙ</code> is literally the definition of a <strong>dot product</strong>. So:</p>
+<div class="formula">f(x) = w · x + b</div>
+<p>Same model. Just written compactly — the dot (<code>·</code>) silently does the "multiply matching elements, then add them all up" work for you.</p>
+
+<h3>The cost function, in vector form</h3>
+<table>
+  <tr><th>Before</th><th>Now</th></tr>
+  <tr><td><code>J(w₁, ..., wₙ, b)</code></td><td><code>J(w, b)</code></td></tr>
+</table>
+<p>Nothing changed about what the cost function computes. It's the exact same "how far off are my predictions" measure. Only the input list got replaced by a single vector.</p>
+
+<hr>
+
+<h2 id="gd">3. Gradient descent itself: one feature vs n features</h2>
+
+<p>This is the part worth slowing down on, because it's easy to think something new is happening here — it isn't. Compare side by side:</p>
+
+<table>
+  <tr><th>One feature</th><th>n features (n ≥ 2)</th></tr>
+  <tr>
+    <td class="formula">w = w − α · (1/m)Σ(f(x⁽ⁱ⁾) − y⁽ⁱ⁾)x⁽ⁱ⁾</td>
+    <td class="formula">wⱼ = wⱼ − α · (1/m)Σ(f(x⁽ⁱ⁾) − y⁽ⁱ⁾)xⱼ⁽ⁱ⁾ &nbsp;&nbsp;for j = 1...n</td>
+  </tr>
+  <tr>
+    <td class="formula">b = b − α · (1/m)Σ(f(x⁽ⁱ⁾) − y⁽ⁱ⁾)</td>
+    <td class="formula">b = b − α · (1/m)Σ(f(x⁽ⁱ⁾) − y⁽ⁱ⁾)</td>
+  </tr>
+</table>
+
+<p>Read the update rule for <code>w</code> piece by piece — it's the same recipe both times:</p>
+
+<div class="step"><div class="num">1</div><div><strong>Error term:</strong> <code>f(x⁽ⁱ⁾) − y⁽ⁱ⁾</code> — how wrong was the prediction for training example <em>i</em>. Same in both columns.</div></div>
+<div class="step"><div class="num">2</div><div><strong>Multiply by the matching feature value:</strong> single-feature version multiplies by <code>x⁽ⁱ⁾</code>; multi-feature version multiplies by <code>xⱼ⁽ⁱ⁾</code> — just feature <em>j</em> of example <em>i</em>, instead of "the one and only feature."</div></div>
+<div class="step"><div class="num">3</div><div><strong>Average over all m examples</strong> — the sum and the <code>1/m</code>, unchanged.</div></div>
+<div class="step"><div class="num">4</div><div><strong>Scale by the learning rate α and subtract</strong> — unchanged.</div></div>
+
+<p>The only real difference: with one feature you had <em>one</em> update rule for <em>the</em> weight. With n features, you have the <strong>same update rule repeated n times</strong> — once for each <code>wⱼ</code>, each time using that feature's own column of data (<code>xⱼ</code>) but the exact same error term. <code>b</code>'s update doesn't even change, since there's only ever one <code>b</code>.</p>
+
+<div class="why">
+  <strong>Why does the b update rule look identical, but w's split into n copies?</strong><br>
+  Because b affects the prediction the same way regardless of feature — it's just added on. But each wⱼ only touches its own feature xⱼ, so the "how much should this specific weight move" question is naturally a separate calculation per feature. That's really just calculus: the partial derivative of J with respect to wⱼ only involves xⱼ.
+</div>
+
+<p>All updates for <code>w₁ ... wₙ</code> and <code>b</code> happen <strong>simultaneously</strong> — you compute all the new values first using the old <code>w, b</code>, then update everything at once, not one after another using already-updated values.</p>
+
+<h3>Why this connects back to vectorization</h3>
+<p>Written with vector notation, the whole block of n update rules for <code>w₁...wₙ</code> collapses into one line:</p>
+<div class="formula">wⱼ = wⱼ − α · ∂/∂wⱼ J(w, b)</div>
+<p>and in code, that "loop over j = 1 to n" is exactly what NumPy's vectorized operations replace with one fast array operation — the payoff of the previous lab's speed comparison (<code>np.dot</code> vs. a manual Python <code>for</code> loop) is precisely why this matters in practice.</p>
+
+<hr>
+
+<h2 id="normal">4. The normal equation — a side note, not the main method</h2>
+<p>There's a second way to solve for <code>w</code> and <code>b</code> in linear regression specifically, called the <strong>normal equation</strong>: a direct linear-algebra solve, no iteration needed.</p>
+
+<div class="why">
+  <strong>Why not just always use the normal equation instead of gradient descent?</strong>
+  <ul style="margin:8px 0 0 18px;">
+    <li>It <strong>only</strong> works for linear regression — not logistic regression, not neural networks, not anything else you'll meet later.</li>
+    <li>It gets <strong>slow when the number of features is large</strong>.</li>
+    <li>You'll basically never implement it yourself — but some mature ML libraries may use it under the hood, so it's worth recognizing the term (including, e.g., in an interview).</li>
+  </ul>
+  Gradient descent is the general-purpose tool; the normal equation is a linear-regression-only shortcut.
+</div>
+
+<hr>
+
+<h2 id="code">5. Lab02 code: same formulas, in NumPy</h2>
+<p>Data: <code>X_train</code> shape <code>(m, n)</code> = 3 examples × 4 features (size, bedrooms, floors, age). <code>w</code> shape <code>(n,)</code>, <code>b</code> scalar.</p>
+
+<h3>Prediction — f(x) = w·x + b</h3>
+<div class="formula">f<sub>w,b</sub>(x) = w · x + b = w₀x₀ + w₁x₁ + ... + w<sub>n−1</sub>x<sub>n−1</sub> + b</div>
+<div class="formula">p = np.dot(x, w) + b</div>
+<p>Replaces a manual loop (<code>predict_single_loop</code>) that multiplies each <code>x[i]</code> by <code>w[i]</code> and sums. Same result, one line.</p>
+
+<h3>Cost — J(w, b)</h3>
+<div class="formula">J(w,b) = (1 / 2m) · Σ<sub>i=0</sub><sup>m−1</sup> ( f<sub>w,b</sub>(x⁽ⁱ⁾) − y⁽ⁱ⁾ )²</div>
+<div class="formula">
+for i in range(m):<br>
+&nbsp;&nbsp;f_wb_i = np.dot(X[i], w) + b<br>
+&nbsp;&nbsp;cost += (f_wb_i − y[i])**2<br>
+cost = cost / (2*m)
+</div>
+<p>This is the formula directly: loop over the <code>m</code> examples, still using the vectorized dot product per example.</p>
+
+<h3>Gradient — ∂J/∂wⱼ and ∂J/∂b</h3>
+<div class="formula">∂J(w,b)/∂wⱼ = (1/m) · Σ<sub>i=0</sub><sup>m−1</sup> ( f<sub>w,b</sub>(x⁽ⁱ⁾) − y⁽ⁱ⁾ ) xⱼ⁽ⁱ⁾</div>
+<div class="formula">∂J(w,b)/∂b = (1/m) · Σ<sub>i=0</sub><sup>m−1</sup> ( f<sub>w,b</sub>(x⁽ⁱ⁾) − y⁽ⁱ⁾ )</div>
+<div class="formula">
+for i in range(m):<br>
+&nbsp;&nbsp;err = np.dot(X[i], w) + b − y[i]<br>
+&nbsp;&nbsp;for j in range(n): dj_dw[j] += err * X[i, j]<br>
+&nbsp;&nbsp;dj_db += err<br>
+dj_dw /= m ; dj_db /= m
+</div>
+<p>This is exactly the <code>wⱼ</code>-repeated-n-times pattern from Section 3: outer loop over examples computes the error once, inner loop over features applies that same error to each <code>xⱼ</code>. <code>dj_db</code> needs no inner loop — one <code>b</code>, so it just accumulates.</p>
+
+<h3>Gradient descent loop</h3>
+<div class="formula">repeat until convergence: { wⱼ = wⱼ − α · ∂J(w,b)/∂wⱼ &nbsp; (for j = 0..n−1) &nbsp;&nbsp; b = b − α · ∂J(w,b)/∂b }</div>
+<div class="formula">
+dj_db, dj_dw = compute_gradient(X, y, w, b)<br>
+w = w − alpha * dj_dw&nbsp;&nbsp;&nbsp;# updates all n weights at once<br>
+b = b − alpha * dj_db
+</div>
+<p><code>w − alpha * dj_dw</code> is NumPy doing simultaneous update for free — subtracting two arrays updates every <code>wⱼ</code> in one line, no explicit loop needed at this level.</p>
+
+<div class="why">
+  <strong>Why the run in the lab looks bad (cost barely drops after 1000 iterations)</strong><br>
+  Size is in raw sqft (~2000) while bedrooms/floors are ~1-5 — wildly different scales. Gradient descent has to use a tiny learning rate (<code>5e-7</code>) to avoid diverging, which makes it crawl. Fixed next lab via feature scaling.
+</div>
+
+<hr>
+
+<h2 id="summary">6. One-paragraph summary</h2>
+<p class="card">Multiple linear regression just means one weight per feature instead of one weight total. Bundling <code>w₁...wₙ</code> into a single vector <code>w</code> doesn't change the math — it lets the model become <code>w·x + b</code> (a dot product) and lets gradient descent be written as one compact update rule instead of n separate ones. Under the hood, gradient descent with n features is literally the single-feature update rule, repeated once per feature, using that feature's own data column each time, while <code>b</code>'s rule stays exactly the same since there's only one of it. The normal equation is a separate, linear-regression-only alternative to gradient descent — good to recognize, not something you'll typically build yourself.</p>
+
+</body>
+</html>
