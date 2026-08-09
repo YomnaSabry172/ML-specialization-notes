@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 1 — Supervised ML: Regression & Classification</title>
+<style>
+  :root{
+    --bg:#12141a; --panel:#181b23; --panel2:#1f2330; --text:#e8e8ec; --dim:#9a9fb0;
+    --accent:#5fb3a3; --accent2:#e0a458; --line:#2a2f3d; --good:#5fb3a3; --bad:#d9707a;
+    --code:#232838;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Georgia','Iowan Old Style',serif;line-height:1.65;}
+  .wrap{display:flex;min-height:100vh;}
+  nav{width:270px;background:var(--panel);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 16px;flex-shrink:0;}
+  nav h1{font-size:16px;color:var(--accent2);letter-spacing:.03em;text-transform:uppercase;margin:0 0 18px;font-family:Helvetica,Arial,sans-serif;}
+  nav a{display:block;color:var(--dim);text-decoration:none;font-size:14px;padding:6px 8px;border-radius:6px;font-family:Helvetica,Arial,sans-serif;}
+  nav a.week{color:var(--text);font-weight:bold;margin-top:14px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;}
+  nav a:hover{background:var(--panel2);color:var(--accent);}
+  main{flex:1;max-width:880px;margin:0 auto;padding:50px 40px 120px;}
+  header.hero{margin-bottom:50px;border-bottom:1px solid var(--line);padding-bottom:30px;}
+  header.hero .eyebrow{font-family:Helvetica,Arial,sans-serif;color:var(--accent2);font-size:13px;letter-spacing:.08em;text-transform:uppercase;}
+  header.hero h1{font-size:38px;margin:8px 0 10px;}
+  header.hero p{color:var(--dim);font-size:16px;max-width:640px;}
+  section.week{margin-bottom:70px;}
+  section.week > h2{font-size:28px;border-bottom:2px solid var(--accent);padding-bottom:10px;color:#fff;}
+  .topic{margin:38px 0;}
+  .topic h3{font-size:21px;color:var(--accent2);margin-bottom:6px;}
+  .topic .sub{color:var(--dim);font-size:14px;font-family:Helvetica,Arial,sans-serif;margin-bottom:14px;font-style:italic;}
+  .topic p{margin:12px 0;font-size:16.5px;}
+  .analogy{background:var(--panel2);border-left:3px solid var(--accent);padding:14px 18px;margin:16px 0;border-radius:0 8px 8px 0;font-size:15.5px;}
+  .analogy b{color:var(--accent);font-family:Helvetica,Arial,sans-serif;}
+  .formula{background:var(--code);padding:14px 20px;border-radius:8px;margin:14px 0;font-family:'Cambria Math','Times New Roman',serif;font-size:18px;text-align:center;overflow-x:auto;}
+  .keynote{background:#2a2118;border:1px solid #4a3820;padding:12px 16px;border-radius:8px;margin:14px 0;font-size:14.5px;}
+  .keynote b{color:var(--accent2);}
+  svg{display:block;margin:20px auto;background:var(--panel2);border-radius:10px;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px 28px;margin-top:36px;}
+  .quiz h4{margin-top:0;font-family:Helvetica,Arial,sans-serif;color:var(--accent2);text-transform:uppercase;font-size:13px;letter-spacing:.05em;}
+  .q{margin:20px 0;}
+  .q p.question{font-weight:bold;margin-bottom:8px;}
+  .q .opts label{display:block;padding:8px 10px;margin:4px 0;background:var(--panel2);border-radius:6px;cursor:pointer;font-size:15px;}
+  .q .opts label:hover{background:#272c3a;}
+  .q .opts input{margin-right:8px;}
+  .reveal{display:none;margin-top:8px;padding:10px 14px;border-radius:6px;font-size:14.5px;font-family:Helvetica,Arial,sans-serif;}
+  .reveal.correct{background:#1b3d33;border:1px solid var(--good);}
+  .reveal.wrong{background:#3d1f22;border:1px solid var(--bad);}
+  .check-btn{background:var(--accent);color:#0d1310;border:none;padding:8px 16px;border-radius:6px;font-family:Helvetica,Arial,sans-serif;font-weight:bold;cursor:pointer;font-size:13px;}
+  .check-btn:hover{opacity:.85;}
+  .toc-mini{color:var(--dim);font-size:13px;font-family:Helvetica,Arial,sans-serif;}
+  code{background:var(--code);padding:2px 6px;border-radius:4px;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <h1>Course 1 Reference</h1>
+  <a href="#top">Overview</a>
+  <a class="week" href="#week1">Week 1</a>
+  <a href="#w1-intro">What is ML?</a>
+  <a href="#w1-linreg">Linear Regression</a>
+  <a href="#w1-cost">Cost Function</a>
+  <a href="#w1-gd">Gradient Descent</a>
+  <a href="#w1-quiz">Week 1 Quiz</a>
+  <a class="week" href="#week2">Week 2</a>
+  <a href="#w2-multi">Multiple Linear Regression</a>
+  <a href="#w2-vector">Vectorization</a>
+  <a href="#w2-scaling">Feature Scaling</a>
+  <a href="#w2-lr">Choosing Learning Rate</a>
+  <a href="#w2-feat">Feature Eng. & Poly Reg.</a>
+  <a href="#w2-quiz">Week 2 Quiz</a>
+  <a class="week" href="#week3">Week 3</a>
+  <a href="#w3-class">Classification Intro</a>
+  <a href="#w3-logreg">Logistic Regression</a>
+  <a href="#w3-db">Decision Boundary</a>
+  <a href="#w3-costlog">Logistic Cost Function</a>
+  <a href="#w3-overfit">Overfitting</a>
+  <a href="#w3-reg">Regularization</a>
+  <a href="#w3-quiz">Week 3 Quiz</a>
+</nav>
+<main>
+<header class="hero" id="top">
+  <div class="eyebrow">Andrew Ng · Machine Learning Specialization</div>
+  <h1>Supervised Machine Learning:<br>Regression & Classification</h1>
+  <p>A from-scratch reference, built to actually understand every idea — not just recognize it. Each topic has a plain-language explanation, an analogy, the core math, and a diagram where a picture helps more than a formula. Every week ends with a quiz so you can check whether it stuck.</p>
+</header>
+
+<section class="week" id="week1">
+<h2>Week 1 — Introduction & Linear Regression with One Variable</h2>
+
+<div class="topic" id="w1-intro">
+<h3>1. What Is Machine Learning?</h3>
+<div class="sub">The big idea before any math</div>
+<p>Machine learning is the practice of getting a computer to find patterns in data and use those patterns to make predictions — <em>without you writing explicit rules</em>. Instead of programming "if X then Y," you show the computer many examples of X and Y, and it figures out the rule itself.</p>
+<div class="analogy"><b>Analogy —</b> Imagine teaching a child to recognize dogs. You don't give them a checklist ("four legs, fur, a tail..."). You just show them hundreds of pictures labeled "dog" or "not dog," and eventually they generalize the pattern on their own. That's supervised learning.</div>
+<p>There are two main flavors covered across this specialization:</p>
+<p><b>Supervised learning</b> — you have input data (<code>x</code>) paired with the correct output (<code>y</code>), and the algorithm learns the mapping from x to y. This is what Course 1 and most of Course 2 cover. It splits into:</p>
+<p>• <b>Regression</b> — predicting a number from an infinite range of possible outputs (e.g., house price).<br>
+• <b>Classification</b> — predicting one of a small, finite set of categories (e.g., malignant vs. benign).</p>
+<p><b>Unsupervised learning</b> — you only have input data, with no labeled "correct answers," and the algorithm finds structure on its own (e.g., grouping similar customers together). This is Course 3's territory.</p>
+</div>
+
+<div class="topic" id="w1-linreg">
+<h3>2. Linear Regression with One Variable</h3>
+<div class="sub">Fitting a straight line through data</div>
+<p>Linear regression is the simplest supervised learning algorithm: given a scatter of (x, y) points, find the straight line that best represents the trend. Once you have that line, you can plug in a new x and predict its y.</p>
+<div class="analogy"><b>Analogy —</b> Imagine plotting house size (x) against house price (y) for houses that have already sold. The dots don't form a perfect line, but they trend upward. Linear regression finds the single straight line that best "summarizes" that trend, so you can estimate the price of a house whose size you know but whose price you don't.</div>
+<p>Formally, the model is:</p>
+<div class="formula">f<sub>w,b</sub>(x) = w·x + b</div>
+<p>Here <code>w</code> (weight) controls the slope of the line, and <code>b</code> (bias) controls where it crosses the y-axis. "Training" the model just means finding the values of <code>w</code> and <code>b</code> that make the line fit the data best.</p>
+
+<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="270" x2="600" y2="270" stroke="#555" stroke-width="1.5"/>
+  <line x1="60" y1="270" x2="60" y2="30" stroke="#555" stroke-width="1.5"/>
+  <text x="580" y="290" fill="#9a9fb0" font-size="13" font-family="Helvetica">size (x)</text>
+  <text x="20" y="40" fill="#9a9fb0" font-size="13" font-family="Helvetica">price (y)</text>
+  <circle cx="110" cy="230" r="5" fill="#e0a458"/>
+  <circle cx="170" cy="210" r="5" fill="#e0a458"/>
+  <circle cx="220" cy="190" r="5" fill="#e0a458"/>
+  <circle cx="290" cy="150" r="5" fill="#e0a458"/>
+  <circle cx="330" cy="160" r="5" fill="#e0a458"/>
+  <circle cx="390" cy="110" r="5" fill="#e0a458"/>
+  <circle cx="440" cy="100" r="5" fill="#e0a458"/>
+  <circle cx="500" cy="70" r="5" fill="#e0a458"/>
+  <line x1="90" y1="250" x2="540" y2="60" stroke="#5fb3a3" stroke-width="2.5"/>
+  <text x="400" y="55" fill="#5fb3a3" font-size="13" font-family="Helvetica">f(x) = wx + b</text>
+</svg>
+
+<p>Each dot is a house that already sold (its real size and real price). The teal line is the model's best guess at the underlying trend — that's what "fitting" a model means.</p>
+</div>
+
+<div class="topic" id="w1-cost">
+<h3>3. The Cost Function</h3>
+<div class="sub">How do we measure "how good" a line is?</div>
+<p>To find the <em>best</em> w and b, we first need a way to score how bad a given line is. The <b>cost function</b> does this by measuring the average squared distance between the line's predictions and the actual data points — this is called <b>squared error cost</b>.</p>
+<div class="formula">J(w,b) = (1/2m) · Σ (f<sub>w,b</sub>(x<sup>(i)</sup>) − y<sup>(i)</sup>)²</div>
+<p>Breaking this down piece by piece:</p>
+<p>• <code>f(x⁽ⁱ⁾) − y⁽ⁱ⁾</code> is the <b>error</b> for one example — how far off the prediction was.<br>
+• Squaring it makes errors always positive (so overshooting and undershooting don't cancel out) and punishes big errors more than small ones.<br>
+• Summing over all <code>m</code> training examples and dividing by <code>2m</code> gives the <em>average</em> squared error (the 2 is just there to make the calculus cleaner later — it disappears when we take derivatives).</p>
+<div class="analogy"><b>Analogy —</b> Think of J(w,b) as a "wrongness score." A high score means the line is a bad fit; a low score (ideally zero) means the line passes almost exactly through the data. Training a model is nothing more than searching for the w and b that make this wrongness score as small as possible.</div>
+<div class="keynote"><b>Key insight:</b> J(w,b) is a function of the parameters w and b — not of x. If you plot J against different values of w (holding b fixed), you get a bowl shape. The bottom of the bowl is the best possible w.</div>
+
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="250" x2="600" y2="250" stroke="#555" stroke-width="1.5"/>
+  <line x1="60" y1="250" x2="60" y2="30" stroke="#555" stroke-width="1.5"/>
+  <text x="580" y="270" fill="#9a9fb0" font-size="13" font-family="Helvetica">w</text>
+  <text x="20" y="40" fill="#9a9fb0" font-size="13" font-family="Helvetica">J(w)</text>
+  <path d="M 90 90 Q 330 300 570 90" stroke="#5fb3a3" stroke-width="3" fill="none"/>
+  <circle cx="330" cy="228" r="6" fill="#e0a458"/>
+  <text x="345" y="225" fill="#e0a458" font-size="13" font-family="Helvetica">minimum cost</text>
+</svg>
+</div>
+
+<div class="topic" id="w1-gd">
+<h3>4. Gradient Descent</h3>
+<div class="sub">Finding the bottom of the bowl automatically</div>
+<p>Now that we can score any (w, b) pair, we need a way to <em>search</em> for the best one without trying every possibility. <b>Gradient descent</b> is an iterative algorithm that starts at some random point on the cost "bowl" and repeatedly takes small steps downhill until it reaches (or gets very close to) the bottom.</p>
+<div class="analogy"><b>Analogy —</b> Imagine standing on a hill in thick fog — you can't see the valley, but you can feel which direction is downhill under your feet. You take a step that direction, feel again, step again, and eventually reach the bottom. That's exactly what gradient descent does mathematically.</div>
+<p>The update rule, repeated until convergence:</p>
+<div class="formula">w := w − α · (∂J/∂w) &nbsp;&nbsp;&nbsp; b := b − α · (∂J/∂b)</div>
+<p>• <code>∂J/∂w</code> is the <b>derivative</b> (slope) of the cost function with respect to w — it tells you which direction is "uphill," so subtracting it moves you downhill.<br>
+• <code>α</code> (alpha) is the <b>learning rate</b> — how big a step you take each time.<br>
+• Both w and b must be updated <em>simultaneously</em> (using the old values of both to compute both new values), not one after another.</p>
+<div class="keynote"><b>Why the learning rate matters:</b> too small an α and training crawls forever; too large an α and you can overshoot the minimum and even diverge (the cost gets worse, not better). Picking a good α is mostly trial and error — try values like 0.001, 0.01, 0.1, 1 and watch how the cost behaves.</div>
+
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 90 90 Q 330 300 570 90" stroke="#5fb3a3" stroke-width="3" fill="none"/>
+  <circle cx="150" cy="120" r="6" fill="#e0a458"/>
+  <circle cx="200" cy="160" r="5" fill="#e0a458" opacity="0.8"/>
+  <circle cx="250" cy="195" r="5" fill="#e0a458" opacity="0.6"/>
+  <circle cx="290" cy="215" r="5" fill="#e0a458" opacity="0.45"/>
+  <circle cx="320" cy="224" r="4" fill="#e0a458" opacity="0.3"/>
+  <text x="130" y="105" fill="#e0a458" font-size="12" font-family="Helvetica">start here</text>
+  <text x="330" y="245" fill="#9a9fb0" font-size="12" font-family="Helvetica">steps shrink near the bottom</text>
+</svg>
+<p>Notice the steps naturally get smaller as you approach the minimum — that's because the slope itself flattens out near the bottom, so even a fixed α produces smaller updates automatically. This is why gradient descent doesn't need a shrinking learning rate to converge nicely.</p>
+</div>
+
+<div class="quiz" id="w1-quiz">
+<h4>Week 1 Practice Quiz</h4>
+
+<div class="q" data-answer="b">
+<p class="question">1. For linear regression, the model is represented as f(x) = wx + b. What is b called?</p>
+<div class="opts">
+<label><input type="radio" name="q1w1" value="a"> The slope</label>
+<label><input type="radio" name="q1w1" value="b"> The y-intercept (bias)</label>
+<label><input type="radio" name="q1w1" value="c"> The learning rate</label>
+<label><input type="radio" name="q1w1" value="d"> The cost function</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="c">
+<p class="question">2. Why do we square the error terms in the cost function instead of just summing raw errors?</p>
+<div class="opts">
+<label><input type="radio" name="q2w1" value="a"> Squaring makes the math simpler to type</label>
+<label><input type="radio" name="q2w1" value="b"> It's purely a historical convention with no real reason</label>
+<label><input type="radio" name="q2w1" value="c"> It prevents positive and negative errors from canceling out, and penalizes larger errors more</label>
+<label><input type="radio" name="q2w1" value="d"> It guarantees the cost function is always zero</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="a">
+<p class="question">3. If the learning rate α is set way too large, what typically happens to gradient descent?</p>
+<div class="opts">
+<label><input type="radio" name="q3w1" value="a"> It may overshoot the minimum and fail to converge (cost increases)</label>
+<label><input type="radio" name="q3w1" value="b"> It converges instantly in one step</label>
+<label><input type="radio" name="q3w1" value="c"> It has no effect on convergence speed</label>
+<label><input type="radio" name="q3w1" value="d"> It guarantees finding the global minimum faster</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="b">
+<p class="question">4. In gradient descent, why must w and b be updated simultaneously?</p>
+<div class="opts">
+<label><input type="radio" name="q4w1" value="a"> It's not actually required — order doesn't matter</label>
+<label><input type="radio" name="q4w1" value="b"> Updating one before computing the other would use an already-changed value, corrupting the math</label>
+<label><input type="radio" name="q4w1" value="c"> Because b must always be calculated first</label>
+<label><input type="radio" name="q4w1" value="d"> Because w and b must always be equal</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+</div>
+</section>
+
+<section class="week" id="week2">
+<h2>Week 2 — Multiple Linear Regression & Practical Tips</h2>
+
+<div class="topic" id="w2-multi">
+<h3>1. Multiple Linear Regression</h3>
+<div class="sub">Using more than one feature to predict</div>
+<p>Real predictions rarely depend on just one number. A house's price depends on size, number of bedrooms, age, location, and more. Multiple linear regression extends the model to use several input features at once:</p>
+<div class="formula">f<sub>w,b</sub>(x) = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub> + ... + w<sub>n</sub>x<sub>n</sub> + b</div>
+<p>Each feature <code>x<sub>j</sub></code> gets its own weight <code>w<sub>j</sub></code>, representing how much that feature influences the prediction. This is written more compactly using vectors: <code>f(x) = w·x + b</code>, where <code>w</code> and <code>x</code> are both vectors (lists of numbers), and <code>w·x</code> is their dot product.</p>
+<div class="analogy"><b>Analogy —</b> Think of estimating a used car's price. You wouldn't just look at mileage — you'd weigh mileage, age, brand, and condition together. Each factor gets its own "importance weight," and the final price estimate combines all of them.</div>
+</div>
+
+<div class="topic" id="w2-vector">
+<h3>2. Vectorization</h3>
+<div class="sub">Why NumPy is fast</div>
+<p>When you have many features and many training examples, looping over them one at a time in Python is slow. <b>Vectorization</b> means expressing the computation as operations on entire arrays at once (using NumPy), letting the hardware compute many multiplications in parallel instead of one after another.</p>
+<div class="analogy"><b>Analogy —</b> It's the difference between one person hand-stitching 1,000 shirts sequentially versus 1,000 sewing machines each stitching one shirt simultaneously. Same total work, dramatically less wall-clock time.</div>
+<p>In code, <code>np.dot(w, x) + b</code> replaces a manual for-loop and runs far faster, especially on large datasets — this speed-up is essential once you move to real-world data sizes.</p>
+</div>
+
+<div class="topic" id="w2-scaling">
+<h3>3. Feature Scaling</h3>
+<div class="sub">Making gradient descent converge faster</div>
+<p>If one feature ranges from 0–5 and another ranges from 0–2000 (e.g., number of bedrooms vs. house size in square feet), gradient descent struggles: the cost function becomes a very elongated, skewed bowl, and it zig-zags slowly toward the minimum instead of heading straight there.</p>
+<div class="analogy"><b>Analogy —</b> Imagine that "bowl" is actually shaped like a long, narrow canyon instead of a round basin. Rolling a ball down it bounces it back and forth across the narrow walls rather than smoothly toward the bottom. Feature scaling reshapes the canyon back into a round bowl so descent goes straight to the minimum.</div>
+<p>Common techniques:</p>
+<p>• <b>Mean normalization:</b> rescale each feature to roughly range from -1 to 1 by subtracting the mean and dividing by the range.<br>
+• <b>Z-score normalization:</b> subtract the mean and divide by the standard deviation, so each feature has mean 0 and roughly unit variance. This is the most commonly used method in practice.</p>
+
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <text x="90" y="30" fill="#9a9fb0" font-size="13" font-family="Helvetica">Before scaling</text>
+  <ellipse cx="180" cy="140" rx="130" ry="35" fill="none" stroke="#d9707a" stroke-width="2.5"/>
+  <ellipse cx="180" cy="140" rx="85" ry="20" fill="none" stroke="#d9707a" stroke-width="2" opacity="0.6"/>
+  <text x="420" y="30" fill="#9a9fb0" font-size="13" font-family="Helvetica">After scaling</text>
+  <circle cx="480" cy="140" r="55" fill="none" stroke="#5fb3a3" stroke-width="2.5"/>
+  <circle cx="480" cy="140" r="33" fill="none" stroke="#5fb3a3" stroke-width="2" opacity="0.6"/>
+</svg>
+<p>Left: elongated contours cause zig-zagging. Right: round contours let gradient descent head straight to the minimum.</p>
+</div>
+
+<div class="topic" id="w2-lr">
+<h3>4. Checking Gradient Descent for Convergence & Choosing the Learning Rate</h3>
+<div class="sub">Is training actually working?</div>
+<p>Plot the cost J against the number of iterations (a <b>learning curve</b>). If it's working correctly, J should decrease after every single iteration and eventually flatten out. If J ever increases, the learning rate is almost certainly too large.</p>
+<div class="keynote"><b>Practical tip:</b> try a range of learning rates on a log-ish scale — 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1 — and pick the largest one that still reliably decreases the cost every iteration.</div>
+</div>
+
+<div class="topic" id="w2-feat">
+<h3>5. Feature Engineering & Polynomial Regression</h3>
+<div class="sub">Giving the model better raw material</div>
+<p>Sometimes the best predictor isn't one of your original features but a combination of them. E.g., if you have a house's frontage and depth, their product (frontage × depth = area) is often more predictive than either alone. Designing such new features by hand is called <b>feature engineering</b>.</p>
+<p>This same idea lets linear regression fit curves, not just straight lines: by adding features like <code>x²</code> and <code>x³</code>, the model <code>f(x) = w₁x + w₂x² + w₃x³ + b</code> is still "linear" in the weights, but produces a curved fit — this is <b>polynomial regression</b>. The catch: when features like <code>x³</code> are used, feature scaling becomes even more critical, since x³ grows in scale extremely fast.</p>
+</div>
+
+<div class="quiz" id="w2-quiz">
+<h4>Week 2 Practice Quiz</h4>
+
+<div class="q" data-answer="c">
+<p class="question">1. Why is vectorization (using NumPy operations instead of Python loops) preferred?</p>
+<div class="opts">
+<label><input type="radio" name="q1w2" value="a"> It changes the math result to be more accurate</label>
+<label><input type="radio" name="q1w2" value="b"> It's required for the algorithm to work at all</label>
+<label><input type="radio" name="q1w2" value="c"> It performs the same computation far faster by leveraging parallel hardware</label>
+<label><input type="radio" name="q1w2" value="d"> It removes the need for a learning rate</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="b">
+<p class="question">2. Why do we perform feature scaling before running gradient descent?</p>
+<div class="opts">
+<label><input type="radio" name="q2w2" value="a"> It's required to make the model's predictions more accurate</label>
+<label><input type="radio" name="q2w2" value="b"> It reshapes the cost function's contours so gradient descent converges faster</label>
+<label><input type="radio" name="q2w2" value="c"> It converts a classification problem into a regression problem</label>
+<label><input type="radio" name="q2w2" value="d"> It removes the need for a cost function</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="a">
+<p class="question">3. If the cost J increases after an iteration of gradient descent, what does that most likely indicate?</p>
+<div class="opts">
+<label><input type="radio" name="q3w2" value="a"> The learning rate α is too large</label>
+<label><input type="radio" name="q3w2" value="b"> The model has finished training successfully</label>
+<label><input type="radio" name="q3w2" value="c"> The learning rate α is too small</label>
+<label><input type="radio" name="q3w2" value="d"> There are too few features</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="d">
+<p class="question">4. Polynomial regression (adding x², x³ as features) is still considered "linear regression" because:</p>
+<div class="opts">
+<label><input type="radio" name="q4w2" value="a"> The resulting fit line is always straight</label>
+<label><input type="radio" name="q4w2" value="b"> x² and x³ are ignored during training</label>
+<label><input type="radio" name="q4w2" value="c"> It uses a different cost function entirely</label>
+<label><input type="radio" name="q4w2" value="d"> The model is still a linear combination of its features (weights × features), even though the features themselves are nonlinear transformations of x</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+</div>
+</section>
+
+<section class="week" id="week3">
+<h2>Week 3 — Classification</h2>
+
+<div class="topic" id="w3-class">
+<h3>1. Why Linear Regression Fails at Classification</h3>
+<div class="sub">Setting up the problem</div>
+<p>Classification problems have outputs that are categories, not continuous numbers — the classic example is a tumor being malignant (1) or benign (0). If you tried to fit a straight line to 0/1 labeled data, the line would predict values like 1.4 or -0.3, which don't mean anything as a category, and a single outlier point can badly skew where the line sits — shifting your decision threshold in the wrong direction. We need a model whose output is always squeezed between 0 and 1, interpretable as a <b>probability</b>.</p>
+</div>
+
+<div class="topic" id="w3-logreg">
+<h3>2. Logistic Regression & the Sigmoid Function</h3>
+<div class="sub">Squeezing outputs into probabilities</div>
+<p>Logistic regression solves this by first computing the usual linear combination <code>z = w·x + b</code>, then passing z through the <b>sigmoid function</b>, which maps any real number into the range (0, 1):</p>
+<div class="formula">g(z) = 1 / (1 + e<sup>−z</sup>) &nbsp;&nbsp;&nbsp; f<sub>w,b</sub>(x) = g(w·x + b)</div>
+<p>The output f(x) is interpreted directly as "the probability that y = 1, given input x." For example, if f(x) = 0.8, the model believes there's an 80% chance this example belongs to class 1.</p>
+
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="230" x2="600" y2="230" stroke="#555" stroke-width="1.5"/>
+  <line x1="330" y1="230" x2="330" y2="20" stroke="#555" stroke-width="1.5"/>
+  <text x="580" y="250" fill="#9a9fb0" font-size="13" font-family="Helvetica">z</text>
+  <text x="20" y="30" fill="#9a9fb0" font-size="13" font-family="Helvetica">g(z)</text>
+  <line x1="60" y1="30" x2="600" y2="30" stroke="#333" stroke-dasharray="4"/>
+  <text x="35" y="35" fill="#666" font-size="11" font-family="Helvetica">1</text>
+  <path d="M 60 220 C 200 220, 280 200, 330 125 C 380 50, 460 35, 600 32" stroke="#5fb3a3" stroke-width="3" fill="none"/>
+  <circle cx="330" cy="125" r="5" fill="#e0a458"/>
+  <text x="345" y="120" fill="#e0a458" font-size="12" font-family="Helvetica">g(0) = 0.5</text>
+</svg>
+<p>Note the characteristic S-curve: far-negative z gives probabilities near 0, far-positive z gives probabilities near 1, and z = 0 always gives exactly 0.5.</p>
+</div>
+
+<div class="topic" id="w3-db">
+<h3>3. The Decision Boundary</h3>
+<div class="sub">Turning a probability into a yes/no decision</div>
+<p>To make an actual classification, you pick a threshold — typically 0.5. If f(x) ≥ 0.5, predict class 1; otherwise predict class 0. Since g(z) ≥ 0.5 exactly when z ≥ 0, this means the model predicts class 1 whenever <code>w·x + b ≥ 0</code>.</p>
+<p>The line (or curve, if using polynomial features) where <code>w·x + b = 0</code> exactly is called the <b>decision boundary</b> — it's the dividing line the model draws between the two classes. Everything on one side is predicted 0; everything on the other side is predicted 1.</p>
+<div class="analogy"><b>Analogy —</b> Picture the decision boundary as a fence drawn through a scatter of red and blue dots. The model's whole job during training is to find where to put that fence so it separates the two colors as cleanly as possible. Non-linear features (like x² terms) let that fence bend into a curve or even a closed loop instead of just a straight line.</div>
+</div>
+
+<div class="topic" id="w3-costlog">
+<h3>4. The Logistic Cost Function</h3>
+<div class="sub">Why squared error doesn't work here</div>
+<p>If you plugged the sigmoid into the squared-error cost function from linear regression, the resulting J(w,b) would be "non-convex" — bumpy, with lots of local dips that gradient descent could get stuck in. Instead, logistic regression uses <b>log loss</b>:</p>
+<div class="formula">Loss = −y·log(f(x)) − (1−y)·log(1−f(x))</div>
+<p>This looks intimidating, but it's actually two simple cases in disguise: when the true label y = 1, only the first term survives, and it heavily penalizes the model for predicting a probability close to 0 (being confidently wrong). When y = 0, only the second term survives, and it heavily penalizes predicting a probability close to 1. The average of this loss over all training examples gives a cost function that is nicely bowl-shaped (convex), so gradient descent works reliably again. In fact, the gradient descent update rule ends up looking algebraically identical to linear regression's — only the definition of f(x) has changed (now including the sigmoid).</p>
+</div>
+
+<div class="topic" id="w3-overfit">
+<h3>5. The Problem of Overfitting</h3>
+<div class="sub">When a model memorizes instead of learning</div>
+<p>A model can go wrong in two opposite directions:</p>
+<p>• <b>Underfitting (high bias):</b> the model is too simple to capture the pattern in the data — e.g., fitting a straight line to clearly curved data. It performs poorly even on the training data itself.<br>
+• <b>Overfitting (high variance):</b> the model is so flexible (often from too many features or too high a polynomial degree) that it bends itself to fit every quirk and noise point in the training data. It scores nearly perfectly on training data but generalizes terribly to new, unseen examples.</p>
+
+<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg">
+  <text x="60" y="20" fill="#9a9fb0" font-size="12" font-family="Helvetica">Underfit</text>
+  <line x1="20" y1="180" x2="200" y2="180" stroke="#555"/>
+  <circle cx="45" cy="150" r="4" fill="#e0a458"/><circle cx="80" cy="120" r="4" fill="#e0a458"/>
+  <circle cx="120" cy="160" r="4" fill="#e0a458"/><circle cx="160" cy="100" r="4" fill="#e0a458"/>
+  <line x1="30" y1="160" x2="190" y2="120" stroke="#d9707a" stroke-width="2.5"/>
+
+  <text x="290" y="20" fill="#9a9fb0" font-size="12" font-family="Helvetica">Good fit</text>
+  <line x1="240" y1="180" x2="420" y2="180" stroke="#555"/>
+  <circle cx="265" cy="150" r="4" fill="#e0a458"/><circle cx="300" cy="120" r="4" fill="#e0a458"/>
+  <circle cx="340" cy="160" r="4" fill="#e0a458"/><circle cx="380" cy="100" r="4" fill="#e0a458"/>
+  <path d="M 250 165 Q 300 110, 340 150 T 410 95" stroke="#5fb3a3" stroke-width="2.5" fill="none"/>
+
+  <text x="500" y="20" fill="#9a9fb0" font-size="12" font-family="Helvetica">Overfit</text>
+  <line x1="460" y1="180" x2="620" y2="180" stroke="#555"/>
+  <circle cx="485" cy="150" r="4" fill="#e0a458"/><circle cx="520" cy="120" r="4" fill="#e0a458"/>
+  <circle cx="560" cy="160" r="4" fill="#e0a458"/><circle cx="600" cy="100" r="4" fill="#e0a458"/>
+  <path d="M 470 168 Q 485 140,500 155 Q 515 175,520 118 Q 530 90,545 145 Q 555 175,560 158 Q 575 120,590 130 Q 600 145,605 98" stroke="#d9707a" stroke-width="2.5" fill="none"/>
+</svg>
+<p>The overfit curve snakes through every single point perfectly — but ask it to predict a brand-new x value and it will likely be wildly wrong, because it learned the noise, not the trend.</p>
+</div>
+
+<div class="topic" id="w3-reg">
+<h3>6. Addressing Overfitting: Regularization</h3>
+<div class="sub">Keeping the model humble</div>
+<p>Three main tools fight overfitting:</p>
+<p>• <b>Collect more training data</b> — with enough examples, even a flexible model can't overfit to noise, because the noise averages out.<br>
+• <b>Use fewer features</b> — a simpler model has less freedom to contort itself around noise.<br>
+• <b>Regularization</b> — keep all the features, but discourage the weights from growing too large, which softens the model's tendency to overreact to any single feature.</p>
+<p>Regularization works by adding a penalty term to the cost function that grows with the size of the weights:</p>
+<div class="formula">J(w,b) = (1/2m)Σ(f(x⁽ⁱ⁾)−y⁽ⁱ⁾)² &nbsp;+&nbsp; (λ/2m)Σw<sub>j</sub>²</div>
+<p>The new term (λ/2m)Σw<sub>j</sub>² grows whenever any weight gets large, so gradient descent is now pulled in two directions: fit the data well, <em>and</em> keep the weights small. The regularization parameter <code>λ</code> (lambda) controls the balance:</p>
+<p>• <code>λ = 0</code> → no regularization at all (risk of overfitting).<br>
+• <code>λ</code> too large → the model is forced to keep weights near zero, effectively flattening the model back into underfitting.<br>
+• A well-chosen <code>λ</code> sits in the sweet spot between the two.</p>
+<div class="keynote"><b>Note:</b> by convention, the bias term b is <em>not</em> regularized — only the weights w<sub>j</sub> are penalized. This same regularization idea (add a λ-weighted penalty term) applies identically to logistic regression's cost function too.</div>
+</div>
+
+<div class="quiz" id="w3-quiz">
+<h4>Week 3 Practice Quiz</h4>
+
+<div class="q" data-answer="b">
+<p class="question">1. What does the sigmoid function output represent in logistic regression?</p>
+<div class="opts">
+<label><input type="radio" name="q1w3" value="a"> The exact class label (0 or 1)</label>
+<label><input type="radio" name="q1w3" value="b"> The estimated probability that y = 1 given input x</label>
+<label><input type="radio" name="q1w3" value="c"> The learning rate</label>
+<label><input type="radio" name="q1w3" value="d"> The cost function value</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="c">
+<p class="question">2. The decision boundary in logistic regression is the set of points where:</p>
+<div class="opts">
+<label><input type="radio" name="q2w3" value="a"> y = 1 always</label>
+<label><input type="radio" name="q2w3" value="b"> The cost function equals zero</label>
+<label><input type="radio" name="q2w3" value="c"> w·x + b = 0 (equivalently, where the predicted probability is exactly 0.5)</label>
+<label><input type="radio" name="q2w3" value="d"> All training examples are located</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="a">
+<p class="question">3. Why doesn't logistic regression use the squared error cost function from linear regression?</p>
+<div class="opts">
+<label><input type="radio" name="q3w3" value="a"> Because it produces a non-convex cost surface with local minima, making gradient descent unreliable</label>
+<label><input type="radio" name="q3w3" value="b"> Because squared error is too computationally expensive</label>
+<label><input type="radio" name="q3w3" value="c"> Because it doesn't work with the sigmoid function at all</label>
+<label><input type="radio" name="q3w3" value="d"> There's no real reason — it would work equally well</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="d">
+<p class="question">4. A model that fits the training data extremely well but performs poorly on new data is exhibiting:</p>
+<div class="opts">
+<label><input type="radio" name="q4w3" value="a"> High bias</label>
+<label><input type="radio" name="q4w3" value="b"> Underfitting</label>
+<label><input type="radio" name="q4w3" value="c"> Perfect generalization</label>
+<label><input type="radio" name="q4w3" value="d"> Overfitting (high variance)</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+
+<div class="q" data-answer="c">
+<p class="question">5. If the regularization parameter λ is set far too large, what usually happens?</p>
+<div class="opts">
+<label><input type="radio" name="q5w3" value="a"> The model overfits even more severely</label>
+<label><input type="radio" name="q5w3" value="b"> Training becomes impossible to run</label>
+<label><input type="radio" name="q5w3" value="c"> Weights are pushed toward zero, and the model underfits</label>
+<label><input type="radio" name="q5w3" value="d"> The bias term b is regularized instead of the weights</label>
+</div>
+<button class="check-btn" onclick="checkAnswer(this)">Check Answer</button>
+<div class="reveal"></div>
+</div>
+</div>
+</section>
+
+</main>
+</div>
+
+<script>
+function checkAnswer(btn){
+  const qDiv = btn.closest('.q');
+  const correct = qDiv.getAttribute('data-answer');
+  const selected = qDiv.querySelector('input[type=radio]:checked');
+  const reveal = qDiv.querySelector('.reveal');
+  reveal.style.display = 'block';
+  if(!selected){
+    reveal.className = 'reveal wrong';
+    reveal.innerText = 'Select an answer first.';
+    return;
+  }
+  if(selected.value === correct){
+    reveal.className = 'reveal correct';
+    reveal.innerText = '✓ Correct!';
+  } else {
+    reveal.className = 'reveal wrong';
+    const correctLabel = qDiv.querySelector('input[value="'+correct+'"]').parentElement.innerText;
+    reveal.innerText = '✗ Not quite. Correct answer: ' + correctLabel;
+  }
+}
+</script>
+</body>
+</html>
