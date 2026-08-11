@@ -49,7 +49,9 @@
   4. <a href="#lab03">Lab03 code: scaling + learning rate together</a><br>
   5. <a href="#engineering">Feature engineering</a><br>
   6. <a href="#poly">Polynomial regression + Lab04 code</a><br>
-  7. <a href="#summary">One-paragraph summary of the whole week</a>
+  7. <a href="#sklearn">Lab05: doing all of this with scikit-learn</a><br>
+  7.5. <a href="#normaleq-sklearn">LinearRegression vs SGDRegressor</a><br>
+  8. <a href="#summary">One-paragraph summary of the whole week</a>
 </div>
 
 <h2 id="scaling">1. Feature scaling — why & how</h2>
@@ -386,7 +388,78 @@ X_norm = (X − mu) / sigma
 
 <hr>
 
-<h2 id="summary">7. One-paragraph summary of the whole week</h2>
+<h2 id="sklearn">7. Lab05: doing all of this with scikit-learn</h2>
+<p>Everything above — z-score normalizing, gradient descent, predicting — you built by hand. This lab shows the same pipeline using <strong>scikit-learn</strong>, a widely-used ML library, so you can recognize it and see it's the exact same ideas, just pre-built.</p>
+
+<table>
+<tr><th>What you built by hand</th><th>scikit-learn equivalent</th></tr>
+<tr><td>Z-score normalize: <code>(X − mu) / sigma</code></td><td><code>scaler = StandardScaler()<br>X_norm = scaler.fit_transform(X_train)</code></td></tr>
+<tr><td>Your <code>gradient_descent()</code> function, looping over iterations</td><td><code>sgdr = SGDRegressor(max_iter=1000)<br>sgdr.fit(X_norm, y_train)</code></td></tr>
+<tr><td>Final <code>w, b</code> after training</td><td><code>w_norm = sgdr.coef_<br>b_norm = sgdr.intercept_</code></td></tr>
+<tr><td><code>f(x) = np.dot(x, w) + b</code></td><td><code>sgdr.predict(X_norm)</code> — the lab confirms this gives the exact same numbers as computing <code>np.dot(X_norm, w_norm) + b_norm</code> by hand</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters:</strong> the weights sklearn learns (<code>w_norm</code>) come out very close to the ones from the from-scratch lab — confirming your manual implementation was correct. sklearn's "SGD" (Stochastic Gradient Descent) is a variant of the same gradient descent idea, just optimized/production-grade. The key catch: since it was trained on <em>normalized</em> data, its <code>w, b</code> only make sense paired with normalized inputs — you can't plug them into the raw, unscaled features.
+</div>
+
+<p>In practice: you'll rarely hand-write gradient descent for real projects — but understanding it (as you just did) is what lets you use tools like sklearn correctly instead of treating them as a black box.</p>
+
+<hr>
+
+<h2 id="normaleq-sklearn">7.5. LinearRegression vs SGDRegressor — which one solves it how</h2>
+<p>Confirming exactly what you said: <strong>correct on both counts.</strong></p>
+
+<table>
+<tr><th></th><th><code>SGDRegressor</code></th><th><code>LinearRegression</code></th></tr>
+<tr><td><strong>Method</strong></td><td>Gradient descent (iterative)</td><td>Normal equation (direct solve)</td></tr>
+<tr><td><strong>Needs iterations?</strong></td><td>Yes — <code>max_iter</code>, runs a loop</td><td>No — solves in one shot</td></tr>
+<tr><td><strong>Needs feature scaling?</strong></td><td>Yes, strongly recommended</td><td>No, not required</td></tr>
+<tr><td><strong>Import</strong></td><td><code>from sklearn.linear_model import SGDRegressor</code></td><td><code>from sklearn.linear_model import LinearRegression</code></td></tr>
+</table>
+
+<div class="formula">
+model = LinearRegression()<br>
+model.fit(X_train, y_train)&nbsp;&nbsp;<span style="color:var(--sub)"># no scaling needed, no alpha, no iterations</span><br>
+w = model.coef_<br>
+b = model.intercept_
+</div>
+
+<div class="why">
+  <strong>Why does LinearRegression skip scaling and iterating entirely?</strong><br>
+  Because it isn't searching/stepping toward the answer the way gradient descent does. The normal equation solves for <code>w, b</code> directly using linear algebra — essentially one matrix computation that lands exactly on the minimum of the cost function in a single step. There's no "step size" (α) because there are no steps, and no scaling problem because there's no zig-zagging contour path to worry about (that whole problem, from Section 1, only exists *because* gradient descent takes iterative steps).
+</div>
+
+<div class="card">
+<svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg">
+  <text x="150" y="18" font-size="13" font-weight="bold" text-anchor="middle">SGDRegressor — iterative steps</text>
+  <g transform="translate(150,110)">
+    <circle cx="0" cy="0" r="70" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="45" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="20" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <circle cx="-60" cy="35" r="4" fill="#2563eb"/>
+    <path d="M -60 35 L -35 15 L -15 3 L -3 -1 L 0 0" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="3,3"/>
+  </g>
+  <text x="150" y="190" font-size="11" text-anchor="middle" fill="var(--sub)">walks toward minimum, one α-sized step at a time</text>
+
+  <text x="480" y="18" font-size="13" font-weight="bold" text-anchor="middle">LinearRegression — one solve</text>
+  <g transform="translate(480,110)">
+    <circle cx="0" cy="0" r="70" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="45" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="20" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <circle cx="-60" cy="35" r="4" fill="#0f766e"/>
+    <circle cx="0" cy="0" r="4" fill="#0f766e"/>
+    <line x1="-60" y1="35" x2="0" y2="0" stroke="#0f766e" stroke-width="2"/>
+  </g>
+  <text x="480" y="190" font-size="11" text-anchor="middle" fill="var(--sub)">jumps directly to the minimum, no stepping</text>
+</svg>
+</div>
+
+<p><strong>Why not always use LinearRegression / the normal equation then, if it's simpler?</strong> Same trade-off flagged back in Section 3 of your very first reference file: it only works for plain linear regression (not logistic regression, not neural nets), and it gets slow when the number of features is large, since the underlying matrix math scales poorly. Gradient descent (what <code>SGDRegressor</code> uses) is the general-purpose tool that scales to those other algorithms; the normal equation is a linear-regression-only shortcut.</p>
+
+<hr>
+
+<h2 id="summary">8. One-paragraph summary of the whole week</h2>
 <p class="card">Multiple linear regression generalizes single-feature regression by bundling weights into a vector, letting the model and gradient descent be written compactly using dot products. When features have very different scales, gradient descent's cost surface becomes a narrow, skewed bowl and convergence gets slow or unstable — feature scaling (max-normalize, mean-normalize, or Z-score) fixes this by putting all features on comparable ranges. Plotting cost vs. iteration (a learning curve) is how you check whether gradient descent is actually converging and whether the learning rate α is well chosen — too small crawls, too large overshoots or diverges. Feature engineering — creating new features from existing ones, including powers like x² and x³ — lets this same linear-regression machinery fit curves instead of just straight lines (polynomial regression), with feature scaling becoming even more essential since engineered powers can have drastically different ranges.</p>
 
 <p class="src">Sources used beyond the lecture transcripts/labs: general definitions of Z-score normalization and standard deviation are standard statistics concepts (consistent with definitions on GeeksforGeeks/Wikipedia); no content was copied verbatim — all explanations above are written from scratch based on the course material you provided plus general ML knowledge.</p>
