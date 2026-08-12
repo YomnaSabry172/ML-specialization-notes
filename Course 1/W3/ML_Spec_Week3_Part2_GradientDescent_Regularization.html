@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Week 3 (Part 2) — Gradient Descent, Overfitting & Regularization</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#131c31; --panel2:#101827; --text:#e6edf7; --muted:#9db0c9;
+    --accent:#4fd1c5; --accent2:#f6ad55; --danger:#f87171; --good:#34d399; --purple:#c084fc;
+    --code:#0b1220; --border:#22304a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:0;background:linear-gradient(180deg,#0b1120,#0f172a 400px);color:var(--text);font-family:'Segoe UI',Roboto,-apple-system,sans-serif;line-height:1.65;}
+  .wrap{max-width:960px;margin:0 auto;padding:24px 20px 100px;}
+  header.hero{padding:40px 30px;border-radius:16px;margin-bottom:32px;background:radial-gradient(circle at top left, rgba(79,209,197,0.18), transparent 60%),radial-gradient(circle at bottom right, rgba(192,132,252,0.15), transparent 60%),var(--panel);border:1px solid var(--border);}
+  header.hero h1{margin:0 0 8px;font-size:2rem;color:#fff;}
+  header.hero p{margin:0;color:var(--muted);font-size:1.05rem;}
+  nav.toc{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:36px;}
+  nav.toc h2{margin-top:0;font-size:1rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px;}
+  nav.toc li{margin-bottom:6px;}
+  nav.toc a{color:var(--text);text-decoration:none;border-bottom:1px dotted var(--muted);}
+  nav.toc a:hover{color:var(--accent);}
+  section{margin-bottom:48px;}
+  h2.section-title{font-size:1.5rem;color:#fff;border-left:4px solid var(--accent);padding-left:14px;margin-bottom:18px;}
+  h3{color:var(--accent2);font-size:1.15rem;margin-top:28px;}
+  h4{color:var(--text);font-size:1rem;margin-top:20px;margin-bottom:6px;}
+  p{color:var(--text);}
+  .muted{color:var(--muted);}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin:18px 0;}
+  .why{background:linear-gradient(135deg, rgba(79,209,197,0.12), rgba(79,209,197,0.03));border:1px solid rgba(79,209,197,0.4);border-left:4px solid var(--accent);border-radius:10px;padding:16px 20px;margin:18px 0;}
+  .why strong{color:var(--accent);display:block;margin-bottom:6px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;}
+  .analogy{background:linear-gradient(135deg, rgba(246,173,85,0.12), rgba(246,173,85,0.03));border:1px solid rgba(246,173,85,0.4);border-left:4px solid var(--accent2);border-radius:10px;padding:16px 20px;margin:18px 0;}
+  .analogy strong{color:var(--accent2);display:block;margin-bottom:6px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;}
+  .preview{background:linear-gradient(135deg, rgba(192,132,252,0.12), rgba(192,132,252,0.03));border:1px solid rgba(192,132,252,0.4);border-left:4px solid var(--purple);border-radius:10px;padding:16px 20px;margin:18px 0;}
+  .preview strong{color:var(--purple);display:block;margin-bottom:6px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;}
+  .formula{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:18px 22px;margin:16px 0;overflow-x:auto;font-size:1.05rem;text-align:center;color:#dbe7ff;}
+  .formula .label{display:block;text-align:left;color:var(--muted);font-size:0.8rem;margin-bottom:8px;font-family:inherit;}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow-x:auto;font-size:0.86rem;color:#c9f0e8;}
+  code{font-family:'Fira Code',Consolas,monospace;}
+  p code, li code, td code{background:#182338;padding:2px 6px;border-radius:5px;color:var(--accent);font-size:0.9em;}
+  table{width:100%;border-collapse:collapse;margin:16px 0;}
+  th,td{border:1px solid var(--border);padding:10px 12px;text-align:left;font-size:0.92rem;}
+  th{background:#182338;color:var(--accent);}
+  tr:nth-child(even){background:rgba(255,255,255,0.02);}
+  .step-badge{display:inline-block;background:var(--accent);color:#04201c;font-weight:700;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;margin-right:10px;font-size:0.85rem;}
+  .lab-tag{display:inline-block;background:#182338;color:var(--accent2);border:1px solid var(--accent2);border-radius:20px;padding:2px 12px;font-size:0.78rem;margin-bottom:10px;letter-spacing:0.5px;}
+  .flag{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.4);border-left:4px solid var(--danger);border-radius:10px;padding:14px 18px;margin:16px 0;font-size:0.92rem;}
+  .flag strong{color:var(--danger);}
+  .good-box{background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.4);border-left:4px solid var(--good);border-radius:10px;padding:14px 18px;margin:16px 0;font-size:0.92rem;}
+  .good-box strong{color:var(--good);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:750px){.grid2{grid-template-columns:1fr;} .grid3{grid-template-columns:1fr;} nav.toc ol{columns:1;}}
+  .divider{height:1px;background:var(--border);margin:30px 0;}
+  footer{text-align:center;color:var(--muted);font-size:0.85rem;margin-top:60px;padding-top:20px;border-top:1px solid var(--border);}
+  svg{width:100%;height:auto;background:#0b1220;border-radius:10px;border:1px solid var(--border);}
+  .svgcap{text-align:center;color:var(--muted);font-size:0.82rem;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>Week 3 — Part 2</h1>
+  <p>Gradient Descent for Logistic Regression · Overfitting · Regularization (Linear & Logistic)</p>
+  <p class="muted" style="margin-top:10px;">Andrew Ng's ML Specialization (Course 1, Week 3) — standalone reference, continues directly from the Logistic Regression / Cost Function file</p>
+</header>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#gd-logreg">Gradient descent for logistic regression</a></li>
+    <li><a href="#gd-vs-linear">Why it "looks the same" as linear regression (but isn't)</a></li>
+    <li><a href="#preview">Quick preview: monitoring, vectorization, feature scaling</a></li>
+    <li><a href="#lab6">Lab 6 — Gradient descent (deep dive)</a></li>
+    <li><a href="#lab7">Lab 7 — scikit-learn</a></li>
+    <li><a href="#overfitting">The problem of overfitting</a></li>
+    <li><a href="#lab8">Lab 8 — Overfitting (interactive)</a></li>
+    <li><a href="#addressing">Addressing overfitting: 3 strategies</a></li>
+    <li><a href="#reg-cost">Cost function with regularization</a></li>
+    <li><a href="#reg-linear">Regularized linear regression + gradient descent</a></li>
+    <li><a href="#reg-logistic">Regularized logistic regression + gradient descent</a></li>
+    <li><a href="#lab9">Lab 9 — Regularization (deep dive)</a></li>
+    <li><a href="#summary">Summary & key takeaways</a></li>
+  </ol>
+</nav>
+
+<!-- ============ SECTION 1: GD FOR LOGREG ============ -->
+<section id="gd-logreg">
+<h2 class="section-title">1. Gradient Descent for Logistic Regression</h2>
+<p>Just like linear regression, fitting logistic regression means finding the parameters <code>w</code> and <code>b</code> that minimize the cost function <code>J(w,b)</code> you built in the previous part of this week (the log-loss cost). The tool to do that minimization is, again, <strong>gradient descent</strong>.</p>
+
+<div class="formula">
+  <span class="label">Gradient descent — general update rule (repeat until convergence)</span>
+  w<sub>j</sub> = w<sub>j</sub> − α · ∂J(w,b)/∂w<sub>j</sub> &nbsp;&nbsp;(for j = 1...n)<br>
+  b = b − α · ∂J(w,b)/∂b
+</div>
+
+<p>Working out the calculus (which the course doesn't require you to derive by hand) gives these derivative terms:</p>
+
+<div class="formula">
+  <span class="label">The gradients for logistic regression</span>
+  ∂J/∂w<sub>j</sub> = (1/m) Σ<sub>i=1</sub><sup>m</sup> [ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾) · x<sub>j</sub>⁽ⁱ⁾ ]<br>
+  ∂J/∂b = (1/m) Σ<sub>i=1</sub><sup>m</sup> [ f(x⁽ⁱ⁾) − y⁽ⁱ⁾ ]
+</div>
+
+<p>Here, <code>(f(x⁽ⁱ⁾) − y⁽ⁱ⁾)</code> is the <strong>error term</strong> — how far the model's prediction is from the true label, for example i. The <code>w_j</code> gradient multiplies that error by the j-th feature value; the <code>b</code> gradient just uses the error directly (no feature multiplied in).</p>
+
+<div class="flag">
+  <strong>Don't forget: simultaneous updates</strong>
+  Exactly like linear regression, you must compute the right-hand sides for <em>all</em> parameters (every <code>w_j</code> and <code>b</code>) first, using the <em>old</em> values, and only then overwrite them all at once. Updating <code>w_1</code> and then using the new <code>w_1</code> to compute the update for <code>w_2</code> in the same iteration is a subtle bug.
+</div>
+</section>
+
+<!-- ============ SECTION 2: LOOKS SAME BUT ISNT ============ -->
+<section id="gd-vs-linear">
+<h2 class="section-title">2. Why This "Looks the Same" as Linear Regression — But Isn't</h2>
+<p>If you compare these update equations to the ones from linear regression in Week 2, they look <em>identical</em> on the page. This naturally raises the question: is logistic regression secretly the same algorithm as linear regression?</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Linear regression</h4>
+    <div class="formula" style="margin:8px 0;">f(x) = w · x + b</div>
+    <p class="muted">f(x) is a raw, unbounded number.</p>
+  </div>
+  <div class="card">
+    <h4>Logistic regression</h4>
+    <div class="formula" style="margin:8px 0;">f(x) = g(w · x + b) = 1/(1+e<sup>−z</sup>)</div>
+    <p class="muted">f(x) is squashed through the sigmoid — always between 0 and 1.</p>
+  </div>
+</div>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  The two algorithms are genuinely different because <code>f(x)</code> means something different in each — a real number vs. a probability. The update-rule formulas happen to have the same algebraic shape only because both cost functions were specifically designed (squared error for linear regression, log-loss for logistic regression) so that their derivatives simplify to this same clean "error times feature" pattern. Same-looking formula, completely different model hiding inside <code>f(x)</code>.
+</div>
+</section>
+
+<!-- ============ SECTION 3: PREVIEW ============ -->
+<section id="preview">
+<h2 class="section-title">3. Quick Preview — Ideas Reused From Linear Regression</h2>
+<p>The lecture flags three techniques from Week 2's linear regression material that carry over to logistic regression <em>without any real change</em>, and says they'll be explored in more depth later in the specialization. Brief previews so you have the vocabulary now:</p>
+
+<div class="grid3">
+  <div class="card">
+    <h4>Monitor convergence (learning curve)</h4>
+    <p class="muted" style="font-size:0.9rem;">Plot <code>J(w,b)</code> against the iteration number while gradient descent runs. If it's steadily decreasing and flattening out, gradient descent is converging; if it jumps around or increases, your learning rate <code>α</code> is probably too large.</p>
+  </div>
+  <div class="card">
+    <h4>Vectorized implementation</h4>
+    <p class="muted" style="font-size:0.9rem;">Instead of looping over training examples in Python (as Lab 6's <code>compute_gradient_logistic</code> does for clarity), express the same computation as matrix/vector operations in NumPy. Same math, much faster execution.</p>
+  </div>
+  <div class="card">
+    <h4>Feature scaling</h4>
+    <p class="muted" style="font-size:0.9rem;">Rescaling features to a similar range (e.g., roughly −1 to 1) before training helps gradient descent take more direct steps toward the minimum, so it converges faster — same benefit it gave linear regression.</p>
+  </div>
+</div>
+
+<div class="preview">
+  <strong>Note on scope</strong>
+  These three are mentioned here only as a heads-up — the instructor explicitly defers the details to later material and optional labs, not this week's core content. Treat this box as a marker of "known unknowns" for now.
+</div>
+</section>
+
+<!-- ============ SECTION 4: LAB 6 ============ -->
+<section id="lab6">
+<h2 class="section-title">4. Deep Dive — Lab 6: Gradient Descent for Logistic Regression</h2>
+<span class="lab-tag">C1_W3_Lab06_Gradient_Descent_Soln.ipynb</span>
+
+<h3>The gradient computation, line by line</h3>
+<pre><code>def compute_gradient_logistic(X, y, w, b):
+    """
+    Computes the gradient for logistic regression
+
+    Args:
+      X (ndarray (m,n): Data, m examples with n features
+      y (ndarray (m,)): target values
+      w (ndarray (n,)): model parameters
+      b (scalar)      : model parameter
+    Returns
+      dj_dw (ndarray (n,)): The gradient of the cost w.r.t. the parameters w.
+      dj_db (scalar)      : The gradient of the cost w.r.t. the parameter b.
+    """
+    m,n = X.shape
+    dj_dw = np.zeros((n,))
+    dj_db = 0.
+
+    for i in range(m):
+        f_wb_i = sigmoid(np.dot(X[i],w) + b)
+        err_i  = f_wb_i  - y[i]
+        for j in range(n):
+            dj_dw[j] = dj_dw[j] + err_i * X[i,j]
+        dj_db = dj_db + err_i
+    dj_dw = dj_dw/m
+    dj_db = dj_db/m
+
+    return dj_db, dj_dw</code></pre>
+
+<table>
+  <tr><th>Code</th><th>Matches which formula piece</th></tr>
+  <tr><td><code>f_wb_i = sigmoid(np.dot(X[i],w) + b)</code></td><td>f(x⁽ⁱ⁾) = g(w·x⁽ⁱ⁾ + b) — the model's prediction for example i</td></tr>
+  <tr><td><code>err_i = f_wb_i - y[i]</code></td><td>The error term (f(x⁽ⁱ⁾) − y⁽ⁱ⁾) shared by both gradient formulas</td></tr>
+  <tr><td>inner loop: <code>dj_dw[j] += err_i * X[i,j]</code></td><td>Accumulating Σ (error × x<sub>j</sub>⁽ⁱ⁾) for the w<sub>j</sub> gradient</td></tr>
+  <tr><td><code>dj_db = dj_db + err_i</code></td><td>Accumulating Σ (error) for the b gradient</td></tr>
+  <tr><td><code>dj_dw = dj_dw/m</code>, <code>dj_db = dj_db/m</code></td><td>The (1/m) averaging factor outside both sums</td></tr>
+</table>
+
+<h4>Verifying it against expected output</h4>
+<pre><code>X_tmp = np.array([[0.5, 1.5], [1,1], [1.5, 0.5], [3, 0.5], [2, 2], [1, 2.5]])
+y_tmp = np.array([0, 0, 0, 1, 1, 1])
+w_tmp = np.array([2.,3.])
+b_tmp = 1.
+dj_db_tmp, dj_dw_tmp = compute_gradient_logistic(X_tmp, y_tmp, w_tmp, b_tmp)
+# Expected: dj_db: 0.49861806546328574
+#           dj_dw: [0.498333393278696, 0.49883942983996693]</code></pre>
+
+<h3>The gradient descent loop</h3>
+<pre><code>def gradient_descent(X, y, w_in, b_in, alpha, num_iters):
+    J_history = []
+    w = copy.deepcopy(w_in)   # avoid modifying the caller's array
+    b = b_in
+
+    for i in range(num_iters):
+        dj_db, dj_dw = compute_gradient_logistic(X, y, w, b)
+        w = w - alpha * dj_dw
+        b = b - alpha * dj_db
+
+        if i<100000:
+            J_history.append( compute_cost_logistic(X, y, w, b) )
+        if i% math.ceil(num_iters / 10) == 0:
+            print(f"Iteration {i:4d}: Cost {J_history[-1]}   ")
+
+    return w, b, J_history</code></pre>
+
+<div class="good-box">
+  <strong>Note the clean separation of concerns</strong>
+  <code>compute_gradient_logistic</code> only computes the direction/size of the step (the math from Section 1). <code>gradient_descent</code> only handles the repeat-loop bookkeeping: apply the step, log the cost, print progress. This split is exactly why the lecture says "the loop is generally provided to you" while "the gradient calculation... you will be asked to implement" — they are two genuinely separate jobs, and the practice lab will only ask you to write the first one.
+</div>
+
+<h4>Why <code>copy.deepcopy(w_in)</code> matters</h4>
+<p>Without this, <code>w = w_in</code> would just make <code>w</code> point to the exact same NumPy array the caller passed in. Modifying <code>w</code> inside the function would then silently modify the caller's original array too — a classic Python/NumPy mutability trap. <code>deepcopy</code> makes an independent copy so the function is safe to call without side effects.</p>
+
+<h3>Running it & reading the plot</h3>
+<pre><code>w_tmp  = np.zeros_like(X_train[0])
+b_tmp  = 0.
+alph = 0.1
+iters = 10000
+w_out, b_out, _ = gradient_descent(X_train, y_train, w_tmp, b_tmp, alph, iters)</code></pre>
+<p>The resulting plot shades the whole feature space by predicted probability (darker/lighter = closer to 1 or 0) and draws the decision boundary as the line where that probability equals exactly 0.5 — a direct visual confirmation of the decision-boundary theory from the cost-function lecture.</p>
+
+<h3>Bonus: the interactive contour/cost exploration</h3>
+<p>The lab's second dataset (single feature, so only 2 parameters <code>w, b</code>) lets you click inside a contour plot of <code>J(w,b)</code> to manually set parameters and watch the cost and sigmoid fit update live, then run gradient descent and watch the cost steadily descend toward the minimum on the contour map. This is the most direct visual you'll get all week of "gradient descent walking downhill on the cost surface."</p>
+</section>
+
+<!-- ============ SECTION 5: LAB 7 ============ -->
+<section id="lab7">
+<h2 class="section-title">5. Lab 7 — Logistic Regression with scikit-learn</h2>
+<span class="lab-tag">C1_W3_Lab07_Scikit_Learn_Soln.ipynb</span>
+<p>After building logistic regression from scratch (sigmoid, cost, gradient, gradient descent loop), this short lab shows the industry-standard shortcut: <code>scikit-learn</code>.</p>
+
+<pre><code>from sklearn.linear_model import LogisticRegression
+
+X = np.array([[0.5, 1.5], [1,1], [1.5, 0.5], [3, 0.5], [2, 2], [1, 2.5]])
+y = np.array([0, 0, 0, 1, 1, 1])
+
+lr_model = LogisticRegression()
+lr_model.fit(X, y)
+
+y_pred = lr_model.predict(X)
+print("Prediction on training set:", y_pred)
+
+print("Accuracy on training set:", lr_model.score(X, y))</code></pre>
+
+<table>
+  <tr><th>Method</th><th>What it does</th></tr>
+  <tr><td><code>.fit(X, y)</code></td><td>Runs an optimized training routine internally (not the manual loop you wrote) to find the best <code>w</code> and <code>b</code> — this replaces your <code>gradient_descent()</code> function entirely.</td></tr>
+  <tr><td><code>.predict(X)</code></td><td>Applies the learned model plus the 0.5 threshold automatically, returning hard 0/1 predictions.</td></tr>
+  <tr><td><code>.score(X, y)</code></td><td>Returns accuracy — the fraction of predictions that matched the true labels.</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  Everything you implemented manually — sigmoid, log-loss cost, gradients, the update loop — is exactly what a library like scikit-learn does under the hood, just far more optimized. Building it yourself first is what lets you actually understand what <code>.fit()</code> is doing, debug it when it misbehaves, and know which knobs (regularization strength, solver, max iterations) are worth adjusting later.
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ SECTION 6: OVERFITTING ============ -->
+<section id="overfitting">
+<h2 class="section-title">6. The Problem of Overfitting</h2>
+<p>A trained model can go wrong in two opposite ways. Both are best understood through the housing-price regression example (price vs. house size).</p>
+
+<svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .ax{stroke:#3a4a68;stroke-width:2;}
+    .pt{fill:#f87171;}
+    .curve{fill:none;stroke-width:3;}
+    .lbl{fill:#9db0c9;font-size:12px;font-family:sans-serif;}
+    .title{fill:#e6edf7;font-size:13px;font-family:sans-serif;font-weight:600;}
+  </style>
+  <!-- Panel 1: underfit -->
+  <g transform="translate(20,20)">
+    <text x="110" y="0" class="title" text-anchor="middle">Underfit (high bias)</text>
+    <line x1="20" y1="200" x2="270" y2="200" class="ax"/>
+    <line x1="20" y1="200" x2="20" y2="20" class="ax"/>
+    <path d="M 30 190 L 260 60" class="curve" stroke="#4fd1c5"/>
+    <circle cx="40" cy="185" r="4" class="pt"/>
+    <circle cx="80" cy="150" r="4" class="pt"/>
+    <circle cx="130" cy="110" r="4" class="pt"/>
+    <circle cx="180" cy="95" r="4" class="pt"/>
+    <circle cx="230" cy="80" r="4" class="pt"/>
+    <text x="145" y="220" class="lbl" text-anchor="middle">size</text>
+    <text x="8" y="110" class="lbl" transform="rotate(-90 8 110)">price</text>
+  </g>
+  <!-- Panel 2: just right -->
+  <g transform="translate(330,20)">
+    <text x="110" y="0" class="title" text-anchor="middle">Just right</text>
+    <line x1="20" y1="200" x2="270" y2="200" class="ax"/>
+    <line x1="20" y1="200" x2="20" y2="20" class="ax"/>
+    <path d="M 30 190 Q 120 70 260 60" class="curve" stroke="#34d399"/>
+    <circle cx="40" cy="185" r="4" class="pt"/>
+    <circle cx="80" cy="150" r="4" class="pt"/>
+    <circle cx="130" cy="110" r="4" class="pt"/>
+    <circle cx="180" cy="95" r="4" class="pt"/>
+    <circle cx="230" cy="80" r="4" class="pt"/>
+    <text x="145" y="220" class="lbl" text-anchor="middle">size</text>
+  </g>
+  <!-- Panel 3: overfit -->
+  <g transform="translate(640,20)">
+    <text x="110" y="0" class="title" text-anchor="middle">Overfit (high variance)</text>
+    <line x1="20" y1="200" x2="270" y2="200" class="ax"/>
+    <line x1="20" y1="200" x2="20" y2="20" class="ax"/>
+    <path d="M 30 190 C 60 130, 70 165, 90 150 S 130 90, 150 108 S 190 60, 230 80" class="curve" stroke="#f87171"/>
+    <circle cx="40" cy="185" r="4" class="pt"/>
+    <circle cx="80" cy="150" r="4" class="pt"/>
+    <circle cx="130" cy="110" r="4" class="pt"/>
+    <circle cx="180" cy="95" r="4" class="pt"/>
+    <circle cx="230" cy="80" r="4" class="pt"/>
+    <text x="145" y="220" class="lbl" text-anchor="middle">size</text>
+  </g>
+</svg>
+<p class="svgcap">Same 5 training points, three different polynomial degrees fit to them.</p>
+
+<table>
+  <tr><th></th><th>Underfitting (high bias)</th><th>"Just right"</th><th>Overfitting (high variance)</th></tr>
+  <tr><td>Model used</td><td>Straight line (degree 1)</td><td>Quadratic (degree 2)</td><td>4th-order polynomial (degree 4)</td></tr>
+  <tr><td>Fit to training data</td><td>Poor — misses the obvious flattening pattern</td><td>Good, not perfect</td><td>Perfect — passes through every point, cost = 0</td></tr>
+  <tr><td>Generalizes to new houses?</td><td>No — wrong shape entirely</td><td>Yes, reasonably well</td><td>No — wildly wiggly between points</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  Training cost of exactly 0 sounds like a perfect model, but it's actually a red flag: it usually means the model has memorized the noise in this specific training set rather than learning the real underlying pattern. The entire goal of machine learning is <strong>generalization</strong> — good predictions on new, unseen examples — not a perfect score on data the model has already seen.
+</div>
+
+<div class="analogy">
+  <strong>Analogy — Goldilocks</strong>
+  Underfitting is porridge too cold: the model didn't even try hard enough to match the shape of the data (too strong a "preconception" that it must be linear). Overfitting is porridge too hot: the model tried so hard to match every single data point exactly that it twisted itself into an unreasonable, overly wiggly shape. The quadratic fit is porridge that's just right — close to the data without chasing every bit of noise.
+</div>
+
+<h3>The two technical-term pairs (used interchangeably)</h3>
+<table>
+  <tr><th>Pair 1</th><th>Pair 2</th><th>Meaning</th></tr>
+  <tr><td>Underfitting</td><td>High bias</td><td>The model has too strong a "preconception" about the data's shape and can't capture the real pattern even in the training data.</td></tr>
+  <tr><td>Overfitting</td><td>High variance</td><td>The model is so flexible that tiny changes in the training set would produce wildly different fitted curves — high variability across different possible training sets.</td></tr>
+</table>
+
+<div class="flag">
+  <strong>Terminology note</strong>
+  "Bias" here is a technical statistical term (about how well a model's assumptions match reality) — not the same as "bias" meaning unfair discrimination against groups like gender or ethnicity, which is a separate and equally important concept in ML but not what's meant in this context.
+</div>
+
+<h3>The same problem in classification</h3>
+<p>Overfitting isn't unique to regression — it happens with logistic regression's decision boundary too, using the same tumor-classification setup (x₁ = tumor size, x₂ = age):</p>
+
+<svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .ax2{stroke:#3a4a68;stroke-width:2;}
+    .cross{stroke:#f87171;stroke-width:2.5;}
+    .circ{fill:none;stroke:#4fd1c5;stroke-width:2.5;}
+    .bnd{fill:none;stroke-width:3;}
+    .lbl2{fill:#9db0c9;font-size:12px;font-family:sans-serif;}
+    .title2{fill:#e6edf7;font-size:13px;font-family:sans-serif;font-weight:600;}
+  </style>
+  <!-- underfit boundary: straight line -->
+  <g transform="translate(20,20)">
+    <text x="110" y="0" class="title2" text-anchor="middle">Underfit — linear boundary</text>
+    <rect x="20" y="20" width="250" height="180" fill="none" stroke="#22304a"/>
+    <line x1="40" y1="190" x2="260" y2="40" class="bnd" stroke="#4fd1c5"/>
+    <g class="cross"><line x1="60" y1="60" x2="72" y2="72"/><line x1="72" y1="60" x2="60" y2="72"/></g>
+    <g class="cross"><line x1="100" y1="90" x2="112" y2="102"/><line x1="112" y1="90" x2="100" y2="102"/></g>
+    <g class="cross"><line x1="150" y1="60" x2="162" y2="72"/><line x1="162" y1="60" x2="150" y2="72"/></g>
+    <circle class="circ" cx="90" cy="150" r="7"/>
+    <circle class="circ" cx="140" cy="170" r="7"/>
+    <circle class="circ" cx="190" cy="140" r="7"/>
+    <circle class="circ" cx="220" cy="100" r="7"/>
+  </g>
+  <!-- just right boundary: ellipse -->
+  <g transform="translate(330,20)">
+    <text x="110" y="0" class="title2" text-anchor="middle">Just right — curved boundary</text>
+    <rect x="20" y="20" width="250" height="180" fill="none" stroke="#22304a"/>
+    <ellipse cx="150" cy="110" rx="90" ry="65" class="bnd" stroke="#34d399"/>
+    <g class="cross"><line x1="130" y1="90" x2="142" y2="102"/><line x1="142" y1="90" x2="130" y2="102"/></g>
+    <g class="cross"><line x1="160" y1="120" x2="172" y2="132"/><line x1="172" y1="120" x2="160" y2="132"/></g>
+    <g class="cross"><line x1="110" y1="130" x2="122" y2="142"/><line x1="122" y1="130" x2="110" y2="142"/></g>
+    <circle class="circ" cx="40" cy="40" r="7"/>
+    <circle class="circ" cx="250" cy="50" r="7"/>
+    <circle class="circ" cx="240" cy="180" r="7"/>
+    <circle class="circ" cx="40" cy="185" r="7"/>
+  </g>
+  <!-- overfit boundary: wiggly -->
+  <g transform="translate(640,20)">
+    <text x="110" y="0" class="title2" text-anchor="middle">Overfit — overly complex</text>
+    <rect x="20" y="20" width="250" height="180" fill="none" stroke="#22304a"/>
+    <path d="M 60 40 C 40 70, 90 60, 80 100 C 70 140, 130 110, 120 150 C 110 180, 180 170, 190 130 C 200 90, 150 90, 160 60 C 165 40, 100 30, 60 40 Z" class="bnd" stroke="#f87171"/>
+    <g class="cross"><line x1="90" y1="70" x2="102" y2="82"/><line x1="102" y1="70" x2="90" y2="82"/></g>
+    <g class="cross"><line x1="120" y1="110" x2="132" y2="122"/><line x1="132" y1="110" x2="120" y2="122"/></g>
+    <g class="cross"><line x1="150" y1="130" x2="162" y2="142"/><line x1="162" y1="130" x2="150" y2="142"/></g>
+    <circle class="circ" cx="40" cy="40" r="7"/>
+    <circle class="circ" cx="250" cy="50" r="7"/>
+    <circle class="circ" cx="240" cy="180" r="7"/>
+    <circle class="circ" cx="60" cy="180" r="7"/>
+  </g>
+</svg>
+<p class="svgcap">Crosses = malignant (y=1), circles = benign (y=0). Same three-way pattern as regression: line → ellipse → overly-twisted boundary.</p>
+
+<ul>
+  <li><strong>Underfit:</strong> only raw features (x₁, x₂) → decision boundary can only be a straight line → doesn't separate the classes well.</li>
+  <li><strong>Just right:</strong> add quadratic features (x₁², x₂²) → boundary becomes an ellipse → separates classes well, misclassifying only a few points, generalizes well.</li>
+  <li><strong>Overfit:</strong> many high-order polynomial features → boundary twists to perfectly enclose every training point → unlikely to generalize to new patients.</li>
+</ul>
+</section>
+
+<!-- ============ SECTION 7: LAB 8 ============ -->
+<section id="lab8">
+<h2 class="section-title">7. Lab 8 — Overfitting (Interactive Exploration)</h2>
+<span class="lab-tag">C1_W3_Lab08_Overfitting_Soln.ipynb</span>
+<p>This lab is a hands-on sandbox rather than a coding exercise — there's no function for you to implement. Instead it gives you an interactive plot (<code>overfit_example</code>) where you can:</p>
+<ul>
+  <li>Switch between a <strong>Regression</strong> example and a <strong>Categorical (classification)</strong> example.</li>
+  <li><strong>Add your own data points</strong> by clicking on the plot, and watch the fitted curve change live.</li>
+  <li><strong>Change the polynomial degree</strong> of the model being fit (degree 1 = underfit, higher degrees = increasingly overfit) and click "fit" to see the resulting curve.</li>
+</ul>
+
+<h4>What to actually try, per the lecture's own suggestions</h4>
+<ul>
+  <li>Fit with degree = 1 and note the underfitting.</li>
+  <li>Fit with degree = 6 and note the overfitting.</li>
+  <li>Tune the degree in between to find the "best fit" by eye.</li>
+  <li>Add an extreme outlier point and watch overfitting get worse; add a few nominal (typical) points and watch it improve.</li>
+</ul>
+
+<div class="why">
+  <strong>Why this lab matters</strong>
+  It builds intuition for a fact you'll rely on for the rest of the specialization: overfitting isn't just about polynomial degree in isolation — it's about the <em>ratio</em> of model flexibility to the amount and quality of training data. The same degree-6 polynomial that badly overfits 6 data points might fit 60 data points just fine. This directly sets up "collect more data" as a real fix for overfitting, covered next.
+</div>
+</section>
+
+<!-- ============ SECTION 8: ADDRESSING OVERFITTING ============ -->
+<section id="addressing">
+<h2 class="section-title">8. Addressing Overfitting — Three Strategies</h2>
+
+<div class="grid3">
+  <div class="card">
+    <h4>1. Collect more data</h4>
+    <p style="font-size:0.9rem;">With more training examples, even a high-order polynomial is forced to fit a smoother, less wiggly curve, because it now has to satisfy many more constraints at once.</p>
+    <p class="muted" style="font-size:0.85rem;">Limitation: more data isn't always available (e.g. only so many houses have sold in a given area).</p>
+  </div>
+  <div class="card">
+    <h4>2. Feature selection</h4>
+    <p style="font-size:0.9rem;">If you have many features (e.g. 100 features per house) but limited data, keep only the most relevant subset (e.g. size, bedrooms, age) and drop the rest.</p>
+    <p class="muted" style="font-size:0.85rem;">Limitation: you throw away information — some of the dropped features might have actually been useful.</p>
+  </div>
+  <div class="card">
+    <h4>3. Regularization</h4>
+    <p style="font-size:0.9rem;">Keep <em>all</em> the features, but shrink the size of the parameters <code>w_j</code> so no single feature can dominate the model's output.</p>
+    <p class="muted" style="font-size:0.85rem;">The "gentle" middle ground between doing nothing and outright deleting features.</p>
+  </div>
+</div>
+
+<div class="why">
+  <strong>Why regularization is the preferred default</strong>
+  Feature selection makes a hard, binary decision (keep or discard) about each feature, which risks losing real signal. Regularization instead makes a <em>soft</em> decision: every feature stays in the model, but features that don't help much get pushed toward having very little influence (small <code>w_j</code>), while features that genuinely matter can still have a meaningful weight. This is why the lecturer says he uses regularization "all the time," including later for neural networks.
+</div>
+
+<div class="analogy">
+  <strong>Analogy</strong>
+  Feature selection is like editing an essay by deleting entire paragraphs you think are unnecessary — effective, but risky if you guess wrong about what's unimportant. Regularization is like turning down the volume on every paragraph proportionally to how little it adds, without deleting any of them outright — safer, because even a "quiet" paragraph still contributes a little if it turns out to matter.
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ SECTION 9: REG COST ============ -->
+<section id="reg-cost">
+<h2 class="section-title">9. Cost Function With Regularization</h2>
+
+<h3>The core trick: penalize large parameters directly in the cost</h3>
+<p>Suppose (illustrative example) you wanted <code>w₃</code> and <code>w₄</code> to end up close to 0 without deleting those features outright. You could simply add a huge penalty for them being large, directly into what gradient descent is trying to minimize:</p>
+
+<div class="formula">
+  <span class="label">Illustrative example — penalizing two specific parameters</span>
+  minimize: (1/2m) Σ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾)² &nbsp;+&nbsp; 1000·w₃² &nbsp;+&nbsp; 1000·w₄²
+</div>
+<p>Because 1000 is such a large multiplier, the <em>only</em> way to keep the whole expression small is for <code>w₃</code> and <code>w₄</code> to end up very close to 0 — effectively cancelling out those two polynomial terms without literally removing the features.</p>
+
+<h3>Generalizing: penalize every weight, a little</h3>
+<p>With many features (say 100), you usually don't know in advance which ones are the unimportant ones. So instead of singling out specific parameters, penalize <em>all</em> of them a bit:</p>
+
+<div class="formula">
+  <span class="label">Regularized cost function (general form)</span>
+  J(w,b) = [ original cost term ] &nbsp;+&nbsp; (λ / 2m) · Σ<sub>j=1</sub><sup>n</sup> w<sub>j</sub>²
+</div>
+
+<p>The new second term is called the <strong>regularization term</strong>, and <code>λ</code> (lambda) is the <strong>regularization parameter</strong> — a number you choose, just like the learning rate <code>α</code>.</p>
+
+<h4>Why the (1/2m) scaling on the regularization term specifically</h4>
+<div class="why">
+  <strong>Why this matters</strong>
+  Scaling <em>both</em> the original cost term and the regularization term by the same <code>1/2m</code> (or <code>1/m</code>) factor means that if your training set grows, the same <code>λ</code> value tends to keep working well. Without this scaling, a good <code>λ</code> for a small dataset might become far too strong or too weak once you collect more data — the scaling keeps the relative balance between "fit the data" and "keep weights small" stable across dataset sizes.
+</div>
+
+<h4>Why b is (conventionally) not regularized</h4>
+<p>By convention, the sum only runs over <code>w₁</code> through <code>w_n</code> — the bias term <code>b</code> is left out. In practice it makes very little difference whether you regularize <code>b</code> too; some implementations do, most (including this course's convention) don't.</p>
+
+<h3>The two competing goals λ balances</h3>
+<table>
+  <tr><th>Term</th><th>What minimizing it encourages</th></tr>
+  <tr><td>Original cost term (MSE or log-loss)</td><td>Fit the training data closely — accurate predictions</td></tr>
+  <tr><td>Regularization term <code>(λ/2m)Σw_j²</code></td><td>Keep the parameters small — a simpler, smoother model</td></tr>
+</table>
+
+<h3>What different values of λ actually do</h3>
+<div class="grid3">
+  <div class="card">
+    <h4>λ = 0</h4>
+    <p style="font-size:0.9rem;">Regularization term vanishes entirely. Model behaves exactly as before → free to overfit with a wiggly high-order curve.</p>
+  </div>
+  <div class="card">
+    <h4>λ huge (e.g. 10¹⁰)</h4>
+    <p style="font-size:0.9rem;">Only way to minimize is forcing nearly every <code>w_j</code> to ≈ 0. Model collapses to roughly <code>f(x) ≈ b</code> — a flat line → underfits badly.</p>
+  </div>
+  <div class="card">
+    <h4>λ "just right"</h4>
+    <p style="font-size:0.9rem;">Balances the two goals — keeps all the polynomial features but with modest weights, producing a smooth curve that still fits the data well.</p>
+  </div>
+</div>
+
+<div class="flag">
+  <strong>λ is itself a hyperparameter you must choose</strong>
+  Just as picking a bad learning rate <code>α</code> can break gradient descent, picking a bad <code>λ</code> breaks the fit in one of the two directions above. The course notes that later material covers systematic ways to select a good <code>λ</code> (model selection) — for now, treat picking it as trial-and-observe using held-out validation performance.
+</div>
+</section>
+
+<!-- ============ SECTION 10: REG LINEAR ============ -->
+<section id="reg-linear">
+<h2 class="section-title">10. Regularized Linear Regression + Gradient Descent</h2>
+
+<div class="formula">
+  <span class="label">Regularized cost function for linear regression</span>
+  J(w,b) = (1/2m) Σ<sub>i=1</sub><sup>m</sup> (f(x⁽ⁱ⁾) − y⁽ⁱ⁾)² &nbsp;+&nbsp; (λ/2m) Σ<sub>j=1</sub><sup>n</sup> w<sub>j</sub>²
+</div>
+
+<h3>The updated gradient descent rules</h3>
+<div class="formula">
+  <span class="label">Only the w_j update changes; b's update is untouched</span>
+  w<sub>j</sub> = w<sub>j</sub> − α · [ (1/m) Σ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾) x<sub>j</sub>⁽ⁱ⁾ &nbsp;+&nbsp; (λ/m) w<sub>j</sub> ]<br>
+  b = b − α · (1/m) Σ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾)
+</div>
+
+<p>The only change versus the unregularized version is the single extra term <code>+ (λ/m)·w_j</code> tacked onto the end of the w<sub>j</sub> derivative. Because <code>b</code> isn't regularized, its update formula is identical to before.</p>
+
+<h3>The "shrink a little every step" intuition (optional-but-illuminating rearrangement)</h3>
+<p>Rearranging the w<sub>j</sub> update algebraically:</p>
+<div class="formula">
+  w<sub>j</sub> = w<sub>j</sub> · (1 − α·λ/m) &nbsp;−&nbsp; α · (1/m) Σ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾) x<sub>j</sub>⁽ⁱ⁾
+</div>
+<p>The second term is exactly the <em>usual</em> (unregularized) gradient descent update. The new first factor, <code>(1 − α·λ/m)</code>, is a number just slightly less than 1 — for typical values like <code>α=0.01, λ=1, m=50</code>, this works out to <code>1 − 0.0002 = 0.9998</code>.</p>
+
+<div class="why">
+  <strong>Why this matters — this is the real mechanism of regularization</strong>
+  Every single iteration of gradient descent, before even applying the usual update, you multiply <code>w_j</code> by a number slightly less than 1. That's a tiny proportional shrink applied every step, on top of the normal learning update. Repeated over thousands of iterations, this steady multiplicative shrinkage is what keeps the parameters small — it's not a one-time clamp, it's constant gentle pressure toward zero throughout training.
+</div>
+
+<div class="analogy">
+  <strong>Analogy</strong>
+  Think of unregularized gradient descent as a hiker walking downhill toward the cost minimum. Regularization adds a very light constant breeze blowing the hiker slightly back toward the "origin" (all weights = 0) on every single step — not strong enough to stop them reaching a good minimum, but enough to keep them from wandering to an extreme, wiggly, large-weight solution.
+</div>
+
+<h4>Where the extra term comes from (brief, optional calculus note)</h4>
+<p>Differentiating the added regularization term <code>(λ/2m)w_j²</code> with respect to <code>w_j</code> gives <code>(λ/m)w_j</code> — a standard power-rule derivative — which is exactly the new term appended to the gradient. The course explicitly marks this derivation as optional; you don't need to reproduce it, only to trust and use the resulting update rule.</p>
+</section>
+
+<!-- ============ SECTION 11: REG LOGISTIC ============ -->
+<section id="reg-logistic">
+<h2 class="section-title">11. Regularized Logistic Regression + Gradient Descent</h2>
+<p>Logistic regression is just as prone to overfitting as linear regression — especially with high-order polynomial features feeding into the sigmoid, which can produce an overly complex decision boundary (as shown in Section 6's third panel).</p>
+
+<div class="formula">
+  <span class="label">Regularized cost function for logistic regression</span>
+  J(w,b) = −(1/m) Σ<sub>i=1</sub><sup>m</sup> [ y⁽ⁱ⁾log(f(x⁽ⁱ⁾)) + (1−y⁽ⁱ⁾)log(1−f(x⁽ⁱ⁾)) ] &nbsp;+&nbsp; (λ/2m) Σ<sub>j=1</sub><sup>n</sup> w<sub>j</sub>²
+</div>
+<p>This is exactly the log-loss cost function from the earlier lecture, with the identical regularization term from linear regression simply appended.</p>
+
+<div class="formula">
+  <span class="label">Gradient descent update — same shape as regularized linear regression</span>
+  w<sub>j</sub> = w<sub>j</sub> − α · [ (1/m) Σ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾) x<sub>j</sub>⁽ⁱ⁾ &nbsp;+&nbsp; (λ/m) w<sub>j</sub> ]<br>
+  b = b − α · (1/m) Σ (f(x⁽ⁱ⁾) − y⁽ⁱ⁾)
+</div>
+
+<div class="flag">
+  <strong>The formula looks identical to regularized linear regression — the difference is hidden inside f(x)</strong>
+  Exactly the same pattern as Section 2: the update-rule algebra is the same because both cost functions were engineered to produce this same clean derivative shape. But here, <code>f(x) = g(w·x+b)</code> is the sigmoid-based logistic function, not the plain linear function. Never let the matching formulas fool you into thinking these are the same model.
+</div>
+
+<h4>What regularization buys you here, concretely</h4>
+<p>Even when fitting a high-order polynomial decision boundary with many parameters, penalizing large <code>w_j</code> values steers the fitted boundary away from the overly-twisted shape in Section 6's third panel, back toward something closer to the smooth, "just right" ellipse — while still keeping every polynomial feature technically available to the model.</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ SECTION 12: LAB 9 ============ -->
+<section id="lab9">
+<h2 class="section-title">12. Deep Dive — Lab 9: Regularization</h2>
+<span class="lab-tag">C1_W3_Lab09_Regularization_Soln.ipynb</span>
+<p>This lab extends the same interactive tool from Lab 8, now adding a <strong>regularization (λ) slider/option</strong> so you can directly compare unregularized vs. regularized fits on both the regression and classification examples.</p>
+
+<h4>What the lab lets you explore</h4>
+<ul>
+  <li>Fit a high-order polynomial with <code>λ = 0</code> and observe the familiar overfit, wiggly curve (or overly-complex decision boundary for the classification case).</li>
+  <li>Increase <code>λ</code> gradually and watch the same high-order model smooth out into a much more reasonable fit — all without removing a single feature, exactly as the theory in Section 9 predicts.</li>
+  <li>Push <code>λ</code> too far and watch the fit start to underfit again — a live demonstration of the "λ too large → high bias" failure mode from Section 9.</li>
+  <li>Compare this against Lab 8's two other overfitting remedies (more data, feature selection) side by side, on the same underlying dataset.</li>
+</ul>
+
+<div class="why">
+  <strong>Why this lab matters</strong>
+  This is the moment all three "addressing overfitting" strategies (Section 8) and the regularized cost/gradient math (Sections 9–11) come together visually. You get to directly verify, by dragging a slider, the exact three-way behavior predicted analytically: λ=0 overfits, λ huge underfits, λ "just right" generalizes well — closing the loop between the formula and its real effect on a fitted curve.
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ SECTION 13: SUMMARY ============ -->
+<section id="summary">
+<h2 class="section-title">13. Summary & Key Takeaways</h2>
+
+<div class="card">
+<h4>The full arc of this part</h4>
+<ol>
+  <li><strong>Gradient descent for logistic regression</strong> uses the same-looking update rule as linear regression — <code>w_j = w_j − α·(1/m)Σ(f(x⁽ⁱ⁾)−y⁽ⁱ⁾)x_j⁽ⁱ⁾</code> — but <code>f(x)</code> is the sigmoid-based logistic function, making it a genuinely different algorithm underneath.</li>
+  <li><strong>Lab 6</strong> turns this into working code: <code>compute_gradient_logistic</code> (the math) plus <code>gradient_descent</code> (the loop), verified against expected output, then visualized as a shaded-probability plot with the 0.5-decision boundary drawn on top.</li>
+  <li><strong>Lab 7</strong> shows the same task done in one line with <code>sklearn.linear_model.LogisticRegression</code> — <code>.fit()</code>, <code>.predict()</code>, <code>.score()</code>.</li>
+  <li><strong>Overfitting</strong> (high variance) and <strong>underfitting</strong> (high bias) are the two failure modes on either side of a "just right" model — a training cost of exactly 0 is a warning sign, not a success.</li>
+  <li><strong>Three fixes:</strong> collect more data, select fewer features, or — most flexible — <strong>regularize</strong>, which shrinks all parameters without deleting any features.</li>
+  <li><strong>Regularization</strong> adds <code>(λ/2m)Σw_j²</code> to the cost function, which turns into one extra term, <code>+(λ/m)w_j</code>, in the gradient — equivalent to multiplying <code>w_j</code> by a number just under 1 on every single gradient descent step.</li>
+  <li><strong>λ = 0</strong> → overfits (same as no regularization). <strong>λ → ∞</strong> → underfits (all weights collapse toward 0). A well-chosen λ balances fitting the data against keeping weights small.</li>
+  <li><strong>Regularized logistic regression</strong> combines the log-loss cost with the exact same regularization term and produces an update rule with the same extra <code>+(λ/m)w_j</code> term — the bias <code>b</code> stays unregularized by convention in both linear and logistic cases.</li>
+  <li><strong>Lab 9</strong> lets you see all of this live: dragging λ up from 0 visibly smooths an overfit curve or decision boundary, closing the loop between formula and behavior.</li>
+</ol>
+</div>
+
+<div class="why">
+  <strong>The one idea to hold onto above all others</strong>
+  Every model you'll ever train faces the same tension: fit the training data well vs. stay simple enough to generalize. Gradient descent with a plain cost function only optimizes the first half. Regularization is the mechanism that keeps the second half in check — and it's the exact same idea (penalize large weights in the cost function) that reappears, largely unchanged, when you get to neural networks later in this specialization.
+</div>
+</section>
+
+<footer>
+  Reference file built from Week 3 lecture transcripts (Gradient Descent Implementation, The Problem of Overfitting, Addressing Overfitting, Cost Function with Regularization, Regularized Linear Regression, Regularized Logistic Regression) and Labs 6, 7, 8, 9 — Andrew Ng ML Specialization, Course 1. Continues directly from the Logistic Regression / Cost Function reference file.
+</footer>
+
+</div>
+</body>
+</html>

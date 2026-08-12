@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Week 3 — Logistic Regression: Concept, Cost, Loss & Labs</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#131c31; --panel2:#101827; --text:#e6edf7; --muted:#9db0c9;
+    --accent:#4fd1c5; --accent2:#f6ad55; --danger:#f87171; --good:#34d399;
+    --code:#0b1220; --border:#22304a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0; background:linear-gradient(180deg,#0b1120,#0f172a 400px);
+    color:var(--text); font-family:'Segoe UI',Roboto,-apple-system,sans-serif; line-height:1.65;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:24px 20px 100px;}
+  header.hero{
+    padding:40px 30px; border-radius:16px; margin-bottom:32px;
+    background:radial-gradient(circle at top left, rgba(79,209,197,0.18), transparent 60%),
+               radial-gradient(circle at bottom right, rgba(246,173,85,0.15), transparent 60%),
+               var(--panel);
+    border:1px solid var(--border);
+  }
+  header.hero h1{margin:0 0 8px; font-size:2rem; color:#fff;}
+  header.hero p{margin:0; color:var(--muted); font-size:1.05rem;}
+  nav.toc{
+    background:var(--panel2); border:1px solid var(--border); border-radius:12px;
+    padding:18px 22px; margin-bottom:36px;
+  }
+  nav.toc h2{margin-top:0; font-size:1rem; color:var(--accent); text-transform:uppercase; letter-spacing:1px;}
+  nav.toc ol{margin:0; padding-left:20px; columns:2; column-gap:30px;}
+  nav.toc li{margin-bottom:6px;}
+  nav.toc a{color:var(--text); text-decoration:none; border-bottom:1px dotted var(--muted);}
+  nav.toc a:hover{color:var(--accent);}
+
+  section{margin-bottom:48px;}
+  h2.section-title{
+    font-size:1.5rem; color:#fff; border-left:4px solid var(--accent); padding-left:14px;
+    margin-bottom:18px;
+  }
+  h3{color:var(--accent2); font-size:1.15rem; margin-top:28px;}
+  h4{color:var(--text); font-size:1rem; margin-top:20px; margin-bottom:6px;}
+
+  p{color:var(--text);}
+  .muted{color:var(--muted);}
+
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:20px 24px; margin:18px 0;
+  }
+
+  .why{
+    background:linear-gradient(135deg, rgba(79,209,197,0.12), rgba(79,209,197,0.03));
+    border:1px solid rgba(79,209,197,0.4); border-left:4px solid var(--accent);
+    border-radius:10px; padding:16px 20px; margin:18px 0;
+  }
+  .why strong{color:var(--accent); display:block; margin-bottom:6px; font-size:0.95rem; text-transform:uppercase; letter-spacing:0.5px;}
+
+  .analogy{
+    background:linear-gradient(135deg, rgba(246,173,85,0.12), rgba(246,173,85,0.03));
+    border:1px solid rgba(246,173,85,0.4); border-left:4px solid var(--accent2);
+    border-radius:10px; padding:16px 20px; margin:18px 0;
+  }
+  .analogy strong{color:var(--accent2); display:block; margin-bottom:6px; font-size:0.95rem; text-transform:uppercase; letter-spacing:0.5px;}
+
+  .formula{
+    background:var(--code); border:1px solid var(--border); border-radius:10px;
+    padding:18px 22px; margin:16px 0; overflow-x:auto; font-size:1.05rem;
+    text-align:center; color:#dbe7ff;
+  }
+  .formula .label{display:block; text-align:left; color:var(--muted); font-size:0.8rem; margin-bottom:8px; font-family:inherit;}
+
+  pre{
+    background:var(--code); border:1px solid var(--border); border-radius:10px;
+    padding:16px 18px; overflow-x:auto; font-size:0.88rem; color:#c9f0e8;
+  }
+  code{font-family:'Fira Code',Consolas,monospace;}
+  p code, li code{
+    background:#182338; padding:2px 6px; border-radius:5px; color:var(--accent);
+    font-size:0.9em;
+  }
+
+  table{width:100%; border-collapse:collapse; margin:16px 0;}
+  th,td{border:1px solid var(--border); padding:10px 12px; text-align:left; font-size:0.92rem;}
+  th{background:#182338; color:var(--accent);}
+  tr:nth-child(even){background:rgba(255,255,255,0.02);}
+
+  .step-badge{
+    display:inline-block; background:var(--accent); color:#04201c; font-weight:700;
+    border-radius:50%; width:26px; height:26px; text-align:center; line-height:26px;
+    margin-right:10px; font-size:0.85rem;
+  }
+
+  .lab-tag{
+    display:inline-block; background:#182338; color:var(--accent2); border:1px solid var(--accent2);
+    border-radius:20px; padding:2px 12px; font-size:0.78rem; margin-bottom:10px; letter-spacing:0.5px;
+  }
+
+  .flag{
+    background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.4); border-left:4px solid var(--danger);
+    border-radius:10px; padding:14px 18px; margin:16px 0; font-size:0.92rem;
+  }
+  .flag strong{color:var(--danger);}
+
+  .good-box{
+    background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.4); border-left:4px solid var(--good);
+    border-radius:10px; padding:14px 18px; margin:16px 0; font-size:0.92rem;
+  }
+  .good-box strong{color:var(--good);}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:700px){ .grid2{grid-template-columns:1fr;} nav.toc ol{columns:1;} }
+
+  .divider{height:1px; background:var(--border); margin:30px 0;}
+
+  footer{text-align:center; color:var(--muted); font-size:0.85rem; margin-top:60px; padding-top:20px; border-top:1px solid var(--border);}
+
+  sup, sub {font-size: 0.75em;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>Week 3 — Logistic Regression</h1>
+  <p>Concept · Sigmoid · Cost & Loss Functions · Decision Boundary — with full lab walkthroughs (Labs 2, 3, 5)</p>
+  <p class="muted" style="margin-top:10px;">Andrew Ng's Machine Learning Specialization (Course 1, Week 3) — standalone reference file</p>
+</header>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#why-not-linear">Why linear regression fails for classification</a></li>
+    <li><a href="#logreg-model">The logistic regression model</a></li>
+    <li><a href="#sigmoid">The sigmoid function</a></li>
+    <li><a href="#lab2">Lab 2 — Sigmoid function</a></li>
+    <li><a href="#interpret">Interpreting the output as probability</a></li>
+    <li><a href="#decision-boundary">Decision boundary</a></li>
+    <li><a href="#lab3">Lab 3 — Decision boundary</a></li>
+    <li><a href="#why-not-squared">Why squared error fails here</a></li>
+    <li><a href="#loss-cost">Loss vs. cost function</a></li>
+    <li><a href="#simplified">Simplified (combined) loss function</a></li>
+    <li><a href="#lab5">Lab 5 — Cost function (deep dive)</a></li>
+    <li><a href="#summary">Summary & key takeaways</a></li>
+  </ol>
+</nav>
+
+<!-- ============ SECTION 1 ============ -->
+<section id="why-not-linear">
+<h2 class="section-title">1. Why Linear Regression Fails for Classification</h2>
+<p>Classification problems ask a yes/no question: is this tumor malignant? Is this email spam? The target <code>y</code> only takes discrete values — in the binary case, <code>y ∈ {0, 1}</code>. If you try to fit a straight line (linear regression) to data like this, two things go wrong:</p>
+<ul>
+  <li>The line's output is unbounded — it can spit out values like <code>-3.2</code> or <code>7.8</code>, which make no sense as "is this malignant?"</li>
+  <li>A single outlier far along the x-axis can drag the whole line, shifting the 0.5-crossing point and changing predictions for points that didn't even move.</li>
+</ul>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  This is the entire motivation for logistic regression: we need a model whose output is <em>always squeezed between 0 and 1</em>, so it can be read as a probability, and whose decision doesn't get distorted by examples far from the boundary.
+</div>
+</section>
+
+<!-- ============ SECTION 2 ============ -->
+<section id="logreg-model">
+<h2 class="section-title">2. The Logistic Regression Model</h2>
+<p>Logistic regression is built in two steps, and this two-step structure is the single most important thing to internalize this week — everything else (sigmoid, cost, decision boundary) is a consequence of it.</p>
+
+<h3><span class="step-badge">1</span>Compute a linear combination z</h3>
+<div class="formula">
+  <span class="label">Step 1 — same linear function as linear regression</span>
+  z = w · x + b
+</div>
+<p>This is exactly the linear regression formula you already know. <code>w</code> is a vector of weights (one per feature), <code>x</code> is the feature vector, and <code>b</code> is the bias. On its own, <code>z</code> can be any real number.</p>
+
+<h3><span class="step-badge">2</span>Squash z into a probability with the sigmoid</h3>
+<div class="formula">
+  <span class="label">Step 2 — pass z through the sigmoid function g</span>
+  f<sub>w,b</sub>(x) = g(z) = g(w · x + b) = 1 / (1 + e<sup>-(w·x+b)</sup>)
+</div>
+
+<div class="why">
+  <strong>Why this exists</strong>
+  Linear regression gives you an unbounded number. Classification needs a bounded probability. The sigmoid is the "adapter" that converts one into the other without throwing away the information in <code>z</code> — it just reshapes the number line (-∞, ∞) onto the interval (0, 1), preserving order: bigger <code>z</code> always means a probability closer to 1.
+</div>
+
+<div class="analogy">
+  <strong>Analogy</strong>
+  Think of <code>z = w·x + b</code> as a "raw score" — like a exam score that could theoretically be any number, positive or negative, depending on how the weights combine the features. The sigmoid function is a grading curve that squeezes any raw score into a percentage between 0% and 100%, with very negative scores mapped near 0% and very positive scores mapped near 100%.
+</div>
+</section>
+
+<!-- ============ SECTION 3 ============ -->
+<section id="sigmoid">
+<h2 class="section-title">3. The Sigmoid Function</h2>
+<div class="formula">
+  <span class="label">Sigmoid / logistic function</span>
+  g(z) = 1 / (1 + e<sup>-z</sup>)
+</div>
+
+<table>
+  <tr><th>Behavior of z</th><th>What happens to e<sup>-z</sup></th><th>Result: g(z)</th></tr>
+  <tr><td>z → very large positive (e.g. 100)</td><td>e<sup>-z</sup> → tiny number ≈ 0</td><td>g(z) → 1 / (1 + 0) ≈ 1</td></tr>
+  <tr><td>z → very large negative (e.g. -100)</td><td>e<sup>-z</sup> → huge number</td><td>g(z) → 1 / huge ≈ 0</td></tr>
+  <tr><td>z = 0</td><td>e<sup>0</sup> = 1</td><td>g(z) = 1 / (1+1) = 0.5</td></tr>
+</table>
+
+<p>This gives the sigmoid its characteristic S-shape: it starts near 0 for very negative <code>z</code>, rises smoothly, and flattens out near 1 for very positive <code>z</code>, always crossing exactly through <strong>(0, 0.5)</strong>.</p>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  The crossing point at z=0, g=0.5 is not a coincidence — it's exactly what creates the decision boundary later. Whatever makes <code>z = 0</code> is the boundary between the model leaning toward class 1 and leaning toward class 0.
+</div>
+</section>
+
+<!-- ============ SECTION 4: LAB 2 ============ -->
+<section id="lab2">
+<h2 class="section-title">4. Lab Walkthrough — Sigmoid Function</h2>
+<span class="lab-tag">C1_W3_Lab02_Sigmoid_function_Soln.ipynb</span>
+
+<h4>Goal</h4>
+<p>Implement the sigmoid function in NumPy and see it applied to real tumor-size data.</p>
+
+<h4>Core code</h4>
+<pre><code>def sigmoid(z):
+    """
+    Compute the sigmoid of z
+
+    Args:
+        z (ndarray): A scalar, numpy array of any size.
+    Returns:
+        g (ndarray): sigmoid(z), with the same shape as z
+    """
+    g = 1 / (1 + np.exp(-z))
+    return g</code></pre>
+
+<div class="good-box">
+  <strong>Why <code>np.exp</code> matters here</strong>
+  <code>np.exp(z)</code> works elementwise, whether <code>z</code> is a single scalar or a full NumPy array — so this <em>one</em> function correctly handles both a single prediction and a whole batch of predictions (e.g. <code>z_tmp = np.arange(-10, 11)</code>) without writing a loop. This is why the lab explicitly tests both a single value and an array as input.
+</div>
+
+<h4>What the lab shows you</h4>
+<ul>
+  <li>Plotting <code>sigmoid(z)</code> for <code>z</code> from -10 to 10 reproduces the S-curve, flattening near 0 and 1, crossing 0.5 at z=0.</li>
+  <li>The full logistic regression model is then just <code>f(x) = sigmoid(w·x + b)</code>, applied to the tumor-size dataset (<code>x_train</code>, <code>y_train</code>).</li>
+  <li>The lab includes an interactive widget (<code>plt_one_addpt_onclick</code>) that lets you click "Run Logistic Regression" and watch the sigmoid curve fit the data, then apply a 0.5 threshold to turn the probability into a hard 0/1 prediction — this is your first hands-on preview of the decision boundary concept in Section 6.</li>
+</ul>
+</section>
+
+<!-- ============ SECTION 5 ============ -->
+<section id="interpret">
+<h2 class="section-title">5. Interpreting the Output as a Probability</h2>
+<p>The output <code>f(x)</code> of logistic regression is best understood as the model's estimate of the <strong>probability that y = 1</strong>, given input <code>x</code>.</p>
+
+<div class="formula">
+  <span class="label">Formal notation you'll see in papers</span>
+  f(x) = P(y = 1 | x ; w, b)
+</div>
+<p>Read this as: "the probability that y equals 1, given x, using parameters w and b." The semicolon separates the input variable from the parameters that control the computation — you don't need to memorize this notation, just recognize it.</p>
+
+<p>Since <code>y</code> can only be 0 or 1, the two probabilities must sum to 1:</p>
+<div class="formula">P(y=0 | x) + P(y=1 | x) = 1</div>
+<p>Example: if the model outputs <code>f(x) = 0.7</code>, it's saying there's a 70% chance the tumor is malignant (y=1) and therefore a 30% chance it's benign (y=0).</p>
+
+<div class="flag">
+  <strong>Common confusion to avoid</strong>
+  <code>f(x) = 0.7</code> is <em>not</em> the prediction itself. The true label <code>y</code> is always exactly 0 or 1 — never 0.7. The 0.7 is the model's confidence, which you then convert into a hard 0/1 decision using a threshold (covered next in Decision Boundary).
+</div>
+</section>
+
+<!-- ============ SECTION 6 ============ -->
+<section id="decision-boundary">
+<h2 class="section-title">6. Decision Boundary</h2>
+
+<h3>From probability to a hard decision</h3>
+<p>To turn <code>f(x)</code> into an actual 0/1 prediction, pick a threshold — commonly <strong>0.5</strong>:</p>
+<div class="formula">
+  If f(x) ≥ 0.5 → predict ŷ = 1<br>
+  If f(x) &lt; 0.5 → predict ŷ = 0
+</div>
+
+<h3>Tracing the threshold back to z</h3>
+<p>Because <code>f(x) = g(z)</code>, and we know <code>g(z) ≥ 0.5</code> exactly when <code>z ≥ 0</code>, the condition collapses to a much simpler one:</p>
+<div class="formula">
+  f(x) ≥ 0.5 &nbsp;⟺&nbsp; g(z) ≥ 0.5 &nbsp;⟺&nbsp; z ≥ 0 &nbsp;⟺&nbsp; w·x + b ≥ 0
+</div>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  This means you never actually need to compute the sigmoid to know the predicted class — you only need the <em>sign</em> of <code>w·x + b</code>. This is a huge simplification: the geometry of classification reduces to "which side of a line (or curve) is this point on?"
+</div>
+
+<h3>The decision boundary itself</h3>
+<p>The decision boundary is the set of points where the model is exactly neutral — where <code>z = w·x + b = 0</code>. This line (or curve) separates the region predicted as class 1 from the region predicted as class 0.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Linear decision boundary</h4>
+    <p>Example: <code>w₁=1, w₂=1, b=-3</code></p>
+    <p>Boundary: <code>x₁ + x₂ - 3 = 0</code> → the line <code>x₁ + x₂ = 3</code></p>
+    <p class="muted">Right of the line → predict 1. Left of the line → predict 0.</p>
+  </div>
+  <div class="card">
+    <h4>Non-linear decision boundary</h4>
+    <p>Using polynomial features: <code>z = x₁² + x₂² - 1</code></p>
+    <p>Boundary: <code>x₁² + x₂² = 1</code> → a <strong>circle</strong></p>
+    <p class="muted">Outside circle → predict 1. Inside circle → predict 0.</p>
+  </div>
+</div>
+
+<div class="analogy">
+  <strong>Analogy</strong>
+  Imagine the decision boundary as the edge of a shadow cast by the model. Everything the shadow falls on is "class 0"; everything lit up is "class 1." With only raw features (x₁, x₂, ...), that shadow's edge can only be a straight line — a flat wall. Add polynomial features (x₁², x₁x₂, ...) and the "wall" can bend into circles, ellipses, or wavy shapes, letting the model fit far more complex data patterns.
+</div>
+
+<div class="flag">
+  <strong>Key limitation to remember</strong>
+  With only the raw features (no polynomial terms), the decision boundary for logistic regression is <em>always linear</em> — a straight line, plane, or hyperplane. Curved boundaries only appear once you engineer polynomial features (x₁², x₁x₂, x₂², ...) — this is the same feature-engineering idea from linear regression, reused here.
+</div>
+</section>
+
+<!-- ============ SECTION 7: LAB 3 ============ -->
+<section id="lab3">
+<h2 class="section-title">7. Lab Walkthrough — Decision Boundary</h2>
+<span class="lab-tag">C1_W3_Lab03_Decision_Boundary_Soln.ipynb</span>
+<p>This lab takes the abstract idea from Section 6 and makes it visual and concrete using a small 2-feature dataset.</p>
+<ul>
+  <li>You're given a small dataset with two features (x₀, x₁) and binary labels, plotted with red crosses for y=1 and blue circles for y=0.</li>
+  <li>Given a fixed choice of parameters (typically <code>w = [1, 1], b = -3</code>, matching the example in Section 6), you compute where <code>z = 0</code> and plot that line directly on top of the scatter data.</li>
+  <li>You visually confirm the line correctly separates the two classes — points on the "positive" side match the red crosses, points on the "negative" side match the blue circles.</li>
+</ul>
+<div class="why">
+  <strong>Why this lab matters for what comes next</strong>
+  This exact dataset and this exact boundary (<code>w=[1,1], b=-3</code>) is reused in Lab 5 (cost function) to show <em>why</em> this particular boundary is better than a nearby alternative (<code>b=-4</code>) — you're about to see the cost function put a number on what your eyes already told you.
+</div>
+</section>
+
+<!-- ============ SECTION 8 ============ -->
+<section id="why-not-squared">
+<h2 class="section-title">8. Why the Squared Error Cost Function Fails Here</h2>
+<p>For linear regression, the cost function was the mean squared error, and plotting it against the parameters gave a smooth, bowl-shaped (convex) surface — gradient descent could always slide downhill to the single global minimum.</p>
+
+<p>If you plug the logistic regression model (with the sigmoid inside it) into that same squared-error formula, the resulting cost surface becomes <strong>non-convex</strong> — it's wiggly, with many local dips ("local minima").</p>
+
+<div class="flag">
+  <strong>Why this is a real problem</strong>
+  Gradient descent on a non-convex surface can get stuck in a local minimum that isn't the best possible set of parameters, and where it ends up depends on where it started. There's no guarantee of finding the true best-fitting model.
+</div>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  This is the entire reason logistic regression needs its <em>own</em>, differently-shaped cost function instead of reusing linear regression's. The new cost function (built from log-loss, next section) is specifically constructed to stay convex even with the sigmoid inside it — restoring the "bowl shape" guarantee that gradient descent depends on.
+</div>
+</section>
+
+<!-- ============ SECTION 9 ============ -->
+<section id="loss-cost">
+<h2 class="section-title">9. Loss vs. Cost — and the New Loss Function</h2>
+
+<div class="good-box">
+  <strong>Terminology, precisely</strong>
+  <strong>Loss</strong> = error on <em>one single training example</em>.<br>
+  <strong>Cost</strong> = the <em>average</em> loss across the <em>entire</em> training set. Cost is a function of the loss; loss is a function of one prediction.
+</div>
+
+<h3>The two-case loss function</h3>
+<div class="formula">
+  <span class="label">Loss for one example (x⁽ⁱ⁾, y⁽ⁱ⁾)</span>
+  L(f(x⁽ⁱ⁾), y⁽ⁱ⁾) =&nbsp;
+  { &nbsp;−log(f(x⁽ⁱ⁾))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if y⁽ⁱ⁾ = 1<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;{ &nbsp;−log(1 − f(x⁽ⁱ⁾))&nbsp;&nbsp;if y⁽ⁱ⁾ = 0
+</div>
+
+<h4>Case y = 1: loss = −log(f(x))</h4>
+<ul>
+  <li>If the model predicts close to 1 (confidently, correctly right) → <code>−log(≈1) ≈ 0</code> → tiny loss.</li>
+  <li>If the model predicts close to 0 (confidently, badly wrong) → <code>−log(≈0) → ∞</code> → loss explodes toward infinity.</li>
+</ul>
+
+<h4>Case y = 0: loss = −log(1 − f(x))</h4>
+<ul>
+  <li>If the model predicts close to 0 (confidently, correctly right) → tiny loss.</li>
+  <li>If the model predicts close to 1 (confidently, badly wrong) → loss explodes toward infinity.</li>
+</ul>
+
+<div class="why">
+  <strong>Why log-loss specifically (not squared error)</strong>
+  Two reasons converge here: (1) mathematically, this shape keeps the overall cost function convex when combined with the sigmoid, unlike squared error. (2) Behaviorally, it <em>punishes confident wrong answers extremely harshly</em> — a model that says "99.9% sure it's benign" when it's actually malignant gets an enormous loss, appropriately, because confidently wrong is far more dangerous than cautiously wrong. Squared error would only mildly penalize that same mistake.
+</div>
+
+<div class="analogy">
+  <strong>Analogy</strong>
+  Log-loss is like a strict teacher grading true/false answers with a confession requirement: if you're right, barely any penalty, no matter how confident you were. But if you're confidently wrong ("I'm 99% sure!") and the correct answer was the opposite, the penalty rockets upward — approaching infinite "detention time" the more confidently wrong you were. This forces the model to be humble about its confidence unless the data really backs it up.
+</div>
+
+<h3>The full cost function (average loss)</h3>
+<div class="formula">
+  <span class="label">Cost J(w,b) — average loss over all m examples</span>
+  J(w,b) = (1/m) Σ<sub>i=1</sub><sup>m</sup> L(f(x⁽ⁱ⁾), y⁽ⁱ⁾)
+</div>
+<p>Because the underlying loss function is chosen carefully (log-loss, not squared error), this average — plotted against w and b — comes out <strong>convex</strong>: a single bowl shape with one global minimum, which gradient descent can reliably find.</p>
+</section>
+
+<!-- ============ SECTION 10 ============ -->
+<section id="simplified">
+<h2 class="section-title">10. The Simplified (Combined) Loss Function</h2>
+<p>Writing the loss as two separate cases (one for y=1, one for y=0) is correct but awkward to implement — it needs an if/else. Because <code>y</code> can <em>only</em> be exactly 0 or 1, both cases can be fused into a single algebraic line:</p>
+
+<div class="formula">
+  <span class="label">Simplified loss — one formula, no branching</span>
+  L(f(x), y) = −y·log(f(x)) − (1−y)·log(1−f(x))
+</div>
+
+<h4>Why this single line is mathematically identical to the two-case version</h4>
+<table>
+  <tr><th>When y = 1</th><th>When y = 0</th></tr>
+  <tr>
+    <td>
+      <code>(1−y) = 0</code>, so the second term vanishes:<br>
+      <code>L = −1·log(f(x)) − 0 = −log(f(x))</code><br>
+      → matches the y=1 case exactly.
+    </td>
+    <td>
+      <code>y = 0</code>, so the first term vanishes:<br>
+      <code>L = −0 − 1·log(1−f(x)) = −log(1−f(x))</code><br>
+      → matches the y=0 case exactly.
+    </td>
+  </tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters</strong>
+  This isn't just a coding convenience — it's what makes gradient descent's math tractable later. A single differentiable formula (rather than a piecewise one) is far easier to take derivatives of when deriving the gradient descent update rules for w and b, which is exactly what the course does in the very next lecture.
+</div>
+
+<h3>The simplified cost function</h3>
+<p>Plug the combined loss into the average-cost formula and pull the negative sign outside the sum:</p>
+<div class="formula">
+  <span class="label">This is THE logistic regression cost function used almost everywhere</span>
+  J(w,b) = −(1/m) Σ<sub>i=1</sub><sup>m</sup> [ y⁽ⁱ⁾·log(f(x⁽ⁱ⁾)) + (1−y⁽ⁱ⁾)·log(1−f(x⁽ⁱ⁾)) ]
+</div>
+
+<div class="good-box">
+  <strong>Where this formula comes from (just so you've seen it)</strong>
+  This exact cost function isn't arbitrary — it falls directly out of a statistics technique called <strong>Maximum Likelihood Estimation (MLE)</strong>: choosing the parameters that make the observed labels as probable as possible under the model. You don't need to derive MLE for this course, but knowing it exists explains why "everyone" uses this specific cost function rather than inventing their own.
+</div>
+</section>
+
+<!-- ============ SECTION 11: LAB 5 DEEP DIVE ============ -->
+<section id="lab5">
+<h2 class="section-title">11. Deep Dive — Lab 5: Cost Function for Logistic Regression</h2>
+<span class="lab-tag">C1_W3_Lab05_Cost_Function_Soln.ipynb</span>
+<p>This is the most important lab of the week for connecting theory to code — it takes the exact formula from Section 10 and turns it into a working, testable Python function, then uses it to <em>numerically prove</em> that one decision boundary really is better than another.</p>
+
+<h3>1. The dataset (same one from Lab 3)</h3>
+<pre><code>X_train = np.array([[0.5, 1.5], [1,1], [1.5, 0.5], [3, 0.5], [2, 2], [1, 2.5]])  #(m,n)
+y_train = np.array([0, 0, 0, 1, 1, 1])                                          #(m,)</code></pre>
+<p>6 examples, 2 features each. The shape comment <code>(m,n)</code> is a habit worth adopting yourself: <code>m</code> = number of examples (rows), <code>n</code> = number of features (columns). Always sanity-check array shapes this way before writing loops over them.</p>
+
+<h3>2. The cost function implementation, line by line</h3>
+<pre><code>def compute_cost_logistic(X, y, w, b):
+    """
+    Computes cost
+
+    Args:
+      X (ndarray (m,n)): Data, m examples with n features
+      y (ndarray (m,)) : target values
+      w (ndarray (n,)) : model parameters
+      b (scalar)       : model parameter
+
+    Returns:
+      cost (scalar): cost
+    """
+    m = X.shape[0]
+    cost = 0.0
+    for i in range(m):
+        z_i = np.dot(X[i],w) + b
+        f_wb_i = sigmoid(z_i)
+        cost +=  -y[i]*np.log(f_wb_i) - (1-y[i])*np.log(1-f_wb_i)
+
+    cost = cost / m
+    return cost</code></pre>
+
+<table>
+  <tr><th>Code line</th><th>Maps to which piece of the math</th></tr>
+  <tr><td><code>m = X.shape[0]</code></td><td>The number of training examples, m, used as the divisor in the averaging step</td></tr>
+  <tr><td><code>for i in range(m):</code></td><td>The summation Σ<sub>i=1</sub><sup>m</sup> — looping over every training example</td></tr>
+  <tr><td><code>z_i = np.dot(X[i], w) + b</code></td><td><code>z⁽ⁱ⁾ = w · x⁽ⁱ⁾ + b</code> — Step 1 of the logistic regression model, for example i</td></tr>
+  <tr><td><code>f_wb_i = sigmoid(z_i)</code></td><td><code>f(x⁽ⁱ⁾) = g(z⁽ⁱ⁾)</code> — Step 2, applying the sigmoid from Lab 2</td></tr>
+  <tr><td><code>cost += -y[i]*np.log(f_wb_i) - (1-y[i])*np.log(1-f_wb_i)</code></td><td>The simplified per-example loss term from Section 10, accumulated into the running total</td></tr>
+  <tr><td><code>cost = cost / m</code></td><td>The <code>(1/m)</code> outside the summation — converting total loss into average loss (cost)</td></tr>
+</table>
+
+<div class="flag">
+  <strong>Implementation detail worth noticing</strong>
+  This is the "unvectorized" version — a plain Python <code>for</code> loop over examples, calling <code>np.dot</code> per row. It's written this way for clarity, so each line maps directly onto one piece of the formula. In practice, for speed, this is later rewritten as a fully vectorized NumPy computation (no Python-level loop) — but understanding this loop version first is what makes the vectorized version make sense later, so don't skip it.
+</div>
+
+<h3>3. Verifying the implementation against expected output</h3>
+<pre><code>w_tmp = np.array([1,1])
+b_tmp = -3
+print(compute_cost_logistic(X_train, y_train, w_tmp, b_tmp))
+# Expected output: 0.3668667864055175</code></pre>
+<p>This is good practice you should adopt for your own code: whenever you implement a formula from scratch, test it against a known expected value before trusting it in a larger pipeline.</p>
+
+<h3>4. The real payoff — comparing two decision boundaries numerically</h3>
+<p>Recall from Lab 3 that <code>b = -3, w = [1,1]</code> gave a decision boundary <code>x₀ + x₁ = 3</code> that visually separated the classes well. This lab now asks: what if we'd instead picked <code>b = -4</code> (boundary <code>x₀ + x₁ = 4</code>)? Is it actually worse, or does it just look worse?</p>
+
+<pre><code>w_array1 = np.array([1,1]); b_1 = -3
+w_array2 = np.array([1,1]); b_2 = -4
+
+print("Cost for b = -3 : ", compute_cost_logistic(X_train, y_train, w_array1, b_1))
+print("Cost for b = -4 : ", compute_cost_logistic(X_train, y_train, w_array2, b_2))
+
+# Cost for b = -3 :  0.3668667864055175
+# Cost for b = -4 :  0.5036808636748461</code></pre>
+
+<div class="good-box">
+  <strong>Why this result matters — this is the whole point of the lab</strong>
+  The cost function gives a <em>quantitative</em>, objective number confirming what your eyes already suspected from the plot: <code>b = -3</code> (cost ≈ 0.367) is a genuinely better fit than <code>b = -4</code> (cost ≈ 0.504). Higher cost = worse fit. This is exactly the signal that gradient descent will use in the next lecture: it will nudge <code>w</code> and <code>b</code> in whichever direction makes this cost number go down, iteration by iteration, until it settles near the true minimum.
+</div>
+
+<h3>5. What this lab is quietly preparing you for</h3>
+<ul>
+  <li>You now have a working, tested <code>compute_cost_logistic</code> function — this exact function (or its vectorized twin) becomes the objective that gradient descent minimizes in the following lecture and lab.</li>
+  <li>You've seen concretely that "lower cost = better-fitting boundary" — a concept that stays abstract until you watch actual numbers change with actual parameters, which is exactly what this lab forces you to do.</li>
+  <li>The loop structure here (compute z, apply sigmoid, accumulate loss, average) is the same skeleton you'll reuse (with a derivative added) when implementing gradient descent for logistic regression.</li>
+</ul>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ SECTION 12: SUMMARY ============ -->
+<section id="summary">
+<h2 class="section-title">12. Summary & Key Takeaways</h2>
+
+<div class="card">
+<h4>The full pipeline, end to end</h4>
+<ol>
+  <li><strong>Model:</strong> <code>z = w·x + b</code>, then <code>f(x) = sigmoid(z) = 1/(1+e⁻ᶻ)</code> → outputs a probability between 0 and 1.</li>
+  <li><strong>Prediction:</strong> threshold at 0.5 → equivalent to checking whether <code>z ≥ 0</code>, i.e. whether <code>w·x + b ≥ 0</code>.</li>
+  <li><strong>Decision boundary:</strong> the curve/line where <code>z = 0</code> exactly — linear with raw features, curved with polynomial features.</li>
+  <li><strong>Why not squared error:</strong> produces a non-convex cost surface with logistic regression → gradient descent can get stuck.</li>
+  <li><strong>Loss (per example):</strong> <code>−y·log(f(x)) − (1−y)·log(1−f(x))</code> — heavily penalizes confident wrong predictions; stays convex.</li>
+  <li><strong>Cost (whole dataset):</strong> the average of all per-example losses, <code>J(w,b)</code> — this is what gradient descent will minimize next.</li>
+  <li><strong>Lab 5's proof:</strong> plugging in two different <code>b</code> values shows numerically that the visually-better boundary really does have lower cost.</li>
+</ol>
+</div>
+
+<div class="why">
+  <strong>The one idea to hold onto above all others</strong>
+  Every piece this week exists to answer one question: <em>"given a set of parameters, how do I get a single number that tells me how good they are, that I can then improve?"</em> The sigmoid makes the model's output meaningful (a probability); the log-loss cost function makes that "goodness score" mathematically well-behaved (convex) so that gradient descent — coming next — can actually improve it reliably.
+</div>
+</section>
+
+<footer>
+  Reference file built from Week 3 lecture transcripts (Logistic Regression, Cost Function, Simplified Cost Function, Decision Boundary) and Labs 2, 3, 5 — Andrew Ng ML Specialization, Course 1.
+</footer>
+
+</div>
+</body>
+</html>
