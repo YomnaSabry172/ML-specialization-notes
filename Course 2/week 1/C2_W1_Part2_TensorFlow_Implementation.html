@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2 - Week 1 (Part 2): TensorFlow Implementation</title>
+<style>
+  :root{
+    --navy:#0f2942; --blue:#1d6fa5; --accent:#c0392b; --pink:#a6296c;
+    --bg:#fafaf7; --card:#ffffff; --border:#e3e0d8; --text:#22262b; --muted:#5a6069;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Georgia','Times New Roman',serif; background:var(--bg); color:var(--text); margin:0; line-height:1.65;}
+  .wrap{max-width:920px; margin:0 auto; padding:40px 24px 100px;}
+  header{background:linear-gradient(135deg,var(--navy),#1a3f5c); color:#fff; padding:40px 30px; border-radius:14px; margin-bottom:36px;}
+  header h1{margin:0 0 8px; font-size:2rem;}
+  header p{margin:4px 0; color:#cfe0ee; font-family:Arial,sans-serif; font-size:0.95rem;}
+  h2{color:var(--navy); border-bottom:3px solid var(--blue); padding-bottom:8px; margin-top:56px; font-size:1.5rem;}
+  h3{color:var(--pink); margin-top:32px; font-size:1.15rem;}
+  .section{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:26px 30px; margin-top:18px;}
+  .why{background:#fff6e9; border-left:5px solid #d68a1a; padding:14px 18px; border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;}
+  .why b{color:#a5620a;}
+  .analogy{background:#eef6f0; border-left:5px solid #2e8b57; padding:14px 18px; border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;}
+  .analogy b{color:#1f6b40;}
+  .formula{background:#f4f1ea; border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:16px 0; font-size:1.05rem; text-align:center; font-family:'Cambria Math','Georgia',serif;}
+  .note{background:#eef2fb; border-left:5px solid var(--blue); padding:12px 18px; border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;}
+  .warn{background:#fdecea; border-left:5px solid var(--accent); padding:12px 18px; border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;}
+  .warn b{color:var(--accent);}
+  code, pre{font-family:'Consolas','Menlo',monospace; background:#282c34; color:#e6e6e6; border-radius:8px;}
+  pre{padding:16px 18px; overflow-x:auto; font-size:0.87rem; line-height:1.5;}
+  code.inline{background:#eee5d3; color:#5a3e1b; padding:2px 6px; border-radius:4px; font-size:0.9em;}
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-family:Arial,sans-serif; font-size:0.92rem;}
+  th,td{border:1px solid var(--border); padding:10px 12px; text-align:left;}
+  th{background:var(--navy); color:#fff;}
+  tr:nth-child(even){background:#f4f2ec;}
+  .toc{background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 26px;}
+  .toc a{display:block; color:var(--blue); text-decoration:none; padding:4px 0; font-family:Arial,sans-serif;}
+  .toc a:hover{text-decoration:underline;}
+  .imgbox{text-align:center; margin:20px 0;}
+  .imgbox img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
+  .caption{font-family:Arial,sans-serif; font-size:0.82rem; color:var(--muted); margin-top:6px;}
+  ul,ol{padding-left:22px;}
+  li{margin:6px 0;}
+  .step{background:#f7f5ef; border-radius:10px; padding:16px 20px; margin:14px 0; border-left:5px solid var(--navy);}
+  .step b{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Neural Networks in TensorFlow — Implementation</h1>
+  <p>Machine Learning Specialization · Course 2, Week 1 (Part 2)</p>
+  <p>Systems in Biomedical Engineering · Cairo University</p>
+</header>
+
+<div class="toc">
+  <b style="font-family:Arial,sans-serif;">Contents</b>
+  <a href="#inference-code">1. Inference in Code — the Coffee Roasting Example</a>
+  <a href="#data-shapes">2. How TensorFlow Represents Data (the part people skip and regret)</a>
+  <a href="#sequential">3. Building the Full Network with Sequential</a>
+  <a href="#lab02">4. Lab 02 Deep Dive — Coffee Roasting, Line by Line</a>
+  <a href="#mental-model">5. The Mental Model: What Actually Happens Underneath</a>
+  <a href="#summary">6. Quick-Reference Summary</a>
+</div>
+
+<h2 id="inference-code">1. Inference in Code — the Coffee Roasting Example</h2>
+<div class="section">
+  <p>New running example: predicting whether a coffee roast is <b>good</b> (y=1) or <b>bad</b> (y=0) from two features — <b>temperature</b> and <b>duration</b>. Good coffee only happens in a narrow "sweet spot" triangle: not too cold/short (undercooked), not too hot/long (burnt).</p>
+
+  <h3>The two-layer network, coded directly</h3>
+  <pre>x = np.array([[200.0, 17.0]])          # temperature=200°C, duration=17 min
+
+layer_1 = Dense(units=3, activation='sigmoid')
+a1 = layer_1(x)                          # a1 → e.g. [0.2, 0.7, 0.3]
+
+layer_2 = Dense(units=1, activation='sigmoid')
+a2 = layer_2(a1)                         # a2 → e.g. [0.8]
+
+if a2 >= 0.5:
+    yhat = 1
+else:
+    yhat = 0</pre>
+
+  <div class="imgbox">
+    <img src="1787114006345_image.png" alt="Build the model using TensorFlow slide">
+    <div class="caption">Manual, layer-by-layer forward propagation: x → layer_1 → a1 → layer_2 → a2 → threshold</div>
+  </div>
+
+  <p><code class="inline">Dense</code> is the name TensorFlow/Keras uses for the ordinary fully-connected layer type you already know — every neuron connects to every input. It's called "Dense" because the connections are dense (not sparse/selective).</p>
+
+  <h3>Same pattern, digit classification (3 layers)</h3>
+  <pre>x = np.array([[0.0, ..., 245, ..., 240, ..., 0]])   # 64 pixel intensities
+
+layer_1 = Dense(units=25, activation='sigmoid')
+a1 = layer_1(x)
+
+layer_2 = Dense(units=15, activation='sigmoid')
+a2 = layer_2(a1)
+
+layer_3 = Dense(units=1, activation='sigmoid')
+a3 = layer_3(a2)
+
+if a3 >= 0.5:
+    yhat = 1
+else:
+    yhat = 0</pre>
+
+  <div class="imgbox">
+    <img src="1787114052846_image.png" alt="Model for digit classification slide">
+    <div class="caption">64 → 25 → 15 → 1: identical pattern to the coffee example, just deeper and wider</div>
+  </div>
+
+  <div class="why">
+    <b>Why this matters:</b> Notice the two examples are structurally identical — create a Dense layer, apply it to get an activation, feed that activation into the next Dense layer. This chain of <code class="inline">a = layer(previous_a)</code> calls <i>is</i> forward propagation in code. Once you see the pattern, you can build a network of any depth.
+  </div>
+</div>
+
+<h2 id="data-shapes">2. How TensorFlow Represents Data</h2>
+<div class="section">
+  <p>This is the part that quietly breaks people's code later, so it's worth being precise now.</p>
+
+  <h3>NumPy vs. TensorFlow: a historical mismatch</h3>
+  <p>NumPy predates TensorFlow by many years and became the standard for linear algebra in Python. TensorFlow (built later, partly by the Google Brain team) made different conventions for efficiency at scale. The result: two libraries you'll constantly move data between, with slightly different defaults.</p>
+
+  <h3>Matrices vs. 1D vectors — the double-bracket rule</h3>
+  <div class="imgbox">
+    <img src="1787114270160_image.png" alt="Note about numpy arrays slide">
+    <div class="caption">Double brackets → 2D matrix. Single brackets → 1D array ("just a list of numbers")</div>
+  </div>
+
+  <table>
+    <tr><th>Code</th><th>Shape</th><th>What it is</th></tr>
+    <tr><td><code class="inline">np.array([[200, 17]])</code></td><td>1 × 2</td><td>2D matrix, 1 row / 2 columns — a "row vector"</td></tr>
+    <tr><td><code class="inline">np.array([[200],[17]])</code></td><td>2 × 1</td><td>2D matrix, 2 rows / 1 column — a "column vector"</td></tr>
+    <tr><td><code class="inline">np.array([200, 17])</code></td><td>(2,)</td><td>1D array — no rows/columns, just a flat list</td></tr>
+  </table>
+
+  <div class="warn">
+    <b>Rule of thumb:</b> Course 1 (linear/logistic regression from scratch) used plain 1D arrays for input features — single brackets. TensorFlow layers expect <b>2D matrices</b> — double brackets — because TensorFlow was built to process large batches of examples efficiently, and a matrix naturally represents "many rows, each one example." A single 1D vector doesn't carry that "batch" structure.
+  </div>
+
+  <p>This is exactly why in the lab you always see input reshaped or written with double brackets, e.g. <code class="inline">X_train[0].reshape(1,1)</code> or <code class="inline">np.array([[200.0, 17.0]])</code> — even a single example must look like a matrix with 1 row.</p>
+
+  <h3>Matrix dimension convention</h3>
+  <div class="formula">dimensions = (number of rows) × (number of columns)</div>
+  <p>E.g. a matrix with 2 rows and 3 columns is written as <code class="inline">2 × 3</code>.</p>
+
+  <h3>What comes out: tensors</h3>
+  <p>When you call <code class="inline">a1 = layer_1(x)</code>, the result isn't a NumPy array — it's a <b>tensor</b>, TensorFlow's own data structure for efficiently storing and computing on matrices.</p>
+  <pre>a1
+# &lt;tf.Tensor: shape=(1, 3), dtype=float32, numpy=array([[0.2, 0.7, 0.3]], dtype=float32)&gt;
+
+a1.numpy()   # converts back to a plain NumPy array, e.g. array([[0.2, 0.7, 0.3]])</pre>
+
+  <table>
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td>Tensor</td><td>TensorFlow's internal representation of a matrix (a bit more general mathematically, but treat it as "a matrix" for this course)</td></tr>
+    <tr><td>float32</td><td>A decimal number stored using 32 bits — TensorFlow's default numeric precision</td></tr>
+    <tr><td><code class="inline">.numpy()</code></td><td>Converts a TF tensor back into a plain NumPy array</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this matters:</b> If you ever get a shape mismatch error, or your array "looks right" but TensorFlow complains, the very first thing to check is: is this a 1D array or a proper 2D matrix? And is it a NumPy array or a TF tensor? These two axes of confusion cause the majority of early TensorFlow bugs.
+  </div>
+</div>
+
+<h2 id="sequential">3. Building the Full Network with Sequential</h2>
+<div class="section">
+  <p>Manually chaining <code class="inline">a1 = layer_1(x)</code>, <code class="inline">a2 = layer_2(a1)</code> works, but TensorFlow gives you a cleaner way to package the whole network as one object: <code class="inline">Sequential</code>.</p>
+
+  <h3>The coffee roasting network, built with Sequential</h3>
+  <div class="imgbox">
+    <img src="1787114727234_image.png" alt="Building a neural network architecture slide">
+    <div class="caption">Sequential strings the layers together into one callable model</div>
+  </div>
+
+  <pre>model = Sequential([
+    Dense(units=3, activation="sigmoid"),
+    Dense(units=1, activation="sigmoid")
+])
+
+X = np.array([[200.0, 17.0],
+              [120.0, 5.0],
+              [425.0, 20.0],
+              [212.0, 18.0]])          # 4 x 2 — 4 training examples, 2 features
+Y = np.array([1, 0, 0, 1])             # targets, 1D array of length 4
+
+model.compile(...)      # defines the loss function + optimizer (Week 2 detail)
+model.fit(X, Y)          # trains the weights (backprop — Week 2 detail)
+
+model.predict(X_new)     # runs forward propagation for you, all layers at once</pre>
+
+  <table>
+    <tr><th>Call</th><th>What it does</th></tr>
+    <tr><td><code class="inline">Sequential([...])</code></td><td>Strings the given layers together, in order, into a single network object</td></tr>
+    <tr><td><code class="inline">model.compile(...)</code></td><td>Configures how training will happen (loss function, optimizer) — details next week</td></tr>
+    <tr><td><code class="inline">model.fit(X, Y)</code></td><td>Runs the training algorithm (gradient descent / backprop) to learn W and b</td></tr>
+    <tr><td><code class="inline">model.predict(X_new)</code></td><td>Runs forward propagation through <i>all</i> layers automatically — replaces manually calling each layer yourself</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Convention:</b> in real TensorFlow code, you rarely see layers assigned to separate variables like <code class="inline">layer_1</code>, <code class="inline">layer_2</code>. They're almost always written directly inline inside the <code class="inline">Sequential([...])</code> call, exactly as shown above.
+  </div>
+
+  <div class="why">
+    <b>Why this matters — and why "just 5 lines of code" isn't the whole story:</b> Sequential/compile/fit/predict hide the exact same forward-propagation math you already coded manually in Section 1 — nothing new is happening mathematically. The real skill isn't memorizing these 4 calls; it's knowing what they're doing underneath: chaining Dense layers, each computing g(w·a + b), and gradient descent iteratively adjusting w and b to minimize a loss. Andrew Ng makes this point explicitly — that's exactly why the course has you implement forward propagation from scratch in Python next (no TensorFlow at all), so the "5 lines of magic" stop being magic.
+  </div>
+</div>
+
+<h2 id="lab02">4. Lab 02 Deep Dive — Coffee Roasting, Line by Line</h2>
+<div class="section">
+  <p>This is the actual notebook implementation. Walking through every meaningful step, not just the headline code.</p>
+
+  <div class="step">
+    <b>Step 1 — Load and inspect data</b>
+    <pre>X, Y = load_coffee_data()
+print(X.shape, Y.shape)   # X: (m, 2) — m examples, 2 features (temp, duration)
+                            # Y: (m, 1) — labels, 1 = good roast, 0 = bad roast</pre>
+    <p>The data forms a small triangular "good roast" region when plotted (temp vs. duration) — this is why a single straight-line decision boundary (plain logistic regression) can't solve it well, but a neural network with a hidden layer can.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 2 — Normalize the features</b>
+    <pre>norm_l = tf.keras.layers.Normalization(axis=-1)
+norm_l.adapt(X)     # computes mean & variance of X, stores them internally
+Xn = norm_l(X)       # applies (x - mean) / std to every feature</pre>
+    <div class="why">
+      <b>Why normalize:</b> Temperature ranges roughly 175–260, duration ranges roughly 12–20 — very different scales. Gradient descent (used in <code class="inline">.fit()</code>, covered next week) converges much faster and more reliably when all features are on a similar scale. This is the same normalization idea from Course 1 — just implemented here as its own Keras layer instead of manual code.
+    </div>
+    <div class="warn"><b>Important:</b> <code class="inline">norm_l</code> is <i>not</i> part of the model — it's a separate preprocessing step. Any new data you want to predict on later must be normalized with this exact same <code class="inline">norm_l</code> (same learned mean/variance) before being passed to the model.</div>
+  </div>
+
+  <div class="step">
+    <b>Step 3 — Artificially expand the training set</b>
+    <pre>Xt = np.tile(Xn, (1000,1))   # copies the data 1000 times → shape (m*1000, 2)
+Yt = np.tile(Y,  (1000,1))</pre>
+    <p>This is a lab-specific trick (not a general technique) purely to reduce the number of training epochs needed for a tiny dataset to converge — not something you'd do with real, larger datasets.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 4 — Define the model</b>
+    <pre>tf.random.set_seed(1234)   # for reproducible results
+model = Sequential([
+    tf.keras.Input(shape=(2,)),
+    Dense(3, activation='sigmoid', name='layer1'),
+    Dense(1, activation='sigmoid', name='layer2')
+])</pre>
+    <p><code class="inline">tf.keras.Input(shape=(2,))</code> declares upfront "each example has 2 features." This lets TensorFlow immediately size and allocate the weight matrices, which is convenient when you want to inspect the model before training. Without it, TensorFlow infers the shape automatically the first time you call <code class="inline">.fit()</code>.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 5 — Inspect the parameter shapes (this is the part that builds real understanding)</b>
+    <pre>model.summary()
+
+L1_num_params = 2 * 3 + 3   # W1: (2 inputs × 3 units) weights + 3 biases = 9
+L2_num_params = 3 * 1 + 1   # W2: (3 inputs × 1 unit) weights + 1 bias = 4</pre>
+    <table>
+      <tr><th>Layer</th><th>Weight matrix shape</th><th>Bias shape</th><th>Rule</th></tr>
+      <tr><td>layer1 (3 units)</td><td>W1: (2, 3)</td><td>b1: (3,)</td><td>(n_inputs, n_units)</td></tr>
+      <tr><td>layer2 (1 unit)</td><td>W2: (3, 1)</td><td>b2: (1,)</td><td>(n_inputs, n_units)</td></tr>
+    </table>
+    <div class="why">
+      <b>Why this matters:</b> This is the single most useful mental habit for debugging any neural network — a Dense layer's weight matrix always has shape <code class="inline">(number of inputs it receives, number of units it has)</code>, and its bias always has shape <code class="inline">(number of units,)</code>. If you can predict these shapes before printing them, you truly understand what the layer is doing — it's not "some black box producing outputs," it's a very specific, sized linear-algebra operation.
+    </div>
+    <pre>W1, b1 = model.get_layer("layer1").get_weights()
+W2, b2 = model.get_layer("layer2").get_weights()</pre>
+  </div>
+
+  <div class="step">
+    <b>Step 6 — Compile and train</b>
+    <pre>model.compile(
+    loss=tf.keras.losses.BinaryCrossentropy(),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+)
+
+model.fit(Xt, Yt, epochs=10)</pre>
+    <p>Full detail comes next week (this is your first hint at loss functions and gradient descent variants like Adam), but for now: <code class="inline">fit</code> repeatedly runs forward propagation, measures how wrong the predictions are (via the loss), and nudges every W and b slightly to reduce that error — <code class="inline">epochs=10</code> means this whole cycle repeats 10 times over the (tiled) dataset.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 7 — Set known weights (for reproducibility in the lab)</b>
+    <pre>W1 = np.array([[-8.94, 0.29, 12.89],
+               [-0.17, -7.34, 10.79]])
+b1 = np.array([-9.87, -9.28, 1.01])
+W2 = np.array([[-31.38],[-27.86],[-32.79]])
+b2 = np.array([15.54])
+
+model.get_layer("layer1").set_weights([W1, b1])
+model.get_layer("layer2").set_weights([W2, b2])</pre>
+    <p>Since <code class="inline">.fit()</code> can converge to slightly different weights each run, the lab loads a known-good set of pretrained weights so the following visualizations behave predictably — swap back to your own trained weights any time.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 8 — Predict on new data</b>
+    <pre>X_test = np.array([
+    [200, 13.9],   # expected: good roast
+    [200, 17]])    # expected: bad roast
+
+X_testn = norm_l(X_test)             # must normalize with the SAME norm_l
+predictions = model.predict(X_testn)
+
+yhat = (predictions >= 0.5).astype(int)   # threshold to get 0/1 decisions</pre>
+    <div class="warn"><b>Common bug to avoid:</b> forgetting to normalize new/test data with the same <code class="inline">norm_l</code> used on the training data. The model was trained on normalized inputs — feeding it raw, unnormalized numbers will silently produce garbage predictions.</div>
+  </div>
+
+  <div class="step">
+    <b>Step 9 — Visualize what each neuron learned (this is the "why it works" payoff)</b>
+    <pre>plt_layer(X, Y.reshape(-1,), W1, b1, norm_l)   # visualizes each of the 3 layer-1 neurons
+plt_output_unit(W2, b2)                          # visualizes the final output neuron
+netf = lambda x: model.predict(norm_l(x))
+plt_network(X, Y, netf)                          # visualizes the whole network's decision</pre>
+    <p>The lab's visualization reveals something important: each of the 3 hidden neurons specializes on its own, without being told to.</p>
+    <ul>
+      <li><b>Unit 0:</b> fires strongly when temperature is too low (detects "undercooked" region)</li>
+      <li><b>Unit 1:</b> fires strongly when duration is too short</li>
+      <li><b>Unit 2:</b> fires strongly for bad combinations of time/temperature</li>
+    </ul>
+    <div class="why">
+      <b>Why this matters:</b> This is the demand-prediction "affordability / awareness / quality" story made concrete and visual with real numbers. Nobody programmed these three neurons to divide up the "bad roast" regions this way — gradient descent discovered this division on its own. It's the clearest possible demonstration of automatic feature learning from Part 1, now backed by an actual trained model you can inspect.
+    </div>
+  </div>
+</div>
+
+<h2 id="mental-model">5. The Mental Model: What Actually Happens Underneath</h2>
+<div class="section">
+  <p>Putting it all together — what's really going on every time you call <code class="inline">model.predict(x)</code>:</p>
+  <ol>
+    <li>Your input <code class="inline">x</code> is a 2D matrix (rows = examples, columns = features).</li>
+    <li>Layer 1 computes <code class="inline">a1 = sigmoid(x @ W1 + b1)</code> — a real matrix multiplication, not a loop over neurons written by hand (though mathematically it's equivalent to computing each neuron's <code class="inline">g(w·x + b)</code> separately, just vectorized).</li>
+    <li>Layer 2 takes <code class="inline">a1</code> as its input and computes <code class="inline">a2 = sigmoid(a1 @ W2 + b2)</code>.</li>
+    <li>The result is a tensor; convert with <code class="inline">.numpy()</code> if you need a plain array.</li>
+    <li>Threshold at 0.5 (or whatever cutoff makes sense) to get a hard decision.</li>
+  </ol>
+
+  <div class="analogy">
+    <b>Analogy:</b> <code class="inline">Sequential</code> + <code class="inline">.fit()</code> + <code class="inline">.predict()</code> is like using a car's automatic transmission — it's genuinely doing the same physics as a manual transmission (same engine, same gears), just automating the gear-shifting for you. Knowing how to drive an automatic doesn't require understanding the clutch, but a good engineer working on cars still needs to know what's happening under the hood — which is exactly why the course has you implement forward propagation manually in NumPy next, before returning to the TensorFlow shortcuts.
+  </div>
+</div>
+
+<h2 id="summary">6. Quick-Reference Summary</h2>
+<div class="section">
+  <table>
+    <tr><th>Concept</th><th>Key fact</th></tr>
+    <tr><td><code class="inline">Dense(units, activation)</code></td><td>One fully-connected layer; every neuron sees every input</td></tr>
+    <tr><td>Data shape rule</td><td>TensorFlow expects 2D matrices: (examples, features) — double brackets</td></tr>
+    <tr><td>Tensor</td><td>TF's internal matrix type; convert with <code class="inline">.numpy()</code></td></tr>
+    <tr><td>Weight shape rule</td><td>W: (n_inputs, n_units) · b: (n_units,)</td></tr>
+    <tr><td><code class="inline">Sequential([...])</code></td><td>Chains layers into one model, in order</td></tr>
+    <tr><td><code class="inline">.compile()</code></td><td>Sets loss function + optimizer (details next week)</td></tr>
+    <tr><td><code class="inline">.fit(X, Y)</code></td><td>Trains weights via gradient descent / backprop (details next week)</td></tr>
+    <tr><td><code class="inline">.predict(X_new)</code></td><td>Runs forward propagation through all layers automatically</td></tr>
+    <tr><td>Normalization</td><td>Must be fit once on training data, then reapplied identically to any new data</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Where this is heading:</b> Next up (per the lecture) is implementing forward propagation entirely from scratch in plain NumPy — no Keras/TensorFlow layers at all — so the matrix operations happening inside <code class="inline">Dense</code> and <code class="inline">Sequential</code> stop being abstractions and become code you wrote yourself.
+  </div>
+</div>
+
+</div>
+</body>
+</html>

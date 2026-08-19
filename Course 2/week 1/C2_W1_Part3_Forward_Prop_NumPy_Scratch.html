@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2 - Week 1 (Part 3): Forward Propagation from Scratch in NumPy</title>
+<style>
+  :root{
+    --navy:#0f2942; --blue:#1d6fa5; --accent:#c0392b; --pink:#a6296c;
+    --bg:#fafaf7; --card:#ffffff; --border:#e3e0d8; --text:#22262b; --muted:#5a6069;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Georgia','Times New Roman',serif; background:var(--bg); color:var(--text); margin:0; line-height:1.65;}
+  .wrap{max-width:920px; margin:0 auto; padding:40px 24px 100px;}
+  header{background:linear-gradient(135deg,var(--navy),#1a3f5c); color:#fff; padding:40px 30px; border-radius:14px; margin-bottom:36px;}
+  header h1{margin:0 0 8px; font-size:2rem;}
+  header p{margin:4px 0; color:#cfe0ee; font-family:Arial,sans-serif; font-size:0.95rem;}
+  h2{color:var(--navy); border-bottom:3px solid var(--blue); padding-bottom:8px; margin-top:56px; font-size:1.5rem;}
+  h3{color:var(--pink); margin-top:32px; font-size:1.15rem;}
+  .section{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:26px 30px; margin-top:18px;}
+  .why{background:#fff6e9; border-left:5px solid #d68a1a; padding:14px 18px; border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;}
+  .why b{color:#a5620a;}
+  .analogy{background:#eef6f0; border-left:5px solid #2e8b57; padding:14px 18px; border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;}
+  .analogy b{color:#1f6b40;}
+  .formula{background:#f4f1ea; border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:16px 0; font-size:1.05rem; text-align:center; font-family:'Cambria Math','Georgia',serif;}
+  .note{background:#eef2fb; border-left:5px solid var(--blue); padding:12px 18px; border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;}
+  .warn{background:#fdecea; border-left:5px solid var(--accent); padding:12px 18px; border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;}
+  .warn b{color:var(--accent);}
+  code, pre{font-family:'Consolas','Menlo',monospace; background:#282c34; color:#e6e6e6; border-radius:8px;}
+  pre{padding:16px 18px; overflow-x:auto; font-size:0.87rem; line-height:1.5;}
+  code.inline{background:#eee5d3; color:#5a3e1b; padding:2px 6px; border-radius:4px; font-size:0.9em;}
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-family:Arial,sans-serif; font-size:0.92rem;}
+  th,td{border:1px solid var(--border); padding:10px 12px; text-align:left;}
+  th{background:var(--navy); color:#fff;}
+  tr:nth-child(even){background:#f4f2ec;}
+  .toc{background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 26px;}
+  .toc a{display:block; color:var(--blue); text-decoration:none; padding:4px 0; font-family:Arial,sans-serif;}
+  .toc a:hover{text-decoration:underline;}
+  .imgbox{text-align:center; margin:20px 0;}
+  .imgbox img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
+  .caption{font-family:Arial,sans-serif; font-size:0.82rem; color:var(--muted); margin-top:6px;}
+  ul,ol{padding-left:22px;}
+  li{margin:6px 0;}
+  .step{background:#f7f5ef; border-radius:10px; padding:16px 20px; margin:14px 0; border-left:5px solid var(--navy);}
+  .step b{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Forward Propagation from Scratch — NumPy</h1>
+  <p>Machine Learning Specialization · Course 2, Week 1 (Part 3)</p>
+  <p>Systems in Biomedical Engineering · Cairo University</p>
+</header>
+
+<div class="toc">
+  <b style="font-family:Arial,sans-serif;">Contents</b>
+  <a href="#why-scratch">1. Why Implement This From Scratch At All</a>
+  <a href="#hardcoded">2. Version 1 — The Fully Hardcoded Version (one neuron at a time)</a>
+  <a href="#dense">3. Version 2 — The General <code>dense()</code> Function</a>
+  <a href="#sequential">4. Chaining Layers with <code>sequential()</code></a>
+  <a href="#lab03">5. Lab 03 Deep Dive — Coffee Roasting in Pure NumPy</a>
+  <a href="#compare">6. Side-by-Side: TensorFlow vs. NumPy-from-Scratch</a>
+  <a href="#summary">7. Quick-Reference Summary</a>
+</div>
+
+<h2 id="why-scratch">1. Why Implement This From Scratch At All</h2>
+<div class="section">
+  <p>Almost nobody implements forward propagation by hand in production — everyone uses TensorFlow or PyTorch. So why do this?</p>
+  <div class="why">
+    <b>Why this matters:</b> The moment something goes wrong in a real project — training doesn't converge, results look wrong, a shape mismatch error appears — your ability to debug it depends entirely on understanding what's happening <i>inside</i> the library call. If <code class="inline">Dense</code> and <code class="inline">Sequential</code> are total black boxes to you, you can only guess at fixes. If you've built the same thing yourself in NumPy, you know exactly what a "layer" mathematically does, so you can reason about the bug instead of guessing.
+  </div>
+  <p>This lecture builds the exact same "coffee roasting" network from the TensorFlow lab — same architecture, same weights — but computes every number using nothing but NumPy dot products and a manual sigmoid.</p>
+</div>
+
+<h2 id="hardcoded">2. Version 1 — The Fully Hardcoded Version</h2>
+<div class="section">
+  <p>The most literal, unrolled way to implement forward prop: write one line of code per neuron, by hand.</p>
+
+  <div class="imgbox">
+    <img src="1787156033628_image.png" alt="forward prop coffee roasting model slide, hardcoded per-neuron">
+    <div class="caption">Every neuron gets its own explicit w, b, z, a — nothing is looped or generalized yet</div>
+  </div>
+
+  <h3>Notation note</h3>
+  <p>In this hand-written code, <code class="inline">w1_1</code> means <b>w</b> superscript <b>[1]</b> subscript <b>1</b> — i.e. the weight vector of the 1st neuron in layer 1. The underscore is just how you write a subscript in plain code (no superscript/subscript formatting available).</p>
+
+  <h3>Layer 1 (3 neurons) — one block of code per neuron</h3>
+  <pre>x = np.array([200, 17])          # 1D array this time — no double brackets
+
+# --- Neuron 1 of layer 1 ---
+w1_1 = np.array([1, 2])
+b1_1 = np.array([-1])
+z1_1 = np.dot(w1_1, x) + b1_1
+a1_1 = sigmoid(z1_1)
+
+# --- Neuron 2 of layer 1 ---
+w1_2 = np.array([-3, 4])
+b1_2 = np.array([1])
+z1_2 = np.dot(w1_2, x) + b1_2
+a1_2 = sigmoid(z1_2)
+
+# --- Neuron 3 of layer 1 ---
+w1_3 = np.array([5, -6])
+b1_3 = np.array([2])
+z1_3 = np.dot(w1_3, x) + b1_3
+a1_3 = sigmoid(z1_3)
+
+# Group outputs into the layer's activation vector
+a1 = np.array([a1_1, a1_2, a1_3])</pre>
+
+  <div class="warn">
+    <b>Notice the bracket change from earlier:</b> <code class="inline">x = np.array([200, 17])</code> here uses <b>single</b> brackets — a plain 1D array — not the double-bracket 2D matrix TensorFlow wanted. That's deliberate: this manual NumPy version processes <b>one example at a time</b> as a flat vector, rather than a batch matrix. Different context, different convention — both are "correct," just for different tools.
+  </div>
+
+  <h3>Layer 2 (1 neuron) — takes a1 as its input</h3>
+  <pre>w2_1 = np.array([-7, 8, 9])
+b2_1 = np.array([3])
+z2_1 = np.dot(w2_1, a1) + b2_1
+a2_1 = sigmoid(z2_1)</pre>
+
+  <p>That's it — <code class="inline">a2_1</code> is the network's final output, exactly the same computation as the TensorFlow version, just written out neuron-by-neuron instead of calling <code class="inline">Dense()</code>.</p>
+
+  <div class="why">
+    <b>Why start this way:</b> This version is intentionally tedious. It's meant to make the underlying math (a dot product + bias + sigmoid, repeated) completely undeniable and concrete before compressing it into a reusable function next.
+  </div>
+</div>
+
+<h2 id="dense">3. Version 2 — The General <code>dense()</code> Function</h2>
+<div class="section">
+  <p>Hardcoding one block per neuron doesn't scale — a layer with 25 units would mean 25 copy-pasted blocks. The fix: write one function that works for a layer of <i>any</i> size, using a <code class="inline">for</code> loop over units and a weight <b>matrix</b> instead of separate vectors.</p>
+
+  <div class="imgbox">
+    <img src="1787156616291_image.png" alt="Forward prop in NumPy slide, generalized dense and sequential functions">
+    <div class="caption">Stack all neurons' weight vectors as columns of one matrix W; loop over columns to compute each unit's output</div>
+  </div>
+
+  <h3>Step 1: stack weights into a matrix, biases into a vector</h3>
+  <p>Instead of separate <code class="inline">w1_1</code>, <code class="inline">w1_2</code>, <code class="inline">w1_3</code>, stack them as the <b>columns</b> of one matrix:</p>
+  <pre>W = np.array([
+    [1, -3, 5],
+    [2,  4, -6]
+])          # shape (2, 3) — 2 input features, 3 units
+            # column 0 = w1_1, column 1 = w1_2, column 2 = w1_3
+
+b = np.array([-1, 1, 2])   # one bias per unit, shape (3,)</pre>
+
+  <div class="note">
+    <b>Convention reminder:</b> capital <code class="inline">W</code> = matrix, lowercase <code class="inline">w</code>, <code class="inline">a</code>, <code class="inline">b</code> = vectors/scalars — standard linear algebra notation, and TensorFlow/NumPy code follows it too.
+  </div>
+
+  <h3>Step 2: the general dense() function</h3>
+  <pre>def dense(a_in, W, b):
+    units = W.shape[1]          # number of columns of W = number of units in this layer
+    a_out = np.zeros(units)     # placeholder, e.g. [0, 0, 0] for 3 units
+    for j in range(units):      # loop over each unit: j = 0, 1, 2, ...
+        w = W[:, j]              # pull out the j-th COLUMN of W → weights for unit j
+        z = np.dot(w, a_in) + b[j]
+        a_out[j] = g(z)          # g = sigmoid (defined once, outside this function)
+    return a_out</pre>
+
+  <table>
+    <tr><th>Line</th><th>What it's doing</th></tr>
+    <tr><td><code class="inline">W.shape[1]</code></td><td>Number of columns of W = number of neurons/units in this layer</td></tr>
+    <tr><td><code class="inline">np.zeros(units)</code></td><td>Empty output array to fill in, sized correctly upfront</td></tr>
+    <tr><td><code class="inline">W[:, j]</code></td><td>NumPy slicing syntax: "all rows, column j" → pulls out one neuron's full weight vector</td></tr>
+    <tr><td><code class="inline">np.dot(w, a_in) + b[j]</code></td><td>The z computation for unit j — identical math to before, just indexed by j now</td></tr>
+    <tr><td><code class="inline">a_out[j] = g(z)</code></td><td>Store this unit's activation in the right slot</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this matters:</b> This one function replaces the entire hardcoded block from Section 2 — for a layer of 3 units <i>or</i> 300 units, the code doesn't change, only <code class="inline">W</code>'s shape does. This is the real leap from "I understand the math for one neuron" to "I can build a layer of arbitrary size."
+  </div>
+
+  <p>Note the activation function <code class="inline">g</code> is defined once, outside <code class="inline">dense()</code>, e.g. <code class="inline">g = sigmoid</code> — kept simple since this course only uses sigmoid here. (You'll later see it passed in as a parameter, e.g. <code class="inline">dense(a_in, W, b, g)</code>, once different activation functions are introduced next week.)</p>
+</div>
+
+<h2 id="sequential">4. Chaining Layers with sequential()</h2>
+<div class="section">
+  <p>With <code class="inline">dense()</code> defined, building a full multi-layer network is just calling it repeatedly, feeding each layer's output into the next:</p>
+
+  <pre>def sequential(x):
+    a1 = dense(x,  W1, b1)
+    a2 = dense(a1, W2, b2)
+    a3 = dense(a2, W3, b3)
+    a4 = dense(a3, W4, b4)
+    f_x = a4
+    return f_x</pre>
+
+  <p>This mirrors exactly what TensorFlow's <code class="inline">Sequential([...])</code> + <code class="inline">.predict()</code> does internally — a chain of dense-layer calls, each one's output becoming the next one's input.</p>
+
+  <h3>Full worked example — layer 1 of the coffee network, using dense()</h3>
+  <pre>W = np.array([
+    [1, -3, 5],
+    [2,  4, -6]
+])                              # 2 x 3
+b = np.array([-1, 1, 2])
+
+a_in = np.array([-2, 4])        # a[0] = x, the input features
+
+a1 = dense(a_in, W, b)          # runs the for-loop above, returns 3 activation values</pre>
+
+  <div class="why">
+    <b>Why this matters:</b> This is the complete recipe: <code class="inline">dense()</code> is the reusable "layer" building block, and <code class="inline">sequential()</code> is just a fixed sequence of calls to it. Once you have these two functions, you have re-derived, from first principles, everything TensorFlow's <code class="inline">Dense</code> + <code class="inline">Sequential</code> classes do under the hood for forward propagation.
+  </div>
+</div>
+
+<h2 id="lab03">5. Lab 03 Deep Dive — Coffee Roasting in Pure NumPy</h2>
+<div class="section">
+  <p>This lab rebuilds the exact same coffee roasting network from Lab 02 — but with zero TensorFlow layers, only NumPy.</p>
+
+  <div class="step">
+    <b>Step 1 — Same data, same normalization</b>
+    <pre>X, Y = load_coffee_data()
+norm_l = tf.keras.layers.Normalization(axis=-1)
+norm_l.adapt(X)
+Xn = norm_l(X)</pre>
+    <p>Interesting detail: TensorFlow's <code class="inline">Normalization</code> layer is still used here — it's a data preprocessing utility, not a trained model layer, so borrowing it doesn't defeat the point of building the model itself from scratch.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 2 — The activation function</b>
+    <pre>g = sigmoid    # imported from lab_utils_common.py</pre>
+  </div>
+
+  <div class="step">
+    <b>Step 3 — <code>my_dense()</code>: the reusable layer function</b>
+    <pre>def my_dense(a_in, W, b):
+    """
+    a_in (ndarray (n,))   : input, n features, 1 example
+    W    (ndarray (n,j))  : weight matrix, n features per unit, j units
+    b    (ndarray (j,))   : bias vector, j units
+    Returns a_out (ndarray (j,)) : activations of this layer's j units
+    """
+    units = W.shape[1]
+    a_out = np.zeros(units)
+    for j in range(units):
+        w = W[:, j]
+        z = np.dot(w, a_in) + b[j]
+        a_out[j] = g(z)
+    return a_out</pre>
+    <p>Identical to the lecture's <code class="inline">dense()</code> — the docstring is the useful addition here, spelling out expected shapes precisely: <code class="inline">W</code> is <code class="inline">(n_features, n_units)</code>, matching the weight-shape rule from the TensorFlow lab.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 4 — <code>my_sequential()</code>: chaining the 2 layers</b>
+    <pre>def my_sequential(x, W1, b1, W2, b2):
+    a1 = my_dense(x,  W1, b1)
+    a2 = my_dense(a1, W2, b2)
+    return a2</pre>
+  </div>
+
+  <div class="step">
+    <b>Step 5 — Reuse the already-trained weights</b>
+    <pre>W1_tmp = np.array([[-8.93, 0.29, 12.9], [-0.1, -7.32, 10.81]])
+b1_tmp = np.array([-9.82, -9.28, 0.96])
+W2_tmp = np.array([[-31.18], [-27.59], [-32.56]])
+b2_tmp = np.array([15.41])</pre>
+    <div class="note">These are the <i>trained</i> weights copied straight from the TensorFlow lab (Lab 02) — nearly identical to the ones you inspected there, just from a slightly different training run. The point is: this NumPy implementation doesn't train anything itself (no gradient descent here) — it only re-implements <b>inference</b> (forward propagation) using weights someone else already learned.</div>
+  </div>
+
+  <div class="step">
+    <b>Step 6 — <code>my_predict()</code>: TensorFlow's <code>.predict()</code>, built by hand</b>
+    <pre>def my_predict(X, W1, b1, W2, b2):
+    m = X.shape[0]              # number of examples (rows)
+    p = np.zeros((m, 1))
+    for i in range(m):
+        p[i, 0] = my_sequential(X[i], W1, b1, W2, b2)
+    return p</pre>
+    <p>This is the missing piece connecting single-example <code class="inline">my_sequential()</code> to batch prediction: loop over every row of <code class="inline">X</code>, run one example through the network, store the result. This is literally what <code class="inline">model.predict(X)</code> does for you automatically in TensorFlow — Section 6 makes this comparison explicit.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 7 — Predict and threshold, same as before</b>
+    <pre>X_tst = np.array([
+    [200, 13.9],   # positive example
+    [200, 17]])    # negative example
+X_tstn = norm_l(X_tst)   # normalize with the SAME norm_l from training
+
+predictions = my_predict(X_tstn, W1_tmp, b1_tmp, W2_tmp, b2_tmp)
+yhat = (predictions >= 0.5).astype(int)</pre>
+    <p>Identical logic to Lab 02 — normalize new data with the training-fitted normalizer, predict, threshold at 0.5.</p>
+  </div>
+
+  <div class="step">
+    <b>Step 8 — Verify against TensorFlow's result</b>
+    <pre>netf = lambda x: my_predict(norm_l(x), W1_tmp, b1_tmp, W2_tmp, b2_tmp)
+plt_network(X, Y, netf)</pre>
+    <div class="why">
+      <b>Why this matters:</b> The lab explicitly states this produces a graph <i>identical</i> to the TensorFlow version from Lab 02. That's the whole payoff of this exercise — proof, not just assertion, that <code class="inline">Dense</code> + <code class="inline">Sequential</code> + <code class="inline">.predict()</code> are doing nothing more than the dot-product-plus-sigmoid loop you just wrote yourself.
+    </div>
+  </div>
+</div>
+
+<h2 id="compare">6. Side-by-Side: TensorFlow vs. NumPy-from-Scratch</h2>
+<div class="section">
+  <table>
+    <tr><th>Concept</th><th>TensorFlow (Lab 02)</th><th>NumPy from scratch (Lab 03)</th></tr>
+    <tr><td>Define a layer</td><td><code class="inline">Dense(units=3, activation='sigmoid')</code></td><td><code class="inline">my_dense(a_in, W, b)</code> function</td></tr>
+    <tr><td>Chain layers</td><td><code class="inline">Sequential([...])</code></td><td><code class="inline">my_sequential(x, W1, b1, W2, b2)</code></td></tr>
+    <tr><td>Predict on a batch</td><td><code class="inline">model.predict(X)</code></td><td><code class="inline">my_predict(X, W1, b1, W2, b2)</code> — manual loop over rows</td></tr>
+    <tr><td>Get weights</td><td><code class="inline">model.get_layer(...).get_weights()</code></td><td>You define/store W, b arrays yourself directly</td></tr>
+    <tr><td>Training (learning W, b)</td><td><code class="inline">model.compile()</code> + <code class="inline">model.fit()</code></td><td>Not implemented here — this lab only does inference with pre-trained weights</td></tr>
+    <tr><td>Underlying math per unit</td><td><code class="inline">sigmoid(w·a_in + b)</code> (hidden inside Dense)</td><td><code class="inline">g(np.dot(w, a_in) + b[j])</code> (explicit)</td></tr>
+  </table>
+
+  <div class="analogy">
+    <b>Analogy:</b> Lab 02 is like driving a car with automatic transmission — you press the pedal and it just goes. Lab 03 is popping the hood and manually operating the same gears with your own hands, at the same speed, reaching the same destination. Once you've done it manually and confirmed you land in the exact same place, you can go back to driving automatic with full confidence in what's happening beneath you.
+  </div>
+</div>
+
+<h2 id="summary">7. Quick-Reference Summary</h2>
+<div class="section">
+  <table>
+    <tr><th>Function</th><th>Role</th></tr>
+    <tr><td><code class="inline">dense(a_in, W, b)</code> / <code class="inline">my_dense(...)</code></td><td>Computes one layer's output: loops over units, does <code class="inline">g(w·a_in + b)</code> per unit</td></tr>
+    <tr><td><code class="inline">sequential(x)</code> / <code class="inline">my_sequential(...)</code></td><td>Chains multiple dense-layer calls: each layer's output feeds the next</td></tr>
+    <tr><td><code class="inline">my_predict(X, ...)</code></td><td>Loops over every example (row) in a batch, calling sequential() on each one</td></tr>
+    <tr><td><code class="inline">W[:, j]</code></td><td>NumPy slicing: pulls out column j (all rows) — one unit's full weight vector</td></tr>
+    <tr><td>W shape</td><td>(n_input_features, n_units) — same rule as TensorFlow's Dense layer</td></tr>
+    <tr><td>1D vs 2D arrays here</td><td>This manual version processes one example as a flat 1D array (single brackets), unlike TensorFlow's 2D-matrix batch convention</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Where this is heading:</b> With forward propagation now understood at every level — math, hand-coded, generalized NumPy, and TensorFlow — the next lecture (per the transcript) shifts topic entirely: is this "neural network" idea any kind of path toward AGI? That's a conceptual/discussion video, not code — worth a lighter-touch summary if you want one, rather than a full reference file.
+  </div>
+</div>
+
+</div>
+</body>
+</html>

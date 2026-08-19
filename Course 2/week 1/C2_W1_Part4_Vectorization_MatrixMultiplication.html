@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2 - Week 1 (Part 4): Vectorization &amp; Matrix Multiplication</title>
+<style>
+  :root{
+    --navy:#0f2942; --blue:#1d6fa5; --accent:#c0392b; --pink:#a6296c;
+    --bg:#fafaf7; --card:#ffffff; --border:#e3e0d8; --text:#22262b; --muted:#5a6069;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Georgia','Times New Roman',serif; background:var(--bg); color:var(--text); margin:0; line-height:1.65;}
+  .wrap{max-width:920px; margin:0 auto; padding:40px 24px 100px;}
+  header{background:linear-gradient(135deg,var(--navy),#1a3f5c); color:#fff; padding:40px 30px; border-radius:14px; margin-bottom:36px;}
+  header h1{margin:0 0 8px; font-size:2rem;}
+  header p{margin:4px 0; color:#cfe0ee; font-family:Arial,sans-serif; font-size:0.95rem;}
+  h2{color:var(--navy); border-bottom:3px solid var(--blue); padding-bottom:8px; margin-top:56px; font-size:1.5rem;}
+  h3{color:var(--pink); margin-top:32px; font-size:1.15rem;}
+  .section{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:26px 30px; margin-top:18px;}
+  .why{background:#fff6e9; border-left:5px solid #d68a1a; padding:14px 18px; border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;}
+  .why b{color:#a5620a;}
+  .analogy{background:#eef6f0; border-left:5px solid #2e8b57; padding:14px 18px; border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;}
+  .analogy b{color:#1f6b40;}
+  .formula{background:#f4f1ea; border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:16px 0; font-size:1.05rem; text-align:center; font-family:'Cambria Math','Georgia',serif;}
+  .note{background:#eef2fb; border-left:5px solid var(--blue); padding:12px 18px; border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;}
+  .warn{background:#fdecea; border-left:5px solid var(--accent); padding:12px 18px; border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;}
+  .warn b{color:var(--accent);}
+  code, pre{font-family:'Consolas','Menlo',monospace; background:#282c34; color:#e6e6e6; border-radius:8px;}
+  pre{padding:16px 18px; overflow-x:auto; font-size:0.87rem; line-height:1.5;}
+  code.inline{background:#eee5d3; color:#5a3e1b; padding:2px 6px; border-radius:4px; font-size:0.9em;}
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-family:Arial,sans-serif; font-size:0.92rem;}
+  th,td{border:1px solid var(--border); padding:10px 12px; text-align:left;}
+  th{background:var(--navy); color:#fff;}
+  tr:nth-child(even){background:#f4f2ec;}
+  .toc{background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 26px;}
+  .toc a{display:block; color:var(--blue); text-decoration:none; padding:4px 0; font-family:Arial,sans-serif;}
+  .toc a:hover{text-decoration:underline;}
+  .imgbox{text-align:center; margin:20px 0;}
+  .imgbox img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
+  .caption{font-family:Arial,sans-serif; font-size:0.82rem; color:var(--muted); margin-top:6px;}
+  ul,ol{padding-left:22px;}
+  li{margin:6px 0;}
+  .step{background:#f7f5ef; border-radius:10px; padding:16px 20px; margin:14px 0; border-left:5px solid var(--navy);}
+  .step b{color:var(--navy);}
+  .matgrid{display:inline-block; border:2px solid var(--navy); border-radius:6px; padding:8px 14px; margin:6px; font-family:'Consolas',monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Vectorization &amp; Matrix Multiplication</h1>
+  <p>Machine Learning Specialization · Course 2, Week 1 (Part 4 — final optional videos)</p>
+  <p>Systems in Biomedical Engineering · Cairo University</p>
+</header>
+
+<div class="toc">
+  <b style="font-family:Arial,sans-serif;">Contents</b>
+  <a href="#why-vectorize">1. Why This Matters: For-Loops vs. Vectorization</a>
+  <a href="#dotproduct">2. Building Block 1 — The Dot Product</a>
+  <a href="#transpose">3. Building Block 2 — The Transpose</a>
+  <a href="#vecmat">4. Vector × Matrix Multiplication</a>
+  <a href="#matmat">5. Matrix × Matrix Multiplication — the General Rule</a>
+  <a href="#shape-rule">6. The Shape-Compatibility Rule (this is the one that trips people up)</a>
+  <a href="#numpy-code">7. Doing This in NumPy — the Actual Code</a>
+  <a href="#dense-vectorized">8. Putting It All Together — the Vectorized Dense Layer</a>
+  <a href="#tf-convention">9. One Wrinkle: Why TensorFlow's Code Looks Slightly Different</a>
+  <a href="#summary">10. Quick-Reference Summary</a>
+</div>
+
+<h2 id="why-vectorize">1. Why This Matters: For-Loops vs. Vectorization</h2>
+<div class="section">
+  <p>Recall the <code class="inline">dense()</code> function from the NumPy-from-scratch lecture — it works, but it loops over units one at a time with a Python <code class="inline">for</code> loop. That's fine for 3 units. It's painfully slow for a layer with thousands of units, which is completely normal in real deep learning.</p>
+
+  <div class="imgbox">
+    <img src="1787158520989_image.png" alt="For loops vs vectorization slide">
+    <div class="caption">Same computation, same result [1,0,1] — left uses a for-loop, right replaces the whole loop with matrix multiplication</div>
+  </div>
+
+  <div class="why">
+    <b>Why this matters — this is the whole point of the section:</b> GPUs and modern CPUs are built to do large matrix multiplications extremely fast, in parallel. A Python <code class="inline">for</code> loop processes one number at a time, sequentially — it can't take advantage of that parallel hardware at all. Replacing the loop with a single matrix multiplication (<code class="inline">np.matmul</code>) lets the exact same math run dramatically faster. This single idea — vectorization — is a major reason deep learning became practical at today's scale. Without it, training large networks would simply take too long to be usable.
+  </div>
+
+  <p>Both versions compute the identical thing. The left is what you already built. The right is the same operation, just expressed as one matrix multiplication instead of a manual loop. Understanding <i>why</i> they're equivalent is the goal of this whole section — once that clicks, the vectorized code stops looking like a trick and starts looking obvious.</p>
+</div>
+
+<h2 id="dotproduct">2. Building Block 1 — The Dot Product</h2>
+<div class="section">
+  <p>Everything here builds up from one simple operation you already know: the dot product between two vectors.</p>
+
+  <div class="formula">
+    a = [1, 2], &nbsp; w = [3, 4]<br>
+    a · w = (1×3) + (2×4) = 3 + 8 = 11
+  </div>
+
+  <p>General rule: multiply corresponding elements together, then add up all the products.</p>
+
+  <div class="analogy">
+    <b>Analogy:</b> A dot product is like a weighted checklist — you're pairing up two lists item-by-item, multiplying each pair, and summing the results into one single number. This is exactly what <code class="inline">z = w·x + b</code> has been doing this entire week, just now we're about to formalize the notation around it.
+  </div>
+</div>
+
+<h2 id="transpose">3. Building Block 2 — The Transpose</h2>
+<div class="section">
+  <p>The same dot product can be written a second way, using matrix notation instead of vector notation — and this second form is the key that unlocks matrix multiplication.</p>
+
+  <h3>Column vector → row vector</h3>
+  <div class="formula">
+    a = [1, 2] written as a column: &nbsp;
+    <span class="matgrid">1<br>2</span>
+    &nbsp;→ transpose (aᵀ) → lay it on its side →
+    <span class="matgrid">1&nbsp;&nbsp;2</span>
+  </div>
+
+  <p>The transpose just takes a matrix (or vector) and lays its columns down as rows. A <code class="inline">2×1</code> column vector becomes a <code class="inline">1×2</code> row vector.</p>
+
+  <div class="formula">
+    a·w &nbsp;=&nbsp; aᵀ × w
+  </div>
+
+  <p>These are two ways of writing the <b>exact same number</b>. The first is "vector dot product" notation from Course 1. The second — <code class="inline">aᵀ × w</code> — is standard matrix multiplication notation: a <code class="inline">1×2</code> matrix times a <code class="inline">2×1</code> matrix, which produces a single number.</p>
+
+  <div class="why">
+    <b>Why this matters:</b> This equivalence is the entire bridge between "dot products of vectors" (which you already understood from Course 1 logistic regression) and "matrix multiplication" (which sounds intimidating but is really just many dot products, organized neatly into rows and columns).
+  </div>
+</div>
+
+<h2 id="vecmat">4. Vector × Matrix Multiplication</h2>
+<div class="section">
+  <p>Next step up: multiply a row vector by a full matrix (not just another vector).</p>
+
+  <div class="formula">
+    aᵀ = [1, 2] &nbsp;&nbsp;&nbsp; W =
+    <span class="matgrid">3&nbsp;&nbsp;5<br>4&nbsp;&nbsp;6</span>
+  </div>
+
+  <p>To compute <code class="inline">Z = aᵀ × W</code>, take the dot product of <code class="inline">aᵀ</code> with <b>each column</b> of <code class="inline">W</code>, one column at a time:</p>
+
+  <div class="formula">
+    Z₁ = [1,2]·[3,4] = 1×3 + 2×4 = 11<br>
+    Z₂ = [1,2]·[5,6] = 1×5 + 2×6 = 17<br>
+    Z = [11, 17] &nbsp;(a 1×2 matrix)
+  </div>
+
+  <div class="why">
+    <b>Why this matters:</b> Notice the pattern — each output number comes from dot-producting the row vector with one column of the matrix. This "take a row, dot it with a column" pattern is the entire mechanism of matrix multiplication. Everything from here just repeats this same operation for more rows and more columns.
+  </div>
+</div>
+
+<h2 id="matmat">5. Matrix × Matrix Multiplication — the General Rule</h2>
+<div class="section">
+  <p>Now generalize from one row to many rows: multiplying a full matrix <code class="inline">Aᵀ</code> by a full matrix <code class="inline">W</code>.</p>
+
+  <h3>Mental model: think in columns</h3>
+  <p>Think of matrix <code class="inline">A</code> as a set of column vectors stacked side by side: <code class="inline">a₁, a₂, a₃, ...</code>. Its transpose <code class="inline">Aᵀ</code> lays those same vectors down as <b>rows</b>: <code class="inline">a₁ᵀ, a₂ᵀ, a₃ᵀ</code>. Likewise think of <code class="inline">W</code> as columns <code class="inline">w₁, w₂, w₃, w₄</code>.</p>
+
+  <div class="formula">
+    Z = Aᵀ × W
+  </div>
+
+  <h3>The rule for any single element of Z</h3>
+  <div class="note">
+    The number in <b>row i, column j</b> of Z = (row i of Aᵀ) <b>dot</b> (column j of W).
+  </div>
+
+  <div class="imgbox">
+    <img src="1787158686265_image.png" alt="Matrix multiplication in NumPy slide">
+    <div class="caption">A is 2×3, Aᵀ is 3×2, W is 2×4 → result Z is 3×4. Each Z entry = one row of Aᵀ dotted with one column of W.</div>
+  </div>
+
+  <p>Worked examples from this exact slide:</p>
+  <table>
+    <tr><th>Z position</th><th>Computation</th><th>Result</th></tr>
+    <tr><td>Row 1, Col 1</td><td>[1, 2] · [3, 4]</td><td>11</td></tr>
+    <tr><td>Row 3, Col 2</td><td>[0.1, 0.2] · [5, 6]</td><td>1.7</td></tr>
+    <tr><td>Row 2, Col 3</td><td>[-1, -2] · [7, 8]</td><td>-23</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this matters:</b> Matrix multiplication is <i>not</i> some new exotic operation — it's literally a grid of ordinary dot products, one per output cell, systematically organized. If you can compute one dot product, you already know how to compute an entire matrix multiplication, one cell at a time.
+  </div>
+</div>
+
+<h2 id="shape-rule">6. The Shape-Compatibility Rule</h2>
+<div class="section">
+  <p>You can't multiply just any two matrices — there's exactly one requirement, and it comes directly from the dot-product mechanics above.</p>
+
+  <div class="warn">
+    <b>The rule:</b> To compute <code class="inline">Aᵀ × W</code>, the number of <b>columns</b> of <code class="inline">Aᵀ</code> must equal the number of <b>rows</b> of <code class="inline">W</code>.
+  </div>
+
+  <p>Why: every entry of Z is a dot product between a row of <code class="inline">Aᵀ</code> and a column of <code class="inline">W</code>. A dot product only makes sense between two vectors of the <i>same length</i> — you can't dot-product a length-2 vector with a length-3 vector. So the "inner" dimensions have to match.</p>
+
+  <div class="formula">
+    (m × <b>n</b>) &nbsp;×&nbsp; (<b>n</b> × p) &nbsp;=&nbsp; (m × p)
+  </div>
+
+  <p>In the worked example: <code class="inline">Aᵀ</code> is <code class="inline">3×2</code>, <code class="inline">W</code> is <code class="inline">2×4</code> — the inner numbers (2 and 2) match, so multiplication is valid, and the result <code class="inline">Z</code> takes the outer dimensions: <code class="inline">3×4</code>.</p>
+
+  <table>
+    <tr><th>Property</th><th>Rule</th></tr>
+    <tr><td>Compatibility</td><td>columns of left matrix = rows of right matrix</td></tr>
+    <tr><td>Result shape</td><td>(rows of left) × (columns of right)</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this matters:</b> This is the #1 thing to check when you get a shape-mismatch error from <code class="inline">np.matmul</code> — and you will get this error, probably often, once you start building real networks. Before debugging anything else, check: do the inner dimensions of my two matrices actually match?
+  </div>
+</div>
+
+<h2 id="numpy-code">7. Doing This in NumPy — the Actual Code</h2>
+<div class="section">
+  <p>Now the code that implements everything above.</p>
+
+  <div class="imgbox">
+    <img src="1787158722760_image.png" alt="Matrix multiplication in NumPy code slide">
+    <div class="caption">Defining A, its transpose, W, and computing Z with np.matmul</div>
+  </div>
+
+  <pre>A = np.array([[1, -1, 0.1],
+              [2, -2, 0.2]])          # 2x3
+
+# Two ways to get the transpose — both identical:
+AT = np.array([[1, 2],
+               [-1, -2],
+               [0.1, 0.2]])            # written out manually
+
+AT = A.T                                 # or: use NumPy's built-in transpose
+
+W = np.array([[3, 5, 7, 9],
+              [4, 6, 8, 0]])           # 2x4
+
+Z = np.matmul(AT, W)                    # matrix multiplication
+# equivalently: Z = AT @ W              # '@' is shorthand for matmul
+
+print(Z)
+# [[11,   17,  23,   9],
+#  [-11, -17, -23,  -9],
+#  [1.1,  1.7, 2.3, 0.9]]</pre>
+
+  <table>
+    <tr><th>Code</th><th>Meaning</th></tr>
+    <tr><td><code class="inline">A.T</code></td><td>NumPy's built-in transpose — no need to retype the matrix by hand</td></tr>
+    <tr><td><code class="inline">np.matmul(X, Y)</code></td><td>Matrix multiplication of X and Y</td></tr>
+    <tr><td><code class="inline">X @ Y</code></td><td>Shorthand operator for the exact same thing as <code class="inline">np.matmul(X, Y)</code></td></tr>
+  </table>
+
+  <div class="note">
+    Both <code class="inline">np.matmul(...)</code> and <code class="inline">@</code> do identical things. The course sticks with <code class="inline">np.matmul</code> for clarity, but you'll see <code class="inline">@</code> used often in other people's code — worth recognizing both.
+  </div>
+</div>
+
+<h2 id="dense-vectorized">8. Putting It All Together — the Vectorized Dense Layer</h2>
+<div class="section">
+  <p>Now apply this directly to the coffee roasting network — replacing the entire <code class="inline">for</code>-loop version of <code class="inline">dense()</code> with matrix multiplication.</p>
+
+  <h3>Setup: everything as 2D arrays/matrices</h3>
+  <pre>AT = np.array([[200, 17]])              # 1x2 — input features (note: DOUBLE brackets)
+
+W = np.array([[1, -3, 5],
+              [-2, 4, -6]])              # 2x3 — 2 features, 3 units (columns = each unit's weights)
+
+b = np.array([[-1, 1, 2]])               # 1x3 — one bias per unit (also 2D now)</pre>
+
+  <h3>The vectorized dense() function</h3>
+  <pre>def dense(AT, W, b):
+    Z = np.matmul(AT, W) + b
+    A_out = g(Z)          # g = sigmoid, applied element-wise
+    return A_out</pre>
+
+  <p>Compare this to the loop-based version from the previous lecture — the entire <code class="inline">for j in range(units): ...</code> block collapses into one line: <code class="inline">Z = np.matmul(AT, W) + b</code>.</p>
+
+  <h3>Verifying by hand — same numbers, new method</h3>
+  <div class="formula">
+    Z = Aᵀ·W + b<br>
+    Z₁ = (200×1 + 17×(-2)) + (-1) = 200 - 34 - 1 = 165<br>
+    Z₂ = (200×(-3) + 17×4) + 1 = -600 + 68 + 1 = -531<br>
+    Z₃ = (200×5 + 17×(-6)) + 2 = 1000 - 102 + 2 = 900
+  </div>
+
+  <p>Then <code class="inline">A = g(Z) = sigmoid([165, -531, 900])</code>. Since sigmoid saturates for large inputs: <code class="inline">sigmoid(165) ≈ 1</code>, <code class="inline">sigmoid(-531) ≈ 0</code>, <code class="inline">sigmoid(900) ≈ 1</code> → final result <code class="inline">A = [1, 0, 1]</code>.</p>
+
+  <div class="why">
+    <b>Why this matters:</b> This is the exact same <code class="inline">[1, 0, 1]</code> result as the for-loop version from Section 1 — proof that vectorization changes <i>how</i> the computation is expressed and executed, not <i>what</i> it computes. Same math, same answer, radically faster execution.
+  </div>
+</div>
+
+<h2 id="tf-convention">9. One Wrinkle: Why TensorFlow's Code Looks Slightly Different</h2>
+<div class="section">
+  <p>If you compare this slide's variable name <code class="inline">AT</code> (meaning "A transpose," i.e. a row of features) to earlier TensorFlow code, you'll notice TensorFlow labels the same thing <code class="inline">a_in</code> instead of <code class="inline">AT</code>. That's not a mathematical difference — it's a naming/orientation convention.</p>
+
+  <div class="note">
+    <b>TensorFlow's convention:</b> individual training examples are laid out as <b>rows</b> of the input matrix <code class="inline">X</code> directly (not <code class="inline">Xᵀ</code>). This matches exactly what you saw earlier: <code class="inline">X = np.array([[200.0, 17.0], [120.0, 5.0], ...])</code> — one row per example. So what the lecture slide calls "Aᵀ" is, in TensorFlow's own convention, simply called the input matrix, no transpose framing needed — TensorFlow already stores examples row-wise by default.
+  </div>
+
+  <div class="why">
+    <b>Why this matters:</b> This resolves any confusion between "the math slide's transpose notation" and "the TensorFlow code you already used." They're not contradicting each other — they're two equally valid ways of laying out the same numbers, and TensorFlow's Dense/Sequential API was designed around the row-per-example convention specifically so you never have to think about transposing your input data yourself.
+  </div>
+</div>
+
+<h2 id="summary">10. Quick-Reference Summary</h2>
+<div class="section">
+  <table>
+    <tr><th>Concept</th><th>Key fact</th></tr>
+    <tr><td>Dot product</td><td>Multiply corresponding elements, sum the results → one number</td></tr>
+    <tr><td>Transpose (ᵀ or <code class="inline">.T</code>)</td><td>Lays columns down as rows — turns a column vector into a row vector</td></tr>
+    <tr><td>Vector × matrix</td><td>Dot the row vector with each column of the matrix, one output per column</td></tr>
+    <tr><td>Matrix × matrix rule</td><td>Z[i,j] = (row i of left matrix) · (column j of right matrix)</td></tr>
+    <tr><td>Shape compatibility</td><td>(m×n) × (n×p) = (m×p) — inner dimensions (n) must match</td></tr>
+    <tr><td><code class="inline">np.matmul(X, Y)</code> or <code class="inline">X @ Y</code></td><td>NumPy's matrix multiplication</td></tr>
+    <tr><td>Vectorized dense layer</td><td><code class="inline">Z = np.matmul(A_in, W) + b; A_out = g(Z)</code> — replaces the entire for-loop</td></tr>
+    <tr><td>Why it's faster</td><td>Matrix multiplication runs in parallel on GPUs/CPUs; for-loops run sequentially</td></tr>
+  </table>
+
+  <div class="analogy">
+    <b>Big-picture analogy:</b> The for-loop version of <code class="inline">dense()</code> is like one cashier serving customers one at a time. The vectorized version is like opening every checkout lane simultaneously — same total work gets done, same final receipts, just handled in parallel instead of sequentially. Modern hardware (GPUs especially) is built to be that "whole row of cashiers," and matrix multiplication is the instruction that tells it to actually use them all at once.
+  </div>
+
+  <div class="note">
+    <b>This closes out Week 1.</b> You now have the complete inference/forward-propagation picture: the intuition (Part 1), TensorFlow's high-level API (Part 2), the from-scratch NumPy implementation (Part 3), and now the vectorized, production-grade version of that same implementation (Part 4). Week 2 moves into <b>training</b> — how the weights actually get learned via gradient descent/backpropagation, which is the piece that's been deferred ("more on this next week") throughout every lab so far.
+  </div>
+</div>
+
+</div>
+</body>
+</html>

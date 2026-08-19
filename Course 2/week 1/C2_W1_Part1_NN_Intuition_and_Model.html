@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2 - Week 1 (Part 1): Neural Networks Intuition & Model</title>
+<style>
+  :root{
+    --navy:#0f2942; --blue:#1d6fa5; --accent:#c0392b; --pink:#a6296c;
+    --bg:#fafaf7; --card:#ffffff; --border:#e3e0d8; --text:#22262b; --muted:#5a6069;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:'Georgia','Times New Roman',serif;
+    background:var(--bg); color:var(--text); margin:0; line-height:1.65;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:40px 24px 100px;}
+  header{
+    background:linear-gradient(135deg,var(--navy),#1a3f5c);
+    color:#fff; padding:40px 30px; border-radius:14px; margin-bottom:36px;
+  }
+  header h1{margin:0 0 8px; font-size:2rem;}
+  header p{margin:4px 0; color:#cfe0ee; font-family:Arial,sans-serif; font-size:0.95rem;}
+  h2{
+    color:var(--navy); border-bottom:3px solid var(--blue); padding-bottom:8px;
+    margin-top:56px; font-size:1.5rem;
+  }
+  h3{color:var(--pink); margin-top:32px; font-size:1.15rem;}
+  .section{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:26px 30px; margin-top:18px;}
+  .why{
+    background:#fff6e9; border-left:5px solid #d68a1a; padding:14px 18px;
+    border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;
+  }
+  .why b{color:#a5620a;}
+  .analogy{
+    background:#eef6f0; border-left:5px solid #2e8b57; padding:14px 18px;
+    border-radius:6px; margin:18px 0; font-family:Arial,sans-serif; font-size:0.95rem;
+  }
+  .analogy b{color:#1f6b40;}
+  .formula{
+    background:#f4f1ea; border:1px solid var(--border); border-radius:8px;
+    padding:16px 20px; margin:16px 0; font-size:1.05rem; text-align:center;
+    font-family:'Cambria Math','Georgia',serif;
+  }
+  .note{
+    background:#eef2fb; border-left:5px solid var(--blue); padding:12px 18px;
+    border-radius:6px; margin:14px 0; font-family:Arial,sans-serif; font-size:0.9rem;
+  }
+  code, pre{
+    font-family:'Consolas','Menlo',monospace; background:#282c34; color:#e6e6e6;
+    border-radius:8px;
+  }
+  pre{padding:16px 18px; overflow-x:auto; font-size:0.87rem; line-height:1.5;}
+  code.inline{background:#eee5d3; color:#5a3e1b; padding:2px 6px; border-radius:4px; font-size:0.9em;}
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-family:Arial,sans-serif; font-size:0.92rem;}
+  th,td{border:1px solid var(--border); padding:10px 12px; text-align:left;}
+  th{background:var(--navy); color:#fff;}
+  tr:nth-child(even){background:#f4f2ec;}
+  .toc{background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 26px;}
+  .toc a{display:block; color:var(--blue); text-decoration:none; padding:4px 0; font-family:Arial,sans-serif;}
+  .toc a:hover{text-decoration:underline;}
+  .imgbox{text-align:center; margin:20px 0;}
+  .imgbox img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
+  .caption{font-family:Arial,sans-serif; font-size:0.82rem; color:var(--muted); margin-top:6px;}
+  .badge{
+    display:inline-block; background:var(--accent); color:#fff; font-family:Arial,sans-serif;
+    font-size:0.75rem; padding:2px 10px; border-radius:20px; margin-left:8px; vertical-align:middle;
+  }
+  ul,ol{padding-left:22px;}
+  li{margin:6px 0;}
+  .layer-diagram{
+    display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap;
+    background:#f7f5ef; border-radius:10px; padding:24px; margin:18px 0;
+  }
+  .neuron-col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .neuron{
+    width:50px; height:50px; border-radius:50%; border:3px solid var(--blue);
+    display:flex; align-items:center; justify-content:center; font-family:Arial,sans-serif;
+    font-size:0.75rem; color:var(--navy); background:#fff;
+  }
+  .neuron.out{border-color:var(--pink); color:var(--pink);}
+  .arrow-label{font-family:Arial,sans-serif; font-size:0.78rem; color:var(--muted); text-align:center;}
+  .divider{height:1px; background:var(--border); margin:36px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Neural Networks — Intuition &amp; Model</h1>
+  <p>Machine Learning Specialization · Course 2, Week 1 (Part 1)</p>
+  <p>Systems in Biomedical Engineering · Cairo University</p>
+</header>
+
+<div class="toc">
+  <b style="font-family:Arial,sans-serif;">Contents</b>
+  <a href="#brain">1. Origins — Neurons and the Brain</a>
+  <a href="#why-now">2. Why Neural Networks Took Off Now</a>
+  <a href="#demand">3. Demand Prediction — the Core Example</a>
+  <a href="#vision">4. Computer Vision Examples (Faces &amp; Cars)</a>
+  <a href="#layer">5. The Neural Network Layer</a>
+  <a href="#notation">6. Notation for Deeper Networks</a>
+  <a href="#forwardprop">7. Forward Propagation (Inference)</a>
+  <a href="#lab01">8. Lab 01 — Neurons and Layers (TensorFlow/Keras)</a>
+  <a href="#summary">9. Quick-Reference Summary</a>
+</div>
+
+<h2 id="brain">1. Origins — Neurons and the Brain</h2>
+<div class="section">
+  <p>Neural networks were originally invented to try to mimic how the biological brain learns and thinks. That motivation is largely historical now — modern deep learning barely resembles real neuroscience — but the vocabulary stuck: <i>neuron</i>, <i>activation</i>, <i>layer</i>.</p>
+
+  <h3>Biological neuron → artificial neuron</h3>
+  <table>
+    <tr><th>Biological</th><th>Artificial</th></tr>
+    <tr><td>Dendrites (input wires)</td><td>Input features (x₁, x₂, ...)</td></tr>
+    <tr><td>Cell body (computation)</td><td>Weighted sum + activation function</td></tr>
+    <tr><td>Axon (output wire)</td><td>Output value (activation, "a")</td></tr>
+    <tr><td>Electrical impulse strength</td><td>Numeric output value</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this matters:</b> This is a deliberate simplification, not a real brain model. Andrew Ng is explicit about this: "we have almost no idea how the human brain works," and today's researchers build neural nets using engineering principles, not biology. Don't over-invest in the biological metaphor — it's a naming convention, not a design constraint.
+  </div>
+
+  <h3>Brief history (why it matters practically)</h3>
+  <ul>
+    <li><b>1950s:</b> Neural networks first proposed → fell out of favor.</li>
+    <li><b>1980s–early 1990s:</b> Resurged, worked well for handwritten digit recognition (postal codes, check reading) → fell out of favor again.</li>
+    <li><b>~2005 onward:</b> Resurged again, rebranded as "deep learning."</li>
+    <li><b>2010s:</b> Speech recognition → Computer vision (ImageNet moment, 2012) → NLP → now almost every domain (medical imaging, climate, recommendations, etc.)</li>
+  </ul>
+</div>
+
+<h2 id="why-now">2. Why Neural Networks Took Off Now</h2>
+<div class="section">
+  <p>Two things changed: <b>data</b> and <b>compute</b>.</p>
+
+  <h3>The data-scaling story</h3>
+  <p>Traditional algorithms like linear/logistic regression plateau in performance even as you feed them more data — they can't take advantage of "big data." Neural networks, especially <i>large</i ones, keep improving as data grows.</p>
+
+  <div class="analogy">
+    <b>Analogy:</b> Think of traditional ML models as a small water pipe — no matter how much water (data) you pump in, only so much can flow through. Large neural networks are like a much wider pipe: more data straightforwardly translates into more flow (better performance), especially for large models.
+  </div>
+
+  <table>
+    <tr><th>Model size</th><th>Behavior as data grows</th></tr>
+    <tr><td>Logistic/Linear Regression</td><td>Performance plateaus early</td></tr>
+    <tr><td>Small Neural Network</td><td>Plateaus later, but still plateaus</td></tr>
+    <tr><td>Medium Neural Network</td><td>Higher plateau</td></tr>
+    <tr><td>Large Neural Network</td><td>Keeps improving with more data (for many applications)</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this matters:</b> This is the practical reason "should I collect more data or build a bigger model?" is a real, non-trivial decision you'll face — and it's exactly what Course 2's Week 3 (practical advice) will teach you to reason about systematically.
+  </div>
+
+  <p>The second driver: <b>faster hardware</b>, especially GPUs (originally built for graphics, repurposed for the matrix multiplications neural nets need).</p>
+</div>
+
+<h2 id="demand">3. Demand Prediction — the Core Example</h2>
+<div class="section">
+  <p>This is the running example used to build intuition for what a neural network actually <i>is</i>.</p>
+
+  <h3>Step 1: A single neuron ≈ logistic regression</h3>
+  <p>Predicting whether a T-shirt is a top seller from its <b>price</b> alone, using logistic regression, gives:</p>
+  <div class="formula">a = g(w·x + b) = 1 / (1 + e<sup>−(wx+b)</sup>)</div>
+  <p>Here the output is renamed from <code class="inline">f(x)</code> to <code class="inline">a</code> — short for <b>activation</b>, borrowed from neuroscience (how strongly a neuron "fires"). This single logistic regression unit is the simplest possible artificial neuron: it's a tiny computer that takes in a number (or numbers) and outputs one number.</p>
+
+  <h3>Step 2: Multiple neurons → a layer</h3>
+  <p>Now use 4 input features: <b>price, shipping cost, marketing, material quality</b>. Intuitively, top-seller status depends on three underlying factors:</p>
+  <ul>
+    <li><b>Affordability</b> — driven mainly by price + shipping cost</li>
+    <li><b>Awareness</b> — driven mainly by marketing spend</li>
+    <li><b>Perceived quality</b> — driven mainly by price + material</li>
+  </ul>
+  <p>Each of these is estimated by its own little logistic regression neuron. These three neurons, grouped side by side, form a <b>layer</b>. Their three outputs (activations) feed into one final neuron — the <b>output layer</b> — which outputs the probability of being a top seller.</p>
+
+  <div class="imgbox">
+    <img src="1787105044272_image.png" alt="Demand prediction diagram">
+    <div class="caption">Input layer (4 numbers) → hidden layer (3 neurons → 3 activation numbers) → output layer (1 neuron → 1 number)</div>
+  </div>
+
+  <div class="why">
+    <b>Why it matters:</b> This is the whole idea of a neural network in miniature: layers of neurons, each taking a vector of numbers in and producing a (usually smaller) vector of numbers out, until you reach one final prediction.
+  </div>
+
+  <h3>Step 3: Every neuron sees every input (in practice)</h3>
+  <p>Conceptually we assigned specific inputs to each neuron (price+shipping → affordability, etc.). In actual implementations, this hand-assignment is <b>not done manually</b>. Every neuron in a layer is connected to <i>every</i> feature from the previous layer, and the neuron learns via its weights which inputs matter and which to effectively ignore (by driving their weights toward zero).</p>
+
+  <div class="note">This is why the input layer is drawn with an input vector <b>x</b> feeding fully into the hidden layer with arrows from every input to every neuron — not selectively wired.</div>
+
+  <h3>Step 4: The hidden layer</h3>
+  <p>The middle layer is called a <b>hidden layer</b> because during training, you only observe <b>x</b> (inputs) and <b>y</b> (true top-seller label) — you never directly observe the "correct" affordability/awareness/quality values. Those are computed internally and are hidden from the training data.</p>
+
+  <div class="analogy">
+    <b>Analogy:</b> It's like a factory where you know the raw materials going in and the finished product coming out, but the exact intermediate assembly steps happening inside are not written down anywhere — they're inferred, not observed.
+  </div>
+
+  <h3>Step 5: A powerful reframe — automatic feature engineering</h3>
+  <p>Cover the left half of the diagram and look only at the final neuron: it's just logistic regression using <b>affordability, awareness, perceived quality</b> as its 3 input features instead of the original 4 raw features. In Course 1, you built features like this by hand (e.g., multiplying lot frontage × depth to get lot area). A neural network builds its <i>own</i> better features automatically, layer by layer, directly from data — without you specifying them.</p>
+
+  <div class="why">
+    <b>Why this matters (this is the big one):</b> This is precisely what makes neural networks so powerful — they remove the need for manual feature engineering, which was one of the most labor-intensive and skill-dependent parts of classical ML.
+  </div>
+
+  <h3>Stacking more layers</h3>
+  <p>Nothing stops you from chaining several hidden layers: input → hidden layer 1 → hidden layer 2 → hidden layer 3 → output layer. A network like this (multiple layers stacked) is sometimes called a <b>multilayer perceptron</b> in older literature.</p>
+  <p>How many hidden layers, and how many neurons per layer, is called the network's <b>architecture</b> — a design choice with real performance consequences (covered later in the course).</p>
+</div>
+
+<h2 id="vision">4. Computer Vision Examples (Faces &amp; Cars)</h2>
+<div class="section">
+  <p>The same layered idea generalizes beyond tabular data (T-shirt features) to raw pixels.</p>
+
+  <h3>Face recognition</h3>
+  <p>A 1000×1000 pixel image is really a 1000×1000 grid of brightness values (0–255). Unroll that grid into a vector and you get <b>1 million numbers</b> as your input feature vector <b>x</b>. A multi-layer network is trained to map this vector to a probability over identities.</p>
+
+  <div class="imgbox">
+    <img src="1787110111820_image.png" alt="Face recognition hidden layer visualization">
+    <div class="caption">What each hidden layer "looks for," visualized layer by layer</div>
+  </div>
+
+  <p>When you visualize what individual neurons detect, a clear hierarchy emerges:</p>
+  <ul>
+    <li><b>Layer 1:</b> tiny, short edges/lines at various orientations (small receptive window)</li>
+    <li><b>Layer 2:</b> parts of faces — an eye, corner of a nose, edge of an ear (bigger window; combinations of Layer-1 edges)</li>
+    <li><b>Layer 3:</b> coarse, almost-complete face shapes (even bigger window)</li>
+    <li><b>Output layer:</b> combines these into an identity probability</li>
+  </ul>
+
+  <h3>Car classification — same network, different data</h3>
+  <div class="imgbox">
+    <img src="1787110193382_image.png" alt="Car classification hidden layer visualization">
+    <div class="caption">The identical architecture, trained on car images instead, learns car-relevant features automatically</div>
+  </div>
+  <p>Trained on car images instead, the exact same architecture learns edges → car parts → whole car shapes, entirely on its own. Nobody told it to look for wheel arches or bumpers.</p>
+
+  <div class="why">
+    <b>Why this matters:</b> No one manually programmed "look for eyes" or "look for wheels." The network discovered a hierarchy of increasingly abstract, task-relevant features purely from data — the same automatic feature-learning idea from the demand prediction example, just far more dramatic at scale.
+  </div>
+</div>
+
+<h2 id="layer">5. The Neural Network Layer — the Fundamental Building Block</h2>
+<div class="section">
+  <p>Zooming into one layer's computation (using the demand prediction hidden layer as the running example):</p>
+
+  <div class="layer-diagram">
+    <div class="neuron-col">
+      <div class="arrow-label">x (input, 4 numbers)</div>
+    </div>
+    <div class="neuron-col">
+      <div class="neuron">a₁</div>
+      <div class="neuron">a₂</div>
+      <div class="neuron">a₃</div>
+      <div class="arrow-label">Layer 1<br>(hidden layer,<br>3 neurons)</div>
+    </div>
+    <div class="neuron-col">
+      <div class="neuron out">a₁</div>
+      <div class="arrow-label">Layer 2<br>(output layer,<br>1 neuron)</div>
+    </div>
+  </div>
+
+  <h3>Each neuron = its own tiny logistic regression</h3>
+  <p>Each neuron in layer 1 has its own parameters <b>w</b> and <b>b</b>:</p>
+  <div class="formula">
+    a₁ = g(w₁ · x + b₁) &nbsp;&nbsp;→ e.g. 0.3 (affordability)<br>
+    a₂ = g(w₂ · x + b₂) &nbsp;&nbsp;→ e.g. 0.7 (awareness)<br>
+    a₃ = g(w₃ · x + b₃) &nbsp;&nbsp;→ e.g. 0.2 (perceived quality)
+  </div>
+  <p>where <code class="inline">g</code> is the sigmoid function. These three numbers together form the output <b>vector</b> of the layer: <code class="inline">a = [0.3, 0.7, 0.2]</code>, which becomes the <i>input</i> to the next layer.</p>
+
+  <h3>The output layer</h3>
+  <p>Layer 2 has just one neuron. It takes the 3-number vector from layer 1 as its input:</p>
+  <div class="formula">a₁⁽²⁾ = g(w₁⁽²⁾ · a⁽¹⁾ + b₁⁽²⁾) → e.g. 0.84</div>
+
+  <h3>Optional final step: thresholding</h3>
+  <p>If you want a hard yes/no prediction instead of a probability:</p>
+  <div class="formula">
+    if a⁽²⁾₁ ≥ 0.5 → ŷ = 1 &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; if a⁽²⁾₁ &lt; 0.5 → ŷ = 0
+  </div>
+  <p>Same thresholding logic as logistic regression in Course 1.</p>
+
+  <div class="why">
+    <b>Why it matters:</b> Every layer, no matter how deep the network, does the same basic operation: take a vector in, apply a set of independent logistic-regression-like units, output a new vector. Understanding one layer means you understand the repeating unit of the entire network.
+  </div>
+</div>
+
+<h2 id="notation">6. Notation for Deeper Networks</h2>
+<div class="section">
+  <p>Superscript square brackets denote <b>which layer</b> a quantity belongs to. Subscripts denote <b>which neuron/unit</b> within that layer.</p>
+
+  <div class="formula">
+    a<sub>j</sub><sup>[l]</sup> &nbsp;=&nbsp; g( w<sub>j</sub><sup>[l]</sup> · a<sup>[l−1]</sup> &nbsp;+&nbsp; b<sub>j</sub><sup>[l]</sup> )
+  </div>
+
+  <table>
+    <tr><th>Symbol</th><th>Meaning</th></tr>
+    <tr><td>l</td><td>Layer index (1, 2, 3, ...)</td></tr>
+    <tr><td>j</td><td>Neuron/unit index within layer l</td></tr>
+    <tr><td>a<sup>[l]</sup></td><td>Vector of activations output by layer l</td></tr>
+    <tr><td>a<sup>[l−1]</sup></td><td>Input to layer l = output of the <i>previous</i> layer</td></tr>
+    <tr><td>w<sub>j</sub><sup>[l]</sup>, b<sub>j</sub><sup>[l]</sup></td><td>Parameters of the j-th neuron in layer l</td></tr>
+    <tr><td>g</td><td>The <b>activation function</b> (sigmoid so far — more options coming in Week 2)</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Convention:</b> the input layer is called <b>layer 0</b>, so a<sup>[0]</sup> = x. This makes the formula above valid even for layer 1: a<sup>[1]</sup> = g(w<sup>[1]</sup>·a<sup>[0]</sup> + b<sup>[1]</sup>) = g(w<sup>[1]</sup>·x + b<sup>[1]</sup>).
+  </div>
+
+  <div class="note">
+    <b>Layer counting convention:</b> When people say "a 4-layer neural network," they count all hidden layers + the output layer, but <i>not</i> the input layer (layer 0 doesn't count).
+  </div>
+
+  <div class="why">
+    <b>Why this matters:</b> This notation looks cluttered at first but it's what lets you write one general formula that works for a network of any depth — 2 layers or 200. Once it clicks, every diagram of "boxes and arrows" becomes just repeated applications of this one equation.
+  </div>
+</div>
+
+<h2 id="forwardprop">7. Forward Propagation (Inference)</h2>
+<div class="section">
+  <p>Forward propagation is the algorithm for computing a neural network's prediction: propagate activations layer by layer, left to right, from input to output.</p>
+
+  <h3>Worked example: handwritten digit recognition (0 vs. 1)</h3>
+  <p>An 8×8 pixel image (64 pixel intensities) is fed into a network with:</p>
+  <ul>
+    <li><b>Layer 1:</b> 25 units → outputs a⁽¹⁾ (25 numbers)</li>
+    <li><b>Layer 2:</b> 15 units → outputs a⁽²⁾ (15 numbers)</li>
+    <li><b>Layer 3 (output):</b> 1 unit → outputs a⁽³⁾ (1 number, a probability)</li>
+  </ul>
+
+  <div class="imgbox">
+    <img src="1787111704300_image.png" alt="Forward propagation handwritten digit example">
+    <div class="caption">x → a⁽¹⁾ → a⁽²⁾ → a⁽³⁾ = f(x), then threshold a⁽³⁾ at 0.5 for ŷ</div>
+  </div>
+
+  <div class="formula">
+    a⁽¹⁾ = g(W⁽¹⁾·x + b⁽¹⁾) &nbsp; (25 numbers)<br>
+    a⁽²⁾ = g(W⁽²⁾·a⁽¹⁾ + b⁽²⁾) &nbsp; (15 numbers)<br>
+    a⁽³⁾ = g(W⁽³⁾·a⁽²⁾ + b⁽³⁾) &nbsp; (1 number) = f(x)
+  </div>
+
+  <p>Notice the pattern: 64 → 25 → 15 → 1. The number of units <i>decreases</i> as you approach the output. This "funnel" shape (more units early, fewer near output) is a common — though not mandatory — architectural choice.</p>
+
+  <div class="why">
+    <b>Why it's called "forward" propagation:</b> Computation flows strictly left-to-right, from input toward output. This is in contrast to <b>backward propagation</b> (backpropagation), which you'll meet next week — that's the algorithm used for <i>training</i> (learning the weights), and it flows in the opposite direction.
+  </div>
+
+  <div class="note">
+    Forward propagation is also exactly what lets you take someone else's <i>already-trained</i> network (with parameters posted online) and use it to make predictions on your own new data — no training required, just inference.
+  </div>
+</div>
+
+<h2 id="lab01">8. Lab 01 — Neurons and Layers (TensorFlow / Keras)</h2>
+<div class="section">
+  <p>This lab is the bridge from Course 1's math to actual code, using Keras (integrated into TensorFlow 2.0, originally an independent framework by François Chollet).</p>
+
+  <h3>Part A — Neuron without activation ≈ Linear Regression</h3>
+  <p>A single <code class="inline">Dense</code> layer with <code class="inline">activation='linear'</code> and 1 unit computes exactly:</p>
+  <div class="formula">f<sub>w,b</sub>(x) = w·x + b</div>
+
+  <pre>linear_layer = tf.keras.layers.Dense(units=1, activation='linear')
+
+# Weights don't exist until the layer sees data (they get "built" on first call)
+a1 = linear_layer(X_train[0].reshape(1,1))   # triggers weight creation
+
+w, b = linear_layer.get_weights()             # inspect them
+linear_layer.set_weights([np.array([[200]]), np.array([100])])  # set manually</pre>
+
+  <div class="note">
+    <b>Key implementation detail:</b> Keras layers must receive 2-D input — even a single scalar feature must be reshaped, e.g. <code class="inline">X_train[0].reshape(1,1)</code>. This trips people up constantly: TensorFlow always expects a batch dimension.
+  </div>
+
+  <p>The lab confirms that <code class="inline">linear_layer(x)</code> and manually computing <code class="inline">np.dot(w, x) + b</code> give identical results — proving the Dense layer really is just doing w·x + b under the hood.</p>
+
+  <h3>Part B — Neuron with Sigmoid activation ≈ Logistic Regression</h3>
+  <div class="formula">f<sub>w,b</sub>(x) = g(w·x + b), &nbsp; g = sigmoid</div>
+
+  <pre>model = Sequential([
+    tf.keras.layers.Dense(1, input_dim=1, activation='sigmoid', name='L1')
+])
+
+model.summary()   # shows layer, output shape, and # of parameters (2: w and b)
+
+logistic_layer = model.get_layer('L1')
+w, b = logistic_layer.get_weights()
+
+logistic_layer.set_weights([np.array([[2]]), np.array([-4.5])])</pre>
+
+  <p>Again, <code class="inline">model.predict(x)</code> is checked against a manual NumPy sigmoid computation — same result, confirming the Dense+sigmoid layer is literally logistic regression wrapped in Keras's layer API.</p>
+
+  <h3>Core takeaways from Lab 01</h3>
+  <table>
+    <tr><th>Keras concept</th><th>What it maps to</th></tr>
+    <tr><td><code class="inline">Dense(units=1, activation='linear')</code></td><td>One neuron, no activation → linear regression</td></tr>
+    <tr><td><code class="inline">Dense(units=1, activation='sigmoid')</code></td><td>One neuron, sigmoid → logistic regression</td></tr>
+    <tr><td><code class="inline">Sequential([...])</code></td><td>Stacks layers in order → defines the full network</td></tr>
+    <tr><td><code class="inline">.get_weights() / .set_weights()</code></td><td>Read/write a layer's w and b directly</td></tr>
+    <tr><td><code class="inline">.summary()</code></td><td>Shows architecture + parameter counts per layer</td></tr>
+  </table>
+
+  <div class="why">
+    <b>Why this lab matters:</b> It proves — very concretely, with matching numbers — that a "neuron" in a neural network isn't a new mysterious object. A neuron with no activation is linear regression; a neuron with sigmoid activation is logistic regression. Neural networks are built by composing many of these familiar units together in layers. Everything from Course 1 is still inside Course 2 — it's just been made modular and stackable.
+  </div>
+</div>
+
+<h2 id="summary">9. Quick-Reference Summary</h2>
+<div class="section">
+  <table>
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td>Neuron / unit</td><td>A single logistic-regression-like computation: g(w·x + b)</td></tr>
+    <tr><td>Activation (a)</td><td>The output number(s) of a neuron/layer</td></tr>
+    <tr><td>Layer</td><td>A group of neurons that take the same input vector and each output one number</td></tr>
+    <tr><td>Input layer (layer 0)</td><td>The raw feature vector x, a⁽⁰⁾ = x</td></tr>
+    <tr><td>Hidden layer</td><td>Any layer between input and output; its "correct" values aren't in the training data</td></tr>
+    <tr><td>Output layer</td><td>Final layer; produces the network's prediction</td></tr>
+    <tr><td>Architecture</td><td>Number of layers + number of neurons per layer</td></tr>
+    <tr><td>Forward propagation</td><td>Computing predictions by passing activations left→right through the layers</td></tr>
+    <tr><td>Multilayer perceptron</td><td>Older term for a neural network with multiple stacked layers</td></tr>
+  </table>
+
+  <div class="analogy">
+    <b>Big-picture analogy:</b> A neural network is an assembly line. Raw materials (x) enter at station 0. Each subsequent station (layer) takes what the previous station produced, does its own transformation, and passes a new, more refined product downstream — until the final station outputs the finished item (the prediction). No single station needs to understand the whole product; it just needs to do its local transformation well, and the network learns what each station should do from data.
+  </div>
+</div>
+
+</div>
+</body>
+</html>
