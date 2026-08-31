@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 2 (Part 2) — Multiclass, Softmax & Multi-label Classification</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Multiclass, Softmax & Multi-label Classification</h1>
+  <p>Course 2, Week 2 (Part 2) — Advanced Learning Algorithms</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#multiclass">Multiclass classification</a></li>
+    <li><a href="#softmax-reg">Softmax regression</a></li>
+    <li><a href="#softmax-cost">Softmax cost function</a></li>
+    <li><a href="#nn-softmax">Softmax in a neural network</a></li>
+    <li><a href="#numerical">Numerical stability & the preferred implementation</a></li>
+    <li><a href="#multilabel">Multi-label classification</a></li>
+    <li><a href="#summary2">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="multiclass">
+<h2>1. Multiclass classification</h2>
+
+<p>Still a classification problem — y is one of a small number of discrete categories — but now y can take on <em>more than two</em> values (e.g. which digit, 0–9; which of several diseases; which defect type). Instead of estimating one probability P(y=1|x), the algorithm now estimates P(y=1|x), P(y=2|x), ..., P(y=N|x).</p>
+
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="20" font-size="13" font-weight="bold" fill="#16386b">Binary</text>
+  <line x1="30" y1="220" x2="280" y2="220" stroke="#999"/>
+  <line x1="30" y1="230" x2="30" y2="40" stroke="#999"/>
+  <circle cx="80" cy="180" r="6" fill="none" stroke="#1f4e8c" stroke-width="2"/>
+  <circle cx="110" cy="150" r="6" fill="none" stroke="#1f4e8c" stroke-width="2"/>
+  <circle cx="70" cy="120" r="6" fill="none" stroke="#1f4e8c" stroke-width="2"/>
+  <text x="180" y="90" font-size="14" fill="#c0392b">x</text>
+  <text x="210" y="70" font-size="14" fill="#c0392b">x</text>
+  <text x="230" y="110" font-size="14" fill="#c0392b">x</text>
+  <line x1="150" y1="220" x2="150" y2="40" stroke="#333" stroke-dasharray="5,3"/>
+
+  <text x="380" y="20" font-size="13" font-weight="bold" fill="#16386b">Multiclass (4 classes)</text>
+  <line x1="390" y1="220" x2="670" y2="220" stroke="#999"/>
+  <line x1="390" y1="230" x2="390" y2="40" stroke="#999"/>
+  <circle cx="440" cy="190" r="6" fill="none" stroke="#1f4e8c" stroke-width="2"/>
+  <circle cx="420" cy="160" r="6" fill="none" stroke="#1f4e8c" stroke-width="2"/>
+  <text x="560" y="80" font-size="14" fill="#c0392b">x</text>
+  <text x="590" y="60" font-size="14" fill="#c0392b">x</text>
+  <polygon points="450,90 460,70 470,90" fill="none" stroke="#2f7a40" stroke-width="2"/>
+  <polygon points="490,110 500,90 510,110" fill="none" stroke="#2f7a40" stroke-width="2"/>
+  <rect x="580" y="150" width="14" height="14" fill="none" stroke="#8e44ad" stroke-width="2"/>
+  <rect x="610" y="180" width="14" height="14" fill="none" stroke="#8e44ad" stroke-width="2"/>
+  <line x1="530" y1="230" x2="530" y2="40" stroke="#333" stroke-dasharray="5,3"/>
+  <line x1="390" y1="130" x2="670" y2="130" stroke="#333" stroke-dasharray="5,3"/>
+</svg>
+<p class="svg-caption">One dividing line vs. a boundary splitting the space into 4 regions.</p>
+</section>
+
+<section class="card" id="softmax-reg">
+<h2>2. Softmax regression</h2>
+
+<p>Softmax regression generalizes logistic regression to N classes. Trick to see the link: logistic regression can be re-framed as computing <em>two</em> numbers that sum to 1 — a<sub>1</sub>=P(y=1|x) and a<sub>2</sub>=1−a<sub>1</sub>=P(y=0|x). Softmax extends this to N numbers:</p>
+
+<div class="formula">
+z<sub>j</sub> = w<sub>j</sub>·x + b<sub>j</sub> &nbsp;(j = 1...N) &nbsp;&nbsp;&nbsp; a<sub>j</sub> = e<sup>z<sub>j</sub></sup> / Σ<sub>k=1</sub><sup>N</sup> e<sup>z<sub>k</sub></sup> = P(y=j|x)
+</div>
+
+<svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="20" font-size="13" font-weight="bold" fill="#16386b">4-class example</text>
+  <g font-family="monospace" font-size="12" fill="#333">
+    <text x="30" y="55">z1 = w1·x+b1</text>
+    <text x="30" y="85">z2 = w2·x+b2</text>
+    <text x="30" y="115">z3 = w3·x+b3</text>
+    <text x="30" y="145">z4 = w4·x+b4</text>
+  </g>
+  <line x1="230" y1="95" x2="280" y2="95" stroke="#999" marker-end="url(#a3)"/>
+  <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#999"/></marker></defs>
+  <g font-family="monospace" font-size="11.5" fill="#1f4e8c">
+    <text x="290" y="50">a1 = e^z1/Σe^z  = P(y=1|x) = 0.30</text>
+    <text x="290" y="80">a2 = e^z2/Σe^z  = P(y=2|x) = 0.20</text>
+    <text x="290" y="110">a3 = e^z3/Σe^z  = P(y=3|x) = 0.15</text>
+    <text x="290" y="140">a4 = e^z4/Σe^z  = P(y=4|x) = 0.35</text>
+  </g>
+  <text x="30" y="180" font-size="12" fill="#2f7a40" font-weight="bold">a1+a2+a3+a4 = 1  (quiz: given first three, a4 must be 0.35)</text>
+</svg>
+
+<div class="why">
+  <strong>Why this matters:</strong> the softmax formula forces a<sub>1</sub>+...+a<sub>N</sub>=1 automatically — every numerator also sits inside every denominator. With N=2 it reduces exactly to logistic regression.
+</div>
+</section>
+
+<section class="card" id="softmax-cost">
+<h2>3. Softmax cost function</h2>
+
+<div class="formula">
+loss(a<sub>1</sub>,...,a<sub>N</sub>, y) = −log(a<sub>j</sub>) &nbsp;where j is the true class
+</div>
+
+<svg viewBox="0 0 620 220" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="190" x2="560" y2="190" stroke="#999"/>
+  <line x1="60" y1="200" x2="60" y2="30" stroke="#999"/>
+  <text x="565" y="195" font-size="12" fill="#555">a_j</text>
+  <text x="35" y="30" font-size="12" fill="#555">L</text>
+  <path d="M75,50 C110,90 150,140 220,165 C300,180 400,188 550,188" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+  <text x="130" y="70" font-size="11" fill="#c0392b">−log(a_j)</text>
+  <text x="70" y="210" font-size="10" fill="#555">0</text>
+  <text x="540" y="210" font-size="10" fill="#555">1</text>
+</svg>
+<p class="svg-caption">Only the a<sub>j</sub> matching the true label counts — as it → 1, loss → 0; as it → 0, loss → ∞. Pushes the model to concentrate probability on the correct class.</p>
+
+<div class="formula">
+J(w,b) = −(1/m) Σ<sub>i</sub> Σ<sub>j</sub> 1{y<sup>(i)</sup>==j} · log(a<sub>j</sub><sup>(i)</sup>)
+</div>
+</section>
+
+<section class="card" id="nn-softmax">
+<h2>4. Softmax in a neural network</h2>
+
+<p>Swap the output layer for a softmax layer with one unit per class — 10 units for digit recognition 0–9. Hidden layers stay ReLU as usual.</p>
+
+<svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="120" r="7" fill="#d98a2b"/>
+  <g fill="#1f4e8c">
+    <circle cx="200" cy="60" r="8"/><circle cx="200" cy="95" r="8"/>
+    <text x="193" y="120" font-size="13">⋮</text><circle cx="200" cy="190" r="8"/>
+  </g>
+  <text x="165" y="215" font-size="11" fill="#555">25, ReLU</text>
+  <g fill="#1f4e8c">
+    <circle cx="340" cy="80" r="8"/><circle cx="340" cy="115" r="8"/>
+    <text x="333" y="140" font-size="13">⋮</text><circle cx="340" cy="170" r="8"/>
+  </g>
+  <text x="305" y="195" font-size="11" fill="#555">15, ReLU</text>
+  <g fill="#8e44ad">
+    <circle cx="500" cy="40" r="8"/><circle cx="500" cy="75" r="8"/><circle cx="500" cy="110" r="8"/>
+    <text x="493" y="135" font-size="13">⋮</text><circle cx="500" cy="200" r="8"/>
+  </g>
+  <text x="450" y="225" font-size="11" fill="#555">10, Softmax</text>
+  <line x1="70" y1="120" x2="188" y2="120" stroke="#999" marker-end="url(#a4)"/>
+  <line x1="212" y1="120" x2="328" y2="120" stroke="#999" marker-end="url(#a4)"/>
+  <line x1="352" y1="120" x2="488" y2="120" stroke="#999" marker-end="url(#a4)"/>
+  <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#999"/></marker></defs>
+</svg>
+
+<pre>model = Sequential([
+    Dense(units=25, activation='relu'),
+    Dense(units=15, activation='relu'),
+    Dense(units=10, activation='softmax')
+])
+model.compile(loss=SparseCategoricalCrossentropy())
+model.fit(X, y, epochs=100)</pre>
+
+<div class="note">
+  <strong>Sparse categorical:</strong> "categorical" = y falls into categories; "sparse" = each example has exactly one true category (never simultaneously a 2 and a 7).
+</div>
+
+<div class="warning">
+  <strong>This works but isn't the recommended version</strong> — see the numerically accurate form below.
+</div>
+
+<div class="why">
+  <strong>Softmax is unusual:</strong> sigmoid/ReLU compute each a<sub>j</sub> from its own z<sub>j</sub> alone. Softmax computes every a<sub>j</sub> from <em>all</em> the z's at once — change any one z and every output shifts, since they all share the same denominator.
+</div>
+</section>
+
+<section class="card" id="numerical">
+<h2>5. Numerical stability & the preferred implementation</h2>
+
+<p>Computing <code>2/10000</code> directly is more numerically accurate on a computer than computing it as <code>(1+1/10000) − (1−1/10000)</code>, even though they're mathematically equal — intermediate floating-point values introduce round-off error. The fix: avoid unnecessary intermediate steps.</p>
+
+<p>Applied to softmax: instead of computing a<sub>1</sub>...a<sub>10</sub> explicitly and then plugging them into the loss, let the output layer emit raw z's (<code>linear</code> activation) and fold softmax + log-loss into one step via <code>from_logits=True</code>. Same idea applies to logistic regression's sigmoid + binary cross-entropy.</p>
+
+<pre>model = Sequential([
+    Dense(units=25, activation='relu'),
+    Dense(units=15, activation='relu'),
+    Dense(units=10, activation='linear')     # <-- linear, not softmax
+])
+model.compile(loss=SparseCategoricalCrossentropy(from_logits=True))
+model.fit(X, y, epochs=100)
+
+logits = model(X)              # these are z1...z10, NOT probabilities
+f_x = tf.nn.softmax(logits)    # convert to probabilities when needed</pre>
+
+<pre>· Logistic regression, same pattern:
+Dense(units=1, activation='linear')
+compile(loss=BinaryCrossentropy(from_logits=True))
+logit = model(X); f_x = tf.nn.sigmoid(logit)</pre>
+
+<div class="warning">
+  <strong>Gotcha:</strong> with this setup the model's raw output is <em>logits</em>, not probabilities. Pass through <code>tf.nn.softmax()</code> (or <code>tf.nn.sigmoid()</code>) if you need actual probabilities. For just picking the predicted class, <code>argmax</code> on raw logits is enough.
+</div>
+</section>
+
+<section class="card" id="multilabel">
+<h2>6. Multi-label classification</h2>
+
+<div class="warning">
+  <strong>Not the same as multiclass.</strong> Multiclass = one label per example, chosen from N mutually exclusive categories. Multi-label = several independent yes/no labels on the <em>same</em> example (e.g. does this image contain a car? a bus? a pedestrian? — any combination can be true).
+</div>
+
+<div class="formula">
+y = [car?, bus?, pedestrian?] &nbsp;e.g. y = [1, 0, 1]
+</div>
+
+<svg viewBox="0 0 780 190" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="20" font-size="12" font-weight="bold" fill="#333">Option A — 3 separate networks</text>
+  <g font-family="Georgia" font-size="11" fill="#555">
+    <text x="30" y="55">x → [NN] → car?</text>
+    <text x="30" y="80">x → [NN] → bus?</text>
+    <text x="30" y="105">x → [NN] → pedestrian?</text>
+  </g>
+  <line x1="410" y1="20" x2="410" y2="160" stroke="#33384a"/>
+  <text x="440" y="20" font-size="12" font-weight="bold" fill="#333">Option B — 1 network, 3 outputs</text>
+  <text x="440" y="55" font-size="11" fill="#555">x → shared hidden layers → [car?, bus?, ped?]</text>
+  <text x="440" y="80" font-size="10.5" fill="#555">output layer: 3 units, each sigmoid</text>
+  <text x="440" y="105" font-size="10.5" fill="#2f7a40">shared model, independent sigmoid per label</text>
+</svg>
+
+<div class="why">
+  <strong>Why sigmoid, not softmax:</strong> labels aren't mutually exclusive here — car, bus, and pedestrian can all be present at once. Softmax forces outputs to compete and sum to 1; each label instead gets its own independent sigmoid, same as running 3 binary classifiers off shared hidden layers.
+</div>
+</section>
+
+<section class="card" id="summary2">
+<h2>7. Summary table</h2>
+
+<table>
+  <tr><th>Problem type</th><th>Example</th><th>Output units</th><th>Activation</th><th>Loss</th></tr>
+  <tr><td>Binary</td><td>digit is 0 or 1</td><td>1</td><td>sigmoid</td><td>BinaryCrossentropy</td></tr>
+  <tr><td>Multiclass</td><td>which digit, 0–9</td><td>N</td><td>linear (preferred) + softmax at predict-time</td><td>SparseCategoricalCrossentropy(from_logits=True)</td></tr>
+  <tr><td>Multi-label</td><td>car? bus? pedestrian?</td><td>one per label</td><td>sigmoid per unit</td><td>BinaryCrossentropy per unit</td></tr>
+</table>
+
+<div class="note">
+  <strong>Two target formats:</strong> <code>SparseCategoricalCrossentropy</code> expects an integer class index (0–9). <code>CategoricalCrossentropy</code> expects one-hot vectors (e.g. class 2 of 10 → <code>[0,0,1,0,0,0,0,0,0,0]</code>).
+</div>
+</section>
+
+</div>
+</body>
+</html>
