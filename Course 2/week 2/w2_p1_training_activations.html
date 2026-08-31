@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 2 — Training a Neural Network & Activation Functions</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Training a Neural Network & Activation Functions</h1>
+  <p>Course 2, Week 2 — Advanced Learning Algorithms</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#step1">Step 1 — Specifying the model</a></li>
+    <li><a href="#step2">Step 2 — Loss and cost functions</a></li>
+    <li><a href="#step3">Step 3 — Minimizing the cost (gradient descent + backprop)</a></li>
+    <li><a href="#full-code">Putting it together: the full TensorFlow recipe</a></li>
+    <li><a href="#why-activations">Why do we need activation functions at all?</a></li>
+    <li><a href="#relu">ReLU — an alternative to sigmoid</a></li>
+    <li><a href="#choosing-output">Choosing the output layer activation</a></li>
+    <li><a href="#choosing-hidden">Choosing the hidden layer activation</a></li>
+    <li><a href="#relu-lab">Lab intuition: how ReLU builds piecewise functions</a></li>
+    <li><a href="#summary">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="step1">
+<h2>1. Step 1 — Specify how to compute the output (define the model)</h2>
+
+<p>Training a neural network in TensorFlow mirrors the three steps you already used for logistic regression. Step 1 is the same idea, scaled up: instead of one set of parameters <code>w, b</code>, you now have a set of parameters for <em>every layer</em>.</p>
+
+<div class="formula">
+Logistic regression: &nbsp; f<sub>w,b</sub>(x) = g(w·x + b) &nbsp;&nbsp;where g is sigmoid<br><br>
+Neural network: &nbsp; a<sup>[l]</sup> = g(W<sup>[l]</sup>·a<sup>[l-1]</sup> + b<sup>[l]</sup>) &nbsp;&nbsp;for every layer l
+</div>
+
+<p>In code, this step is just declaring the architecture:</p>
+
+<pre>import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
+
+model = Sequential([
+    Dense(units=25, activation='sigmoid'),
+    Dense(units=15, activation='sigmoid'),
+    Dense(units=1,  activation='sigmoid'),
+])</pre>
+
+<svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="10" y="20" font-family="Georgia" font-size="14" fill="#16386b" font-weight="bold">Handwritten digit network (0 vs 1)</text>
+  <!-- input -->
+  <circle cx="60" cy="110" r="7" fill="#d98a2b"/>
+  <text x="30" y="150" font-family="Georgia" font-size="12" fill="#555">x (image)</text>
+  <!-- layer 1: 25 units, show a few -->
+  <g fill="#1f4e8c">
+    <circle cx="220" cy="40" r="9"/>
+    <circle cx="220" cy="70" r="9"/>
+    <circle cx="220" cy="100" r="9"/>
+    <text x="212" y="122" font-size="14" fill="#1f4e8c">⋮</text>
+    <circle cx="220" cy="180" r="9"/>
+  </g>
+  <text x="185" y="205" font-family="Georgia" font-size="12" fill="#555">25 units</text>
+  <!-- layer 2: 15 units -->
+  <g fill="#1f4e8c">
+    <circle cx="380" cy="60" r="9"/>
+    <circle cx="380" cy="95" r="9"/>
+    <text x="372" y="117" font-size="14" fill="#1f4e8c">⋮</text>
+    <circle cx="380" cy="160" r="9"/>
+  </g>
+  <text x="345" y="195" font-family="Georgia" font-size="12" fill="#555">15 units</text>
+  <!-- layer 3: 1 unit -->
+  <circle cx="530" cy="110" r="10" fill="#c0392b"/>
+  <text x="500" y="145" font-family="Georgia" font-size="12" fill="#555">1 unit</text>
+  <!-- arrows -->
+  <line x1="70" y1="110" x2="205" y2="110" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="232" y1="110" x2="368" y2="105" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="392" y1="105" x2="518" y2="110" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="130" y="95" font-size="12" fill="#777">a<tspan baseline-shift="super" font-size="9">[1]</tspan></text>
+  <text x="295" y="90" font-size="12" fill="#777">a<tspan baseline-shift="super" font-size="9">[2]</tspan></text>
+  <text x="450" y="95" font-size="12" fill="#777">a<tspan baseline-shift="super" font-size="9">[3]</tspan></text>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#999"/>
+    </marker>
+  </defs>
+</svg>
+<p class="svg-caption">Same architecture from Week 1 — this line of code fully specifies it, including all the W<sup>[l]</sup>, b<sup>[l]</sup> parameters TensorFlow needs to track.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this step alone is enough to run <em>forward propagation</em> (inference) — it says nothing yet about how good the predictions are or how to improve them. That's what steps 2 and 3 are for.
+</div>
+</section>
+
+<section class="card" id="step2">
+<h2>2. Step 2 — Specify the loss and cost functions</h2>
+
+<p>Recall from logistic regression: the <strong>loss</strong> measures how wrong the model is on <em>one</em> example; the <strong>cost</strong> is the average loss over the whole training set. Neural networks use the exact same definitions — the loss is just now computed on the network's final output <code>f(x) = a<sup>[3]</sup></code> instead of a plain logistic regression output.</p>
+
+<div class="formula">
+Loss (binary classification): &nbsp; L(f(x), y) = −y log(f(x)) − (1−y) log(1−f(x))<br><br>
+Cost: &nbsp; J(W, B) = (1/m) Σ<sub>i=1</sub><sup>m</sup> L(f<sub>W,B</sub>(x<sup>(i)</sup>), y<sup>(i)</sup>)
+</div>
+
+<p>In TensorFlow this loss has a name: <strong>binary cross-entropy</strong>.</p>
+
+<pre>from tensorflow.keras.losses import BinaryCrossentropy
+
+model.compile(loss=BinaryCrossentropy())</pre>
+
+<div class="note">
+  <strong>Where does "cross-entropy" come from?</strong> It's a term from statistics/information theory for exactly this loss shape. "Binary" just flags that this is a two-class problem (digit is 0 or 1).
+</div>
+
+<h3>Regression instead of classification?</h3>
+<p>If <code>y</code> is a continuous number rather than a class label, swap in <strong>mean squared error</strong>:</p>
+
+<div class="formula">
+Loss: &nbsp; (1/2)(f(x) − y)²
+</div>
+
+<pre>from tensorflow.keras.losses import MeanSquaredError
+
+model.compile(loss=MeanSquaredError())</pre>
+
+<div class="note">
+  <strong>Notation:</strong> capital <code>W</code> and <code>B</code> in <code>J(W, B)</code> stand for <em>all</em> the parameters across every layer — <code>W<sup>[1]</sup>, W<sup>[2]</sup>, W<sup>[3]</sup>, b<sup>[1]</sup>, b<sup>[2]</sup>, b<sup>[3]</sup></code> bundled together. That's why you sometimes see the output written <code>f<sub>W,B</sub>(x)</code>.
+</div>
+</section>
+
+<section class="card" id="step3">
+<h2>3. Step 3 — Minimize the cost (gradient descent + backpropagation)</h2>
+
+<p>Same gradient descent update rule as before, just applied to every parameter in every layer:</p>
+
+<div class="formula">
+W<sub>lj</sub> ← W<sub>lj</sub> − α · ∂J(W,B)/∂W<sub>lj</sub><br>
+b<sub>l</sub> ← b<sub>l</sub> − α · ∂J(W,B)/∂b<sub>l</sub>
+</div>
+
+<pre>model.fit(X, y, epochs=100)</pre>
+
+<div class="why">
+  <strong>Why this matters:</strong> computing those partial derivatives across many stacked layers is the hard part — doing it by hand would require applying the chain rule layer by layer. The algorithm that does this automatically and efficiently is called <strong>backpropagation</strong>, and it's exactly what runs inside <code>model.fit()</code>. TensorFlow (and, in fact, essentially every deep learning library) implements backprop for you.
+</div>
+
+<div class="note">
+  <strong>Epochs:</strong> the number of steps of gradient descent to run — a carried-over term from Course 1, not a new neural-network-specific idea.
+</div>
+
+<div class="warning">
+  <strong>Don't skip the "why":</strong> Andrew Ng's own framing here is worth keeping — call these library functions, but understand what's happening underneath. If training doesn't converge or behaves strangely, you can only debug it if you know what <code>compile()</code> and <code>fit()</code> are actually doing (specifying a cost function, then running gradient descent via backprop).
+</div>
+</section>
+
+<section class="card" id="full-code">
+<h2>4. Putting it together: the full TensorFlow recipe</h2>
+
+<svg viewBox="0 0 780 250" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="10" width="230" height="220" rx="10" fill="#eaf2fb" stroke="#2f6fb5"/>
+  <text x="30" y="35" font-size="13" font-weight="bold" fill="#1f4e8c">① Define model</text>
+  <text x="25" y="65" font-size="11.5" font-family="monospace" fill="#333">model = Sequential([</text>
+  <text x="35" y="85" font-size="11.5" font-family="monospace" fill="#333">Dense(...),</text>
+  <text x="35" y="105" font-size="11.5" font-family="monospace" fill="#333">Dense(...),</text>
+  <text x="35" y="125" font-size="11.5" font-family="monospace" fill="#333">Dense(...)</text>
+  <text x="25" y="145" font-size="11.5" font-family="monospace" fill="#333">])</text>
+  <text x="25" y="185" font-size="11" fill="#555">→ specifies architecture,</text>
+  <text x="25" y="200" font-size="11" fill="#555">   enables forward prop</text>
+
+  <rect x="270" y="10" width="230" height="220" rx="10" fill="#fff6ea" stroke="#d98a2b"/>
+  <text x="290" y="35" font-size="13" font-weight="bold" fill="#b5661a">② Compile</text>
+  <text x="285" y="70" font-size="11.5" font-family="monospace" fill="#333">model.compile(</text>
+  <text x="295" y="90" font-size="10.8" font-family="monospace" fill="#333">loss=BinaryCross-</text>
+  <text x="295" y="105" font-size="10.8" font-family="monospace" fill="#333">entropy())</text>
+  <text x="285" y="145" font-size="11" fill="#555">→ defines loss →</text>
+  <text x="285" y="160" font-size="11" fill="#555">   defines cost J(W,B)</text>
+
+  <rect x="530" y="10" width="230" height="220" rx="10" fill="#eef7ee" stroke="#4a9d5c"/>
+  <text x="550" y="35" font-size="13" font-weight="bold" fill="#2f7a40">③ Fit</text>
+  <text x="545" y="70" font-size="11.5" font-family="monospace" fill="#333">model.fit(X, y,</text>
+  <text x="555" y="90" font-size="11.5" font-family="monospace" fill="#333">epochs=100)</text>
+  <text x="545" y="145" font-size="11" fill="#555">→ runs gradient descent</text>
+  <text x="545" y="160" font-size="11" fill="#555">   via backpropagation</text>
+
+  <line x1="240" y1="120" x2="268" y2="120" stroke="#999" stroke-width="2" marker-end="url(#arrow2)"/>
+  <line x1="500" y1="120" x2="528" y2="120" stroke="#999" stroke-width="2" marker-end="url(#arrow2)"/>
+  <defs>
+    <marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#999"/>
+    </marker>
+  </defs>
+</svg>
+<p class="svg-caption">The same three-step recipe as logistic regression — just applied to a stack of layers instead of one.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of it like teaching someone to cook a new dish. Step 1 is writing down the recipe (how inputs become outputs). Step 2 is agreeing on how you'll score how close the dish is to the target dish (the loss/cost). Step 3 is the actual practice — repeatedly adjusting technique (parameters) based on that scoring, using feedback from every stage of the process (backprop propagates the "error signal" back through every layer, not just the last one).
+</div>
+</section>
+
+<section class="card" id="why-activations">
+<h2>5. Why do we need activation functions at all?</h2>
+
+<p>Before looking at ReLU, it's worth answering a more basic question: what breaks if every neuron just uses the <strong>linear</strong> activation <code>g(z) = z</code> (i.e., "no activation function")?</p>
+
+<div class="warning">
+  <strong>The collapse:</strong> a linear function of a linear function is still linear. Stack as many layers as you want — if every activation is linear, the whole network reduces to one big linear function of the input.
+</div>
+
+<p>Worked through with a minimal 1-input, 1-hidden-unit, 1-output network:</p>
+
+<div class="formula">
+a<sup>[1]</sup> = g(w<sup>[1]</sup>x + b<sup>[1]</sup>) = w<sup>[1]</sup>x + b<sup>[1]</sup> &nbsp;&nbsp;(since g(z)=z)<br>
+a<sup>[2]</sup> = g(w<sup>[2]</sup>a<sup>[1]</sup> + b<sup>[2]</sup>) = w<sup>[2]</sup>(w<sup>[1]</sup>x + b<sup>[1]</sup>) + b<sup>[2]</sup><br>
+&nbsp;&nbsp;&nbsp;&nbsp;= (w<sup>[2]</sup>w<sup>[1]</sup>)x + (w<sup>[2]</sup>b<sup>[1]</sup> + b<sup>[2]</sup>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;= wx + b &nbsp;&nbsp;(just relabeling the combined constants)
+</div>
+
+<p>The two-layer network collapsed into <code>a<sup>[2]</sup> = wx + b</code> — exactly the form of plain linear regression. General case: many linear hidden layers + a linear output layer ⇒ equivalent to linear regression. Many linear hidden layers + a <em>sigmoid</em> output layer ⇒ equivalent to plain logistic regression. Either way, all the extra layers bought you nothing.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the entire appeal of a neural network is that it can represent functions far more complex than a straight line or a single logistic curve. That expressive power comes specifically from stacking <em>non-linear</em> activations. Without non-linearity, depth is decorative — no matter how many layers you add, you're still fitting a straight line.
+</div>
+
+<div class="warning">
+  <strong>Rule of thumb:</strong> never use the linear activation in hidden layers. It's fine (even necessary) at the output layer for certain problems (see below) — the risk is specifically about hidden layers, where it silently erases everything extra layers were supposed to add.
+</div>
+</section>
+
+<section class="card" id="relu">
+<h2>6. ReLU — an alternative to sigmoid</h2>
+
+<p>Motivating example: predicting "awareness" of a product from marketing spend. Modeling awareness as strictly binary (aware / not aware, via sigmoid) undersells reality — awareness plausibly ranges continuously from none to "went viral," i.e. any non-negative number, not just a value squeezed into [0, 1].</p>
+
+<div class="formula">
+ReLU: &nbsp; g(z) = max(0, z)
+</div>
+
+<p><strong>ReLU</strong> stands for <strong>Rectified Linear Unit</strong> — a historical name from its inventors, not a description you need to over-interpret. In practice: for z &lt; 0, output is 0 (flat); for z ≥ 0, output is just z (a 45° line).</p>
+
+<svg viewBox="0 0 780 260" xmlns="http://www.w3.org/2000/svg">
+  <!-- Linear -->
+  <g>
+    <text x="40" y="20" font-size="13" font-weight="bold" fill="#333">Linear</text>
+    <line x1="30" y1="200" x2="230" y2="200" stroke="#999"/>
+    <line x1="30" y1="220" x2="30" y2="40" stroke="#999"/>
+    <line x1="40" y1="230" x2="220" y2="60" stroke="#c0392b" stroke-width="2.5"/>
+    <text x="200" y="220" font-size="11" fill="#555">z</text>
+    <text x="50" y="65" font-size="11" fill="#c0392b">g(z) = z</text>
+  </g>
+  <!-- Sigmoid -->
+  <g>
+    <text x="320" y="20" font-size="13" font-weight="bold" fill="#333">Sigmoid</text>
+    <line x1="290" y1="200" x2="490" y2="200" stroke="#999"/>
+    <line x1="290" y1="220" x2="290" y2="40" stroke="#999"/>
+    <path d="M300,200 C340,200 340,60 390,60 C440,60 460,60 480,60" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+    <text x="460" y="220" font-size="11" fill="#555">z</text>
+    <text x="300" y="55" font-size="11" fill="#c0392b">0 &lt; g(z) &lt; 1</text>
+  </g>
+  <!-- ReLU -->
+  <g>
+    <text x="595" y="20" font-size="13" font-weight="bold" fill="#333">ReLU</text>
+    <line x1="550" y1="200" x2="750" y2="200" stroke="#999"/>
+    <line x1="550" y1="220" x2="550" y2="40" stroke="#999"/>
+    <line x1="550" y1="200" x2="650" y2="200" stroke="#c0392b" stroke-width="2.5"/>
+    <line x1="650" y1="200" x2="740" y2="70" stroke="#c0392b" stroke-width="2.5"/>
+    <text x="655" y="220" font-size="11" fill="#555">z=0</text>
+    <text x="655" y="90" font-size="11" fill="#c0392b">g(z)=max(0,z)</text>
+  </g>
+</svg>
+<p class="svg-caption">The three activation functions covered this week: linear (rarely used in hidden layers), sigmoid (bounded 0–1), ReLU (unbounded above, flat below zero).</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> sigmoid is like a light switch with a dimmer that maxes out — good for representing "on-ness" that saturates. ReLU is more like a valve: fully closed below a threshold, then opens proportionally to pressure with no ceiling — better suited to a quantity like "how much" rather than "is it on."
+</div>
+
+<div class="note">
+  <strong>Third option, "linear activation":</strong> <code>g(z) = z</code>. When people say a layer has "no activation function," they usually mean this — since <code>g(z)=z</code> just passes <code>z</code> straight through, it's as if there were no <code>g</code> at all.
+</div>
+</section>
+
+<section class="card" id="choosing-output">
+<h2>7. Choosing the activation for the <em>output</em> layer</h2>
+
+<p>The choice here is driven directly by what kind of label <code>y</code> you're predicting — not a free style choice.</p>
+
+<table>
+  <tr><th>Problem type</th><th>Target y</th><th>Output activation</th><th>Why</th></tr>
+  <tr><td>Binary classification</td><td>y ∈ {0, 1}</td><td><strong>Sigmoid</strong></td><td>Network learns P(y=1 | x), same interpretation as logistic regression</td></tr>
+  <tr><td>Regression (either sign)</td><td>y can be + or −</td><td><strong>Linear</strong></td><td>Only linear activation can output negative values</td></tr>
+  <tr><td>Regression (non-negative)</td><td>y ≥ 0 (e.g. house price)</td><td><strong>ReLU</strong></td><td>ReLU's range is exactly [0, ∞), matching the target's range</td></tr>
+</table>
+
+<svg viewBox="0 0 780 220" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <text x="40" y="20" font-size="12" font-weight="bold" fill="#1f4e8c">Binary classification — Sigmoid</text>
+    <line x1="30" y1="180" x2="230" y2="180" stroke="#999"/>
+    <line x1="30" y1="200" x2="30" y2="40" stroke="#999"/>
+    <path d="M40,180 C80,180 80,60 130,60 C180,60 200,60 220,60" fill="none" stroke="#1f4e8c" stroke-width="2.5"/>
+    <text x="35" y="55" font-size="10" fill="#555">y = 0 / 1</text>
+  </g>
+  <g>
+    <text x="315" y="20" font-size="12" font-weight="bold" fill="#1f4e8c">Regression (± values) — Linear</text>
+    <line x1="290" y1="180" x2="490" y2="180" stroke="#999"/>
+    <line x1="290" y1="200" x2="290" y2="40" stroke="#999"/>
+    <line x1="300" y1="190" x2="480" y2="50" stroke="#1f4e8c" stroke-width="2.5"/>
+    <text x="295" y="55" font-size="10" fill="#555">y = +/−</text>
+  </g>
+  <g>
+    <text x="590" y="20" font-size="12" font-weight="bold" fill="#1f4e8c">Regression (y ≥ 0) — ReLU</text>
+    <line x1="550" y1="180" x2="750" y2="180" stroke="#999"/>
+    <line x1="550" y1="200" x2="550" y2="40" stroke="#999"/>
+    <line x1="550" y1="180" x2="640" y2="180" stroke="#1f4e8c" stroke-width="2.5"/>
+    <line x1="640" y1="180" x2="740" y2="55" stroke="#1f4e8c" stroke-width="2.5"/>
+    <text x="555" y="55" font-size="10" fill="#555">y = 0, 150, 420...</text>
+  </g>
+</svg>
+
+<div class="why">
+  <strong>Why this matters:</strong> the output activation isn't about "which function tends to work well" — it's about matching the range of <code>g(z)</code> to the range of possible <code>y</code> values. A sigmoid output literally cannot represent a negative stock-price change; a linear output can't be constrained to represent a probability.
+</div>
+</section>
+
+<section class="card" id="choosing-hidden">
+<h2>8. Choosing the activation for <em>hidden</em> layers</h2>
+
+<div class="note">
+  <strong>Default recommendation:</strong> use ReLU in hidden layers. This is stated directly as "how I pretty much always choose" — not one option among equals.
+</div>
+
+<p>Two concrete reasons ReLU dominates sigmoid in hidden layers today, even though early neural networks used sigmoid everywhere:</p>
+
+<ol>
+  <li><strong>Compute cost:</strong> ReLU is just <code>max(0, z)</code>; sigmoid needs an exponentiation and a division — slower per-neuron.</li>
+  <li><strong>Flat regions slow down gradient descent:</strong> sigmoid is flat on <em>both</em> ends (z very negative <em>and</em> z very positive). ReLU is flat only on one side (z &lt; 0). More flat regions in the activation ⇒ more flat regions in the cost function J(W,B) ⇒ near-zero gradients ⇒ gradient descent crawls.</li>
+</ol>
+
+<svg viewBox="0 0 780 260" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <text x="30" y="20" font-size="12" font-weight="bold" fill="#333">Sigmoid — flat both sides</text>
+    <line x1="30" y1="200" x2="230" y2="200" stroke="#999"/>
+    <line x1="30" y1="220" x2="30" y2="40" stroke="#999"/>
+    <path d="M35,195 C60,195 70,60 120,60 C170,60 200,58 225,58" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+    <text x="35" y="215" font-size="10" fill="#c0392b">flat</text>
+    <text x="185" y="52" font-size="10" fill="#c0392b">flat</text>
+    <text x="55" y="240" font-size="11" fill="#555">slower learning</text>
+  </g>
+  <g>
+    <text x="300" y="20" font-size="12" font-weight="bold" fill="#333">J(W,B) with many flat activations</text>
+    <path d="M300,190 C330,170 340,120 370,180 C390,220 410,220 430,140 C450,90 470,120 500,80" fill="none" stroke="#1f4e8c" stroke-width="2"/>
+    <text x="320" y="215" font-size="10" fill="#555">bumpy / plateaus →</text>
+    <text x="320" y="230" font-size="10" fill="#555">near-zero gradient in places</text>
+  </g>
+  <g>
+    <text x="570" y="20" font-size="12" font-weight="bold" fill="#333">ReLU — flat one side only</text>
+    <line x1="570" y1="200" x2="770" y2="200" stroke="#999"/>
+    <line x1="570" y1="220" x2="570" y2="40" stroke="#999"/>
+    <line x1="575" y1="195" x2="655" y2="195" stroke="#1f4e8c" stroke-width="2.5"/>
+    <line x1="655" y1="195" x2="750" y2="60" stroke="#1f4e8c" stroke-width="2.5"/>
+    <text x="580" y="215" font-size="10" fill="#1f4e8c">flat</text>
+    <text x="680" y="90" font-size="10" fill="#1f4e8c">not flat</text>
+    <text x="605" y="240" font-size="11" fill="#555">faster learning</text>
+  </g>
+</svg>
+<p class="svg-caption">Intuition, stated carefully as intuition: more flat regions in activation functions tend to create more flat regions in the cost surface, which can slow gradient descent. Empirically, ReLU trains faster.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> gradient descent finding the minimum is like rolling a ball downhill. On a sigmoid-heavy landscape there are wide flat plateaus where the ball barely moves even though it isn't at the bottom yet. ReLU's landscape has fewer such plateaus, so the ball keeps rolling.
+</div>
+
+<div class="note">
+  <strong>Other activations you may see in papers:</strong> tanh, Leaky ReLU, swish. These show up occasionally and sometimes edge out plain ReLU — Leaky ReLU is mentioned as one worth knowing — but ReLU is described as good enough for the large majority of cases.
+</div>
+</section>
+
+<section class="card" id="relu-lab">
+<h2>9. Lab intuition: how ReLU's "off" switch builds complex shapes</h2>
+
+<p>From the optional lab (<code>C2_W2_Relu.ipynb</code>): a small regression network with 3 first-layer units and 1 fixed-sum output unit is used to fit a target function made of three straight-line segments (piecewise linear).</p>
+
+<div class="note">
+  <strong>Setup:</strong> Unit 0 is pre-fixed to cover the first segment. You adjust <code>w<sub>1</sub>, b<sub>1</sub></code> for the second segment, then <code>w<sub>2</sub>, b<sub>2</sub></code> for the third — leaving the others at zero until needed.
+</div>
+
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+  <line x1="40" y1="220" x2="660" y2="220" stroke="#999"/>
+  <line x1="40" y1="230" x2="40" y2="30" stroke="#999"/>
+  <!-- target piecewise line: seg1 rising, seg2 different slope, seg3 different slope -->
+  <polyline points="40,200 200,100 380,140 600,40" fill="none" stroke="#333" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="600" y="30" font-size="11" fill="#333">target (piecewise)</text>
+
+  <!-- unit 0 contribution: active [40,200], flat after -->
+  <polyline points="40,200 200,100 380,100 600,100" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+  <text x="45" y="195" font-size="10" fill="#c0392b">unit 0 (segment 1, then flat/off)</text>
+
+  <!-- unit 1 contribution: off until 200, active after with its own slope -->
+  <polyline points="40,220 200,220 380,150 600,60" fill="none" stroke="#1f4e8c" stroke-width="2.5"/>
+  <text x="210" y="150" font-size="10" fill="#1f4e8c">unit 1 (off, then segment 2 onward)</text>
+
+  <!-- unit 2 contribution: off until 380, active after -->
+  <polyline points="40,220 380,220 600,150" fill="none" stroke="#2f7a40" stroke-width="2.5"/>
+  <text x="400" y="215" font-size="10" fill="#2f7a40">unit 2 (off, then segment 3)</text>
+
+  <text x="180" y="240" font-size="10" fill="#555">x=1</text>
+  <text x="360" y="240" font-size="10" fill="#555">x=2</text>
+</svg>
+<p class="svg-caption">Each ReLU unit is "off" (outputs 0) until its transition point, then contributes a new slope. The output layer just sums all three — the "off" switching is what lets a sum of straight lines approximate a bent, piecewise target.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the concrete mechanism behind "non-linearity gives expressive power" from Section 5. Each ReLU unit is a switch: below its threshold it contributes nothing, above it contributes a linear piece. Combining many such switches lets the network stitch together arbitrarily complex piecewise-linear (and, with enough units, near-arbitrary curved) functions — something no amount of purely linear composition could do.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of each ReLU unit as a ramp that only starts rising past a certain point on the x-axis, and stays flat at zero before that. Add up several ramps with different starting points and slopes, and you can approximate almost any bent curve — like building a flight of stairs out of ramps that each kick in at a different step.
+</div>
+</section>
+
+<section class="card" id="summary">
+<h2>10. Summary table</h2>
+
+<table>
+  <tr><th>Layer</th><th>Use case</th><th>Activation</th></tr>
+  <tr><td>Output</td><td>Binary classification</td><td><code>'sigmoid'</code></td></tr>
+  <tr><td>Output</td><td>Regression, y can be + or −</td><td><code>'linear'</code></td></tr>
+  <tr><td>Output</td><td>Regression, y ≥ 0</td><td><code>'relu'</code></td></tr>
+  <tr><td>Hidden (default)</td><td>Almost always</td><td><code>'relu'</code></td></tr>
+</table>
+
+<pre>from tensorflow.keras.layers import Dense
+from tensorflow.keras import Sequential
+
+model = Sequential([
+    Dense(units=25, activation='relu'),    # hidden layer 1
+    Dense(units=15, activation='relu'),    # hidden layer 2
+    Dense(units=1,  activation='sigmoid')  # output layer (binary classification)
+])</pre>
+
+<div class="warning">
+  <strong>Common mistake to avoid:</strong> linear activation in hidden layers erases the benefit of stacking layers (Section 5). Reserve linear activation for the output layer of a signed-regression problem only.
+</div>
+</section>
+
+</div>
+</body>
+</html>
