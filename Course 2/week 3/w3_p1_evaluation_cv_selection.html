@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 3 (Part 1) — Advice for Applying Machine Learning</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Advice for Applying Machine Learning</h1>
+  <p>Course 2, Week 3 (Part 1) — Evaluating Models, Train/CV/Test Splits &amp; Model Selection</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#debug">Why "just try things" isn't good enough</a></li>
+    <li><a href="#eval">Evaluating a model systematically: J_train and J_test</a></li>
+    <li><a href="#classification-eval">The same idea for classification</a></li>
+    <li><a href="#flaw">The hidden flaw: using the test set to choose a model</a></li>
+    <li><a href="#cv">What cross validation actually is, and why it exists</a></li>
+    <li><a href="#selection">Model selection with train / CV / test</a></li>
+    <li><a href="#nn-selection">Same idea for choosing a neural network architecture</a></li>
+    <li><a href="#lab">Lab walkthrough: doing this in code</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="debug">
+<h2>1. Why "just try things" isn't good enough</h2>
+
+<p>Say you've implemented regularized linear regression for housing prices:</p>
+
+<div class="formula">
+J(w,b) = (1/2m) &sum; (f<sub>w,b</sub>(x<sup>(i)</sup>) &minus; y<sup>(i)</sup>)<sup>2</sup> &nbsp;+&nbsp; (&lambda;/2m) &sum; w<sub>j</sub><sup>2</sup>
+</div>
+
+<p>It makes unacceptably large errors on new predictions. There's a long list of things you could try next: get more training examples, use a smaller set of features, add more features, add polynomial features, decrease &lambda;, or increase &lambda;.</p>
+
+<p>Every one of these is plausible. The problem is that <strong>on any given project, some of these will help a lot and others will do almost nothing</strong> — and you can't tell which just by staring at the list. Teams that guess blindly can burn months collecting more data only to find that data was never the bottleneck.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the whole point of this week is to replace guessing with <em>diagnostics</em> — tests you run that tell you which of these options is actually worth your time, before you spend weeks on it. A diagnostic can take real effort to set up, but a good one can save you months by ruling out the wrong fix early. Before you can run any diagnostic, though, you need a systematic, numeric way to say "how well is this model actually doing?" — that's the whole point of Sections 2–3.
+</div>
+</section>
+
+<section class="card" id="eval">
+<h2>2. Evaluating a model systematically: J_train and J_test</h2>
+
+<p>With one input feature, you could just plot f(x) and eyeball whether the curve looks reasonable. A 4th-order polynomial fit to 5 points might hug the training data perfectly while being obviously too wiggly to trust on new houses.</p>
+
+<p>But once you have more than 1–2 features (size, bedrooms, floors, age, ...), you can't plot a 4-dimensional function to "look" at it. You need a number, not a picture.</p>
+
+<h3>The fix: split off a test set</h3>
+
+<p>Instead of using 100% of your data to fit w and b, split it — commonly <strong>70/30</strong> or <strong>80/20</strong>:</p>
+
+<ul>
+  <li><strong>Training set</strong> (x<sup>(1)</sup>,y<sup>(1)</sup>) ... (x<sup>(m_train)</sup>,y<sup>(m_train)</sup>) — used to fit the parameters</li>
+  <li><strong>Test set</strong> (x<sub>test</sub><sup>(1)</sup>,y<sub>test</sub><sup>(1)</sup>) ... (x<sub>test</sub><sup>(m_test)</sup>,y<sub>test</sub><sup>(m_test)</sup>) — held out, never used to fit parameters</li>
+</ul>
+
+<svg viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg">
+  <text x="10" y="20" font-family="Georgia" font-size="14" fill="#16386b" font-weight="bold">10 examples, split 70/30</text>
+  <rect x="20" y="50" width="420" height="50" fill="#1f4e8c"/>
+  <text x="180" y="80" font-size="14" fill="#fff">Training set — 7 examples</text>
+  <rect x="450" y="50" width="180" height="50" fill="#d98a2b"/>
+  <text x="480" y="80" font-size="14" fill="#fff">Test — 3</text>
+  <text x="20" y="120" font-size="11" fill="#555">used to fit w, b</text>
+  <text x="450" y="120" font-size="11" fill="#555">held out, never trained on</text>
+</svg>
+
+<p>Fit w, b by minimizing J(w,b) on the <em>training</em> portion only (this still includes the regularization term). Then compute two separate quantities, <strong>neither of which includes the regularization term</strong> — regularization is a training-time tool, not part of how you measure performance:</p>
+
+<div class="formula">
+J<sub>train</sub>(w,b) = (1/2m<sub>train</sub>) &sum;<sub>i=1</sub><sup>m_train</sup> (f<sub>w,b</sub>(x<sub>train</sub><sup>(i)</sup>) &minus; y<sub>train</sub><sup>(i)</sup>)<sup>2</sup>
+<br><br>
+J<sub>test</sub>(w,b) = (1/2m<sub>test</sub>) &sum;<sub>i=1</sub><sup>m_test</sup> (f<sub>w,b</sub>(x<sub>test</sub><sup>(i)</sup>) &minus; y<sub>test</sub><sup>(i)</sup>)<sup>2</sup>
+</div>
+
+<p>For the overfit 4th-order polynomial: J<sub>train</sub> will be near zero (it memorized those 5 points), but J<sub>test</sub>, computed on houses the model never saw, will be large. <strong>That gap between a low J<sub>train</sub> and a high J<sub>test</sub> is the numeric signature of overfitting</strong> — and it's the thing you can compute even when you have 100 features and can't plot anything.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> J<sub>train</sub> tells you how well the model fits data it has already seen — which is almost always optimistic, since the parameters were chosen specifically to make J<sub>train</sub> small. J<sub>test</sub> is your proxy for <em>generalization error</em>: how well the model will do on brand-new houses nobody has shown it yet. That's the number you actually care about in production.
+</div>
+</section>
+
+<section class="card" id="classification-eval">
+<h2>3. The same idea for classification</h2>
+
+<p>For classification (e.g. handwritten digit 0 vs 1), fit w, b by minimizing the regularized logistic cost, then define J<sub>train</sub> and J<sub>test</sub> the same way but using the logistic loss instead of squared error:</p>
+
+<div class="formula">
+J<sub>test</sub>(w,b) = &minus;(1/m<sub>test</sub>) &sum;<sub>i=1</sub><sup>m_test</sup> [ y<sub>test</sub><sup>(i)</sup> log(f(x<sub>test</sub><sup>(i)</sup>)) + (1&minus;y<sub>test</sub><sup>(i)</sup>) log(1&minus;f(x<sub>test</sub><sup>(i)</sup>)) ]
+</div>
+
+<p>In practice, though, there's a version that's used even more often for classification: instead of averaging the logistic loss, just look at <strong>the fraction of examples the model got wrong</strong>.</p>
+
+<div class="formula">
+&#375; = 1 if f<sub>w,b</sub>(x<sup>(i)</sup>) &ge; 0.5, else 0
+<br><br>
+J<sub>test</sub>(w,b) = fraction of the test set where &#375; &ne; y &nbsp;&nbsp;&nbsp; J<sub>train</sub>(w,b) = fraction of the training set where &#375; &ne; y
+</div>
+
+<div class="note">
+  <strong>Note:</strong> this misclassification-rate version is more interpretable ("12% of test examples wrong") and is what's used later this week when talking about bias/variance for classifiers, but the loss-based version is mathematically valid too — they're two ways of asking the same question, "how wrong is this model on data it hasn't seen?"
+</div>
+</section>
+
+<section class="card" id="flaw">
+<h2>4. The hidden flaw: using the test set to choose a model</h2>
+
+<p>Now suppose you don't just want to fit <em>one</em> model — you want to decide <strong>which</strong> model to use. Try degree d = 1, 2, 3, ... up to 10, fit each on the training set, and get w<sup>&lt;1&gt;</sup>,b<sup>&lt;1&gt;</sup> through w<sup>&lt;10&gt;</sup>,b<sup>&lt;10&gt;</sup>.</p>
+
+<p>The tempting procedure: compute J<sub>test</sub> for every one of the 10 fitted models, pick whichever degree gives the lowest J<sub>test</sub> (say d = 5), and then report <em>that same</em> J<sub>test</sub>(w<sup>&lt;5&gt;</sup>,b<sup>&lt;5&gt;</sup>) as your estimate of how well the model generalizes.</p>
+
+<div class="warning">
+  <strong>Why this is flawed:</strong> the degree d is itself a parameter of your model — and you just chose it specifically because it minimized J<sub>test</sub>. That means J<sub>test</sub> was used in the decision process, exactly the same way the training set was used to fit w and b. So J<sub>test</sub>(w<sup>&lt;5&gt;</sup>,b<sup>&lt;5&gt;</sup>) is now an <em>overly optimistic</em> (too low) estimate of true generalization error — it's been "peeked at" during model selection, so it no longer tells you honestly how the model will do on data it's never influenced in any way.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> imagine grading 10 different exam versions against the answer key, then handing in whichever version scored highest as "proof" of how well you know the material. The score is real, but it's inflated — you didn't pick the version at random, you picked the one the answer key happened to like best. To get an honest score, you need a fresh, never-consulted exam.
+</div>
+
+<p>This is exactly the same failure mode as fitting w, b on the training set and then reporting J<sub>train</sub> as the generalization error — just one level higher up, at the level of choosing <em>d</em> instead of choosing w and b.</p>
+</section>
+
+<section class="card" id="cv">
+<h2>5. What cross validation actually is, and why it exists</h2>
+
+<p>The fix is simple in structure but important in effect: split the data into <strong>three</strong> parts instead of two.</p>
+
+<svg viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg">
+  <text x="10" y="20" font-family="Georgia" font-size="14" fill="#16386b" font-weight="bold">10 examples, split 60/20/20</text>
+  <rect x="20" y="50" width="360" height="50" fill="#1f4e8c"/>
+  <text x="110" y="80" font-size="13" fill="#fff">Training — 6</text>
+  <rect x="390" y="50" width="120" height="50" fill="#4a9d5c"/>
+  <text x="405" y="80" font-size="12" fill="#fff">CV — 2</text>
+  <rect x="520" y="50" width="120" height="50" fill="#d98a2b"/>
+  <text x="540" y="80" font-size="12" fill="#fff">Test — 2</text>
+  <text x="20" y="120" font-size="11" fill="#555">fit w, b</text>
+  <text x="390" y="120" font-size="11" fill="#555">choose d / architecture</text>
+  <text x="520" y="120" font-size="11" fill="#555">final honest score, touched once</text>
+</svg>
+
+<ul>
+  <li><strong>Training set</strong> — m<sub>train</sub> examples, used to fit w and b for each candidate model.</li>
+  <li><strong>Cross-validation set</strong> (also called the <em>validation set</em> or the <em>dev set</em> — all three names mean the same thing) — m<sub>cv</sub> examples, used only to <em>compare candidate models</em> and pick things like the polynomial degree or network architecture.</li>
+  <li><strong>Test set</strong> — m<sub>test</sub> examples, touched exactly once, at the very end, to report a final, honest generalization number.</li>
+</ul>
+
+<div class="formula">
+J<sub>cv</sub>(w,b) = (1/2m<sub>cv</sub>) &sum;<sub>i=1</sub><sup>m_cv</sup> (f<sub>w,b</sub>(x<sub>cv</sub><sup>(i)</sup>) &minus; y<sub>cv</sub><sup>(i)</sup>)<sup>2</sup>
+</div>
+
+<p>This is the direct answer to "what is cross validation and why is it used": it's a <strong>second held-out set, separate from the test set, whose entire job is to absorb the "peeking" that happens during model selection</strong>. Once you've picked a degree by comparing J<sub>cv</sub> across candidates, the test set still hasn't been looked at by anyone or anything — so J<sub>test</sub> on the final chosen model is a fair, unbiased estimate of generalization error.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> without a CV set, the only held-out data you have is the test set — so the moment you use it to choose <em>anything</em> (a degree, a &lambda;, a network size), you've contaminated it, and it can no longer honestly answer "how will this do on the real world?" Cross validation exists purely to give the model-selection step its own sandbox to play in, so the test set can stay clean for its one job: the final, one-time report card.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of it like a hiring process with a practice interview (training set), a set of finalist interviews used to decide who gets the job (cross-validation set), and a totally separate reference check done <em>after</em> the decision, just to confirm the hire was good (test set). If you used the same finalist interviews both to pick the winner <em>and</em> to prove they were the best candidate, of course they'd look great — you picked them precisely because they looked great on that exact interview.
+</div>
+
+<div class="note">
+  <strong>Terminology:</strong> "cross-validation set," "validation set," and "dev set" (short for development set) are used interchangeably across courses and papers — they refer to the exact same held-out subset described here. The lecture notes the instructor personally prefers "dev set" for brevity, but "cross-validation" is the more common term you'll see used.
+</div>
+</section>
+
+<section class="card" id="selection">
+<h2>6. Model selection with train / CV / test</h2>
+
+<p>Putting it together, the corrected procedure for choosing a polynomial degree:</p>
+
+<ol>
+  <li>For each candidate d = 1, 2, ..., 10: fit w<sup>&lt;d&gt;</sup>, b<sup>&lt;d&gt;</sup> using <strong>only the training set</strong>.</li>
+  <li>Evaluate every candidate on the <strong>cross-validation set</strong>: compute J<sub>cv</sub>(w<sup>&lt;1&gt;</sup>,b<sup>&lt;1&gt;</sup>) through J<sub>cv</sub>(w<sup>&lt;10&gt;</sup>,b<sup>&lt;10&gt;</sup>).</li>
+  <li>Pick the degree with the lowest J<sub>cv</sub> — say d = 4.</li>
+  <li>Only now, report J<sub>test</sub>(w<sup>&lt;4&gt;</sup>,b<sup>&lt;4&gt;</sup>) as the generalization-error estimate. The test set was never consulted while choosing d, w, or b, so this number is trustworthy.</li>
+</ol>
+
+<div class="warning">
+  <strong>Rule of thumb worth internalizing:</strong> make every decision about your model (parameters, degree, architecture, hyperparameters) using only the training set and the cross-validation set. Never look at the test set until you have one final model you're committing to. The moment the test set influences a decision, it stops being a fair test set.
+</div>
+</section>
+
+<section class="card" id="nn-selection">
+<h2>7. Same idea for choosing a neural network architecture</h2>
+
+<p>This procedure isn't specific to polynomial degree — it generalizes to any "which model structure should I use?" question. For handwritten digit recognition, you might compare a small, medium, and large network:</p>
+
+<table>
+  <tr><th>Candidate</th><th>Selected using</th><th>Reported using</th></tr>
+  <tr><td>Small NN → w<sub>1</sub>,b<sub>1</sub></td><td rowspan="3">J<sub>cv</sub> for each (fraction misclassified, since this is classification)</td><td rowspan="3">J<sub>test</sub> — only for the one network with the lowest J<sub>cv</sub></td></tr>
+  <tr><td>Medium NN → w<sub>2</sub>,b<sub>2</sub></td></tr>
+  <tr><td>Large NN → w<sub>3</sub>,b<sub>3</sub></td></tr>
+</table>
+
+<p>Train all three on the training set, compare them on J<sub>cv</sub>, pick whichever architecture scores lowest there, and only then check J<sub>test</sub> on that one chosen network to report generalization performance. This is described in the lecture as a widely used, practical procedure — the standard way to answer "how many layers / units should I use?" without guessing.</p>
+</section>
+
+<section class="card" id="lab">
+<h2>8. Lab walkthrough: doing this in code</h2>
+
+<p>From <code>C2_W3_Lab_01_Model_Evaluation_and_Selection.ipynb</code> — the same three-way split and comparison, implemented with scikit-learn.</p>
+
+<h3>Splitting into train / CV / test (60/20/20)</h3>
+
+<pre>from sklearn.model_selection import train_test_split
+
+# Get 60% of the dataset as the training set. Put the remaining 40% into temporary variables.
+x_train, x_, y_train, y_ = train_test_split(x, y, test_size=0.40, random_state=1)
+
+# Split that 40% in half: one half becomes cross validation, the other becomes test
+x_cv, x_test, y_cv, y_test = train_test_split(x_, y_, test_size=0.50, random_state=1)
+
+del x_, y_</pre>
+
+<div class="note">
+  <strong>Note:</strong> <code>train_test_split</code> only splits data two ways at a time, so a 60/20/20 three-way split is done as two successive 2-way splits: 60/40 first, then the 40% half is split again 50/50 to land on 20/20.
+</div>
+
+<h3>Feature scaling — fit on train, only transform on CV/test</h3>
+
+<pre>scaler_linear = StandardScaler()
+
+# Compute mean/std from the TRAINING set, and scale the training set with it
+X_train_scaled = scaler_linear.fit_transform(x_train)
+
+# Reuse that SAME mean/std to scale the CV set — never re-fit on CV data
+X_cv_scaled = scaler_linear.transform(x_cv)</pre>
+
+<div class="warning">
+  <strong>Common mistake to avoid:</strong> always use <code>.fit_transform()</code> on the training set and only <code>.transform()</code> (never re-fit) on the CV and test sets. If you compute a fresh mean/std from the CV or test data, you've let information about that "unseen" data leak into your scaling — quietly breaking the whole point of holding it out.
+</div>
+
+<h3>Comparing 10 polynomial degrees via J_cv</h3>
+
+<pre>train_mses, cv_mses, models, polys, scalers = [], [], [], [], []
+
+for degree in range(1, 11):
+    poly = PolynomialFeatures(degree, include_bias=False)
+    X_train_mapped = poly.fit_transform(x_train)
+
+    scaler_poly = StandardScaler()
+    X_train_mapped_scaled = scaler_poly.fit_transform(X_train_mapped)
+
+    model = LinearRegression()
+    model.fit(X_train_mapped_scaled, y_train)
+
+    # ... same poly + scaler are reused (via .transform only) on x_cv ...
+    # ... train_mses / cv_mses collected each loop ...
+
+# Pick the degree with the lowest CV error
+degree = np.argmin(cv_mses) + 1
+print(f"Lowest CV MSE is found in the model with degree={degree}")</pre>
+
+<p>Only after that <code>degree</code> is chosen does the lab touch the test set:</p>
+
+<pre>X_test_mapped = polys[degree-1].transform(x_test)
+X_test_mapped_scaled = scalers[degree-1].transform(X_test_mapped)
+
+yhat = models[degree-1].predict(X_test_mapped_scaled)
+test_mse = mean_squared_error(y_test, yhat) / 2</pre>
+
+<div class="note">
+  <strong>Note:</strong> notice <code>x_test</code> never appears inside the <code>for degree in range(1, 11)</code> loop — it only shows up once, after <code>degree</code> has already been decided. That ordering in the code is the literal expression of the "don't let the test set influence decisions" rule from Section 6.
+</div>
+
+<h3>The same pattern for neural networks and for classification</h3>
+
+<p>The lab repeats the identical structure twice more: once comparing 3 candidate neural network architectures via J<sub>cv</sub> (MSE) before checking one final J<sub>test</sub>, and once for a classification dataset (x1, x2 → 0/1) using a 60/20/20 split, where J<sub>cv</sub> and J<sub>test</sub> become misclassification fractions instead of MSE — matching the classification formulas from Section 3.</p>
+</section>
+
+<section class="card" id="summary">
+<h2>9. Summary</h2>
+
+<table>
+  <tr><th>Set</th><th>Typical share</th><th>Used for</th></tr>
+  <tr><td>Training set</td><td>60% (or 70–80% in a 2-way split)</td><td>Fitting parameters w, b</td></tr>
+  <tr><td>Cross-validation / dev set</td><td>20% (or 0% if not doing model selection)</td><td>Comparing candidate models — choosing degree, architecture, &lambda;, etc.</td></tr>
+  <tr><td>Test set</td><td>20% (or 30% in a 2-way split)</td><td>One-time, final estimate of generalization error — never used to decide anything</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Common mistake to avoid:</strong> using J<sub>test</sub> to pick a model and then reporting that same J<sub>test</sub> as the generalization error. It's the single flaw this whole part of the lecture exists to fix — the cross-validation set is the fix.
+</div>
+</section>
+
+</div>
+</body>
+</html>
