@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 3 (Part 2) — Bias, Variance &amp; What To Do About It</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; background: #14161c; color: #dcdad3; margin: 0; line-height: 1.65; }
+  header { background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c); color: #fff; padding: 42px 8vw 34px; }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc { background: #1c1f28; border: 1px solid #33384a; border-radius: 10px; padding: 20px 26px; margin-top: -22px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card { background: #1c1f28; border: 1px solid #33384a; border-radius: 10px; padding: 26px 30px; margin-top: 34px; }
+  section.card h2 { color: #7fb0f0; border-bottom: 2px solid #2e3342; padding-bottom: 8px; margin-top: 0; }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why { background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #e8dfce; }
+  .why strong { color: #e5a94f; }
+  .analogy { background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #dbe8dc; }
+  .analogy strong { color: #6fc082; }
+  .note { background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #d8e3f0; }
+  .note strong { color: #7fb0f0; }
+  .warning { background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #f0d8d5; }
+  .warning strong { color: #e8695b; }
+  pre { background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.92em; line-height: 1.5; border: 1px solid #33384a; }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula { background: #21252e; border: 1px solid #33384a; border-radius: 6px; padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bias, Variance &amp; What To Do About It</h1>
+  <p>Course 2, Week 3 (Part 2) — Diagnosing Bias/Variance, Regularization, Baselines, Learning Curves, and Neural Networks</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#recap">Quick recap: where we left off</a></li>
+    <li><a href="#diagnose">Diagnosing bias vs. variance from J_train and J_cv</a></li>
+    <li><a href="#both">Can you have both at once?</a></li>
+    <li><a href="#lambda">Regularization's effect on bias and variance</a></li>
+    <li><a href="#baseline">Establishing a baseline: is "high" actually high?</a></li>
+    <li><a href="#curves">Learning curves</a></li>
+    <li><a href="#revisit">The six fixes, sorted by what they actually fix</a></li>
+    <li><a href="#nn">Bias/variance for neural networks</a></li>
+    <li><a href="#lab">Lab walkthrough: seeing the curves in code</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="recap">
+<h2>1. Quick recap: where we left off</h2>
+
+<p>Part 1 gave you J<sub>train</sub>, J<sub>cv</sub>, and J<sub>test</sub>, plus the train/CV/test split for honest model selection. This part answers the follow-up question: once you have those numbers, <strong>how do you read them</strong> to figure out what's actually wrong with your model — and what to do about it?</p>
+</section>
+
+<section class="card" id="diagnose">
+<h2>2. Diagnosing bias vs. variance from J_train and J_cv</h2>
+
+<p>Back to fitting polynomials to housing prices. A straight line (d=1) underfits; a 4th-order polynomial (d=4) overfits; a quadratic (d=2) is "just right."</p>
+
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="130" y="20" font-size="13" fill="#16386b" font-weight="bold" text-anchor="middle">High bias (d=1)</text>
+  <text x="350" y="20" font-size="13" fill="#16386b" font-weight="bold" text-anchor="middle">"Just right" (d=2)</text>
+  <text x="570" y="20" font-size="13" fill="#16386b" font-weight="bold" text-anchor="middle">High variance (d=4)</text>
+  <line x1="60" y1="150" x2="200" y2="150" stroke="#1f4e8c" stroke-width="3"/>
+  <line x1="60" y1="150" x2="200" y2="90" stroke="#1f4e8c" stroke-width="3"/>
+  <circle cx="90" cy="120" r="3" fill="#c0392b"/><circle cx="130" cy="100" r="3" fill="#c0392b"/><circle cx="170" cy="130" r="3" fill="#c0392b"/>
+  <path d="M280,160 Q330,80 420,95" stroke="#4a9d5c" stroke-width="3" fill="none"/>
+  <circle cx="300" cy="140" r="3" fill="#c0392b"/><circle cx="340" cy="105" r="3" fill="#c0392b"/><circle cx="400" cy="98" r="3" fill="#c0392b"/>
+  <path d="M500,180 Q530,80 560,140 T630,90" stroke="#c0392b" stroke-width="3" fill="none"/>
+  <circle cx="510" cy="160" r="3" fill="#16386b"/><circle cx="560" cy="100" r="3" fill="#16386b"/><circle cx="610" cy="130" r="3" fill="#16386b"/>
+  <text x="130" y="200" font-size="12" text-anchor="middle" fill="#333">J_train: HIGH, J_cv: HIGH</text>
+  <text x="350" y="200" font-size="12" text-anchor="middle" fill="#333">J_train: low, J_cv: low</text>
+  <text x="570" y="200" font-size="12" text-anchor="middle" fill="#333">J_train: low, J_cv: HIGH</text>
+</svg>
+
+<table>
+  <tr><th>Degree</th><th>J_train</th><th>J_cv</th><th>Diagnosis</th></tr>
+  <tr><td>d = 1 (linear)</td><td>High</td><td>High</td><td>High bias — underfitting</td></tr>
+  <tr><td>d = 2 (quadratic)</td><td>Low</td><td>Low</td><td>Neither — good fit</td></tr>
+  <tr><td>d = 4</td><td>Low</td><td>High</td><td>High variance — overfitting</td></tr>
+</table>
+
+<p>The key signatures to memorize:</p>
+
+<div class="formula">
+High bias (underfit): J<sub>train</sub> is high, and J<sub>train</sub> &asymp; J<sub>cv</sub>
+<br><br>
+High variance (overfit): J<sub>cv</sub> &gg; J<sub>train</sub> (J<sub>train</sub> may even be low)
+</div>
+
+<p>Plotting J<sub>train</sub> and J<sub>cv</sub> against the polynomial degree makes this vivid: J<sub>train</sub> keeps falling as degree increases (a more flexible model always fits the training data at least as well), while J<sub>cv</sub> traces a U-shape — high on the left (underfitting), dipping in the middle, then rising again on the right (overfitting).</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> with one feature you could just look at the curve to see under/overfitting. This numeric signature (comparing J<sub>train</sub> and J<sub>cv</sub>) gives you the exact same diagnosis even with 50 features you could never plot.
+</div>
+</section>
+
+<section class="card" id="both">
+<h2>3. Can you have both at once?</h2>
+
+<p>For a single linear model on one feature, no — you're essentially always on one side of the U-curve or the other. But it <em>is</em> possible, especially with neural networks, to have <strong>high bias and high variance simultaneously</strong>.</p>
+
+<div class="formula">
+High bias AND high variance: J<sub>train</sub> is high, <em>and</em> J<sub>cv</sub> &gg; J<sub>train</sub>
+</div>
+
+<p>Intuitively, this looks like a model that overfits part of the input space (chasing noise in one region) while underfitting another part (too crude to capture the pattern elsewhere). It's rare for most applications — you'll usually have predominantly one problem or the other — but it's worth knowing the signature so you don't misdiagnose it.</p>
+</section>
+
+<section class="card" id="lambda">
+<h2>4. Regularization's effect on bias and variance</h2>
+
+<p>The regularization parameter &lambda; controls the same underfit/overfit trade-off as polynomial degree — just from the opposite direction.</p>
+
+<ul>
+  <li><strong>&lambda; very large (e.g. 10,000):</strong> the model is forced to keep every w<sub>j</sub> near zero, so f(x) collapses toward a flat constant. High bias — underfits. J<sub>train</sub> high, J<sub>cv</sub> high.</li>
+  <li><strong>&lambda; = 0 (no regularization):</strong> a 4th-order polynomial is free to wiggle through every training point. High variance — overfits. J<sub>train</sub> low, J<sub>cv</sub> high.</li>
+  <li><strong>&lambda; intermediate:</strong> balances fitting the data against keeping weights small. J<sub>train</sub> low, J<sub>cv</sub> low.</li>
+</ul>
+
+<p>You choose &lambda; with cross validation exactly like you chose the degree in Part 1: try a range (0, 0.01, 0.02, 0.04, ... doubling up to ~10), fit w,b for each, compute J<sub>cv</sub> for each, and pick the &lambda; with the lowest J<sub>cv</sub>. Report J<sub>test</sub> only for that final chosen &lambda;.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of &lambda; as a leash length on the model. A very short leash (&lambda; huge) barely lets the model move from a flat line — it can't reach the data (high bias). No leash at all (&lambda;=0) lets it run wild and chase every noisy point (high variance). You want a leash long enough to reach the real pattern but short enough to stay off the noise.
+</div>
+
+<p>Plotting J<sub>train</sub> and J<sub>cv</sub> against &lambda; gives a curve that's a mirror image of the degree-vs-error plot from Section 2: here, <strong>high variance sits on the left</strong> (small &lambda;) and <strong>high bias sits on the right</strong> (large &lambda;) — the opposite ordering from the polynomial-degree plot, where variance was on the right. Same U-shape logic, opposite axis direction.</p>
+</section>
+
+<section class="card" id="baseline">
+<h2>5. Establishing a baseline: is "high" actually high?</h2>
+
+<p>So far "J<sub>train</sub> is high" has been treated as an obvious red flag. But high compared to what? For messy, real-world data (like audio), even a perfect model can't reach 0% error.</p>
+
+<p>Example: a speech recognition system gets J<sub>train</sub> = 10.8% and J<sub>cv</sub> = 14.8%. At first glance, 10.8% training error looks bad — surely that's high bias? But fluent human transcribers, listening to the same noisy audio clips, also make about 10.6% error. The audio itself is often too noisy for anyone — human or algorithm — to transcribe perfectly.</p>
+
+<div class="formula">
+Gap 1 = J<sub>train</sub> &minus; baseline &nbsp;&nbsp;&rarr;&nbsp;&nbsp; large gap = high bias
+<br><br>
+Gap 2 = J<sub>cv</sub> &minus; J<sub>train</sub> &nbsp;&nbsp;&rarr;&nbsp;&nbsp; large gap = high variance
+</div>
+
+<table>
+  <tr><th></th><th>Baseline</th><th>J_train</th><th>J_cv</th><th>Gap 1 (bias signal)</th><th>Gap 2 (variance signal)</th><th>Diagnosis</th></tr>
+  <tr><td>Case A</td><td>10.6%</td><td>10.8%</td><td>14.8%</td><td>0.2% — small</td><td>4.0% — large</td><td>High variance</td></tr>
+  <tr><td>Case B</td><td>10.6%</td><td>15.0%</td><td>15.5%</td><td>4.4% — large</td><td>0.5% — small</td><td>High bias</td></tr>
+  <tr><td>Case C</td><td>10.6%</td><td>15.0%</td><td>19.7%</td><td>4.4% — large</td><td>4.7% — large</td><td>High bias <em>and</em> high variance</td></tr>
+</table>
+
+<p>Notice Case A is the exact same 10.8%/14.8% numbers that looked like "high bias" at a glance — but once benchmarked against the 10.6% human baseline, it's clearly a variance problem instead: the model is basically matching human performance on training data, so the real issue is the 4-point gap to J<sub>cv</sub>.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> without a baseline, "10.8% error" is just a number — you can't tell if that's excellent (matching human noise-floor performance) or terrible (a model that should be doing much better). The baseline turns bias/variance diagnosis from a guess into an actual measurement.
+</div>
+
+<h3>Where do you get a baseline?</h3>
+<ul>
+  <li><strong>Human-level performance</strong> — especially useful for unstructured data like audio, images, or text, where humans are naturally very good.</li>
+  <li><strong>A competing or prior implementation</strong> — a previous system, a competitor's benchmark.</li>
+  <li><strong>Experience-based guesses</strong> — an estimate from prior projects on similar data.</li>
+</ul>
+
+<div class="note">
+  <strong>Note:</strong> sometimes the baseline genuinely is 0% (if perfect performance is achievable and expected) — but for noisy real-world data, expecting 0% is unrealistic, and a baseline saves you from chasing an error rate no model can reach.
+</div>
+</section>
+
+<section class="card" id="curves">
+<h2>6. Learning curves</h2>
+
+<p>A learning curve plots J<sub>train</sub> and J<sub>cv</sub> as a function of <strong>training set size</strong> (m<sub>train</sub>) rather than degree or &lambda;. This shows you how the algorithm improves (or doesn't) as it sees more data.</p>
+
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="350" y="18" font-size="13" text-anchor="middle" fill="#16386b" font-weight="bold">General shape (quadratic model)</text>
+  <line x1="50" y1="190" x2="650" y2="190" stroke="#333" stroke-width="1.5"/>
+  <line x1="50" y1="190" x2="50" y2="30" stroke="#333" stroke-width="1.5"/>
+  <path d="M60,50 Q200,110 640,120" stroke="#7c3fa0" stroke-width="3" fill="none"/>
+  <path d="M60,180 Q200,130 640,120" stroke="#1f4e8c" stroke-width="3" fill="none"/>
+  <text x="645" y="115" font-size="11" fill="#7c3fa0">J_cv</text>
+  <text x="645" y="132" font-size="11" fill="#1f4e8c">J_train</text>
+  <text x="350" y="210" font-size="12" text-anchor="middle" fill="#333">m_train (training set size)</text>
+</svg>
+
+<p><strong>Why does J<sub>train</sub> go UP as training set grows?</strong> With just 1–3 points, a quadratic can fit them almost perfectly (J<sub>train</sub> &asymp; 0). As you add more points, it becomes harder to fit every single one exactly, so training error creeps up. Meanwhile J<sub>cv</sub> goes down as the model, trained on more examples, generalizes better. The two curves converge but J<sub>cv</sub> stays above J<sub>train</sub>, since the model always has an "easier time" on data it was fit to.</p>
+
+<h3>High bias learning curve</h3>
+<p>A straight-line fit can only get so good no matter how much data you feed it. Both J<sub>train</sub> and J<sub>cv</sub> flatten out (plateau) at a level well above the baseline/human performance, and — critically — <strong>adding more data barely moves either curve</strong> further right on the plot.</p>
+
+<div class="warning">
+  <strong>Key implication:</strong> if your algorithm has high bias, getting more training data will <em>not</em>, by itself, help much. The model is too simple to benefit from more examples — you need to increase its capacity instead (see Section 7).
+</div>
+
+<h3>High variance learning curve</h3>
+<p>Here there's a large, persistent gap between J<sub>cv</sub> (high) and J<sub>train</sub> (low, sometimes even below the human baseline — the model has essentially memorized the training set). Extrapolating the curves to the right, J<sub>cv</sub> keeps trending down toward J<sub>train</sub> as m<sub>train</sub> grows.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the mirror-image implication — if your algorithm has high variance, more training data is genuinely likely to help, since the curves are still converging rather than flat.
+</div>
+
+<div class="note">
+  <strong>Note:</strong> plotting real learning curves means retraining your model on many different subset sizes (100 examples, 200, 300, ...), which is computationally expensive and not always done in practice — but even just picturing what the curve <em>would</em> look like is a genuinely useful mental habit for reasoning about whether more data will help.
+</div>
+</section>
+
+<section class="card" id="revisit">
+<h2>7. The six fixes, sorted by what they actually fix</h2>
+
+<p>Revisiting the original debugging checklist from Part 1 — now that you can diagnose bias vs. variance, each option maps cleanly to one problem or the other:</p>
+
+<table>
+  <tr><th>Option</th><th>Fixes</th><th>Why</th></tr>
+  <tr><td>Get more training examples</td><td>High variance</td><td>Lets the model generalize instead of memorizing a small set — no help if the model is already too simple to fit</td></tr>
+  <tr><td>Try a smaller set of features</td><td>High variance</td><td>Less flexibility to fit noise (similar to removing some x², x³, ... terms)</td></tr>
+  <tr><td>Get additional features</td><td>High bias</td><td>Gives the model information it structurally lacks to fit even the training data (e.g. adding bedrooms/floors/age, not just size)</td></tr>
+  <tr><td>Add polynomial features</td><td>High bias</td><td>Increases model flexibility so it can actually fit the training set</td></tr>
+  <tr><td>Decrease &lambda;</td><td>High bias</td><td>Less penalty on w &rarr; more freedom to fit the training data</td></tr>
+  <tr><td>Increase &lambda;</td><td>High variance</td><td>More penalty on w &rarr; smoother, less wiggly function</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Common mistake to avoid:</strong> if you have a high-bias problem, reducing the size of your training set will NOT help — it might even make J<sub>train</sub> look artificially better while making J<sub>cv</sub> worse. Never throw away training examples to try to fix bias.
+</div>
+</section>
+
+<section class="card" id="nn">
+<h2>8. Bias/variance for neural networks</h2>
+
+<p>Before neural networks, ML practitioners had to constantly trade off bias against variance — a model complex enough to avoid underfitting risked overfitting, and vice versa (the classic "bias-variance tradeoff"). Large neural networks, combined with large datasets, largely sidestep this tradeoff.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the core fact enabling this is that <strong>large neural networks are low-bias machines</strong> — if the network is big enough, it can almost always fit the training set well (as long as the training set isn't enormous). This decouples the two problems: you can attack bias and variance one at a time instead of trading them against each other.
+</div>
+
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20" y="20" width="180" height="70" rx="8" fill="#fff" stroke="#16386b" stroke-width="1.5"/>
+  <text x="110" y="45" font-size="12" text-anchor="middle" fill="#16386b">Does it do well</text>
+  <text x="110" y="60" font-size="12" text-anchor="middle" fill="#16386b">on the training set?</text>
+  <text x="110" y="78" font-size="11" text-anchor="middle" fill="#666">(J_train)</text>
+  <text x="215" y="50" font-size="12" fill="#4a9d5c">Yes &#8594;</text>
+  <rect x="260" y="20" width="180" height="70" rx="8" fill="#fff" stroke="#16386b" stroke-width="1.5"/>
+  <text x="350" y="45" font-size="12" text-anchor="middle" fill="#16386b">Does it do well on</text>
+  <text x="350" y="60" font-size="12" text-anchor="middle" fill="#16386b">the CV set? (J_cv)</text>
+  <text x="470" y="50" font-size="12" fill="#4a9d5c">Yes &#8594; Done!</text>
+  <text x="100" y="115" font-size="12" fill="#c0392b">No &#8595;</text>
+  <rect x="30" y="130" width="160" height="40" rx="6" fill="#fdeee9" stroke="#c0392b"/>
+  <text x="110" y="155" font-size="12" text-anchor="middle" fill="#c0392b">Bigger network</text>
+  <text x="345" y="115" font-size="12" fill="#c0392b">No &#8595;</text>
+  <rect x="270" y="130" width="160" height="40" rx="6" fill="#fdeee9" stroke="#c0392b"/>
+  <text x="350" y="155" font-size="12" text-anchor="middle" fill="#c0392b">More data</text>
+  <path d="M110,170 V190 H350 V170" stroke="#999" stroke-width="1.5" fill="none"/>
+  <path d="M110,170 V90" stroke="#999" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+</svg>
+
+<h3>The practical recipe</h3>
+<ol>
+  <li>Train the network, then check: does it do well on the training set (J<sub>train</sub> low relative to baseline)?</li>
+  <li>If <strong>no</strong> — high bias — make the network <strong>bigger</strong> (more layers or more units per layer), and go back to step 1.</li>
+  <li>If <strong>yes</strong>, check: does it do well on the cross-validation set (J<sub>cv</sub> close to J<sub>train</sub>)?</li>
+  <li>If <strong>no</strong> — high variance — get <strong>more data</strong>, and go back to step 1.</li>
+  <li>If <strong>yes</strong> to both — done.</li>
+</ol>
+
+<div class="warning">
+  <strong>Limitations of this recipe:</strong> bigger networks get computationally expensive to train — at some point training time becomes infeasible even with GPUs. And you can only collect so much more data before that becomes the bottleneck instead.
+</div>
+
+<h3>Does a bigger network risk more variance?</h3>
+<p>Perhaps surprisingly: no, generally not — <strong>as long as you regularize it appropriately</strong>. A well-regularized large network will typically do as well as or better than a smaller one. The main real cost of going bigger is <em>computational</em> (slower training and inference), not accuracy.</p>
+
+<div class="formula">
+J(W,b) = (1/m) &sum; L(f(x<sup>(i)</sup>),y<sup>(i)</sup>) &nbsp;+&nbsp; (&lambda;/2m) &sum;<sub>all weights W</sub> w<sup>2</sup>
+</div>
+
+<div class="note">
+  <strong>Note:</strong> as with linear/logistic regression, you typically regularize the weights W but not the bias term b — in practice this makes very little difference either way.
+</div>
+
+<pre>layer_1 = Dense(units=25, activation="relu", kernel_regularizer=L2(0.01))
+layer_2 = Dense(units=15, activation="relu", kernel_regularizer=L2(0.01))
+layer_3 = Dense(units=1,  activation="sigmoid", kernel_regularizer=L2(0.01))
+model = Sequential([layer_1, layer_2, layer_3])</pre>
+
+<p>Adding <code>kernel_regularizer=L2(&lambda;)</code> to each layer applies the same &lambda; across the network (you could use different values per layer, but a single shared value is simpler and common).</p>
+
+<div class="note">
+  <strong>Note on the recipe's implication for practice:</strong> once a network is large enough, you're much more often fighting a variance problem than a bias problem — which is part of why bigger models plus more data has been such a successful recipe in deep learning generally.
+</div>
+</section>
+
+<section class="card" id="lab">
+<h2>9. Lab walkthrough: seeing the curves in code</h2>
+
+<p>From <code>C2_W3_Lab_02_Diagnosing_Bias_and_Variance.ipynb</code> — plotting exactly the curves described above using scikit-learn's <code>LinearRegression</code>/<code>Ridge</code> and a provided <code>utils</code> helper module.</p>
+
+<h3>J_train / J_cv vs. polynomial degree</h3>
+<pre>from sklearn.linear_model import LinearRegression, Ridge
+import utils
+
+x_train, y_train, x_cv, y_cv, x_test, y_test = utils.prepare_dataset('data/c2w3_lab2_data1.csv')
+
+model = LinearRegression()
+
+# Train models of increasing polynomial degree and plot J_train / J_cv against degree,
+# with a horizontal baseline line for reference
+utils.train_plot_poly(model, x_train, y_train, x_cv, y_cv, max_degree=10, baseline=250)</pre>
+
+<p>This reproduces the U-shaped J<sub>cv</sub> curve from Section 2, with a <code>baseline=250</code> reference line — directly applying the "is it high relative to a baseline" idea from Section 5, not just an absolute error number.</p>
+
+<h3>J_train / J_cv vs. &lambda;</h3>
+<pre>reg_params = [10, 5, 2, 1, 0.5, 0.2, 0.1]  # from strong to weak regularization
+
+utils.train_plot_reg_params(reg_params, x_train, y_train, x_cv, y_cv, degree=4, baseline=250)</pre>
+
+<div class="note">
+  <strong>Note:</strong> the list of &lambda; values is deliberately ordered from large to small (10 down to 0.1) so the resulting plot reads left-to-right as high bias &rarr; balanced &rarr; high variance — matching the mirrored curve described in Section 4.
+</div>
+
+<h3>Effect of adding irrelevant features</h3>
+<pre>file1 = {'filename':'data/c2w3_lab2_data3.csv', 'label': '3 features', 'linestyle': 'dotted'}  # includes a random ID column
+file2 = {'filename':'data/c2w3_lab2_data2.csv', 'label': '2 features', 'linestyle': 'solid'}
+
+utils.train_plot_diff_datasets(model, [file1, file2], max_degree=4, baseline=250)</pre>
+
+<p>This directly demonstrates the "smaller set of features fixes variance" fix from Section 7 — the 3-feature version includes a meaningless random ID column, and comparing it against the clean 2-feature version shows how an irrelevant feature can worsen J<sub>cv</sub> without helping J<sub>train</sub>.</p>
+
+<h3>Learning curves</h3>
+<pre>x_train, y_train, x_cv, y_cv, x_test, y_test = utils.prepare_dataset('data/c2w3_lab2_data4.csv')
+
+model = LinearRegression()
+
+# Train on progressively larger subsets of the training set and plot J_train / J_cv vs. training set size
+utils.train_plot_learning_curve(model, x_train, y_train, x_cv, y_cv, degree=4, baseline=250)</pre>
+
+<p>This is the computationally expensive experiment described in Section 6 — actually retraining at each subset size to produce the real J<sub>train</sub>/J<sub>cv</sub>-vs-m<sub>train</sub> curve, rather than just reasoning about its expected shape.</p>
+</section>
+
+<section class="card" id="summary">
+<h2>10. Summary</h2>
+
+<table>
+  <tr><th>Signal</th><th>Diagnosis</th></tr>
+  <tr><td>J_train high, J_train &asymp; J_cv</td><td>High bias (underfitting)</td></tr>
+  <tr><td>J_train low, J_cv &gg; J_train</td><td>High variance (overfitting)</td></tr>
+  <tr><td>J_train high, J_cv &gg; J_train</td><td>Both high bias and high variance</td></tr>
+  <tr><td>Learning curve flattens early, doesn't improve with more data</td><td>High bias — more data alone won't help</td></tr>
+  <tr><td>Learning curve shows persistent J_cv/J_train gap, still converging</td><td>High variance — more data will likely help</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Common mistake to avoid:</strong> judging "high" or "low" error in a vacuum. Always compare against a baseline (human performance, a prior system, or domain experience) before concluding a model has high bias — a training error that looks bad in isolation may already be matching what's realistically achievable.
+</div>
+</section>
+
+</div>
+</body>
+</html>
