@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 3 (Part 3) — The Machine Learning Development Process</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; background: #14161c; color: #dcdad3; margin: 0; line-height: 1.65; }
+  header { background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c); color: #fff; padding: 42px 8vw 34px; }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc { background: #1c1f28; border: 1px solid #33384a; border-radius: 10px; padding: 20px 26px; margin-top: -22px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card { background: #1c1f28; border: 1px solid #33384a; border-radius: 10px; padding: 26px 30px; margin-top: 34px; }
+  section.card h2 { color: #7fb0f0; border-bottom: 2px solid #2e3342; padding-bottom: 8px; margin-top: 0; }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why { background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #e8dfce; }
+  .why strong { color: #e5a94f; }
+  .analogy { background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #dbe8dc; }
+  .analogy strong { color: #6fc082; }
+  .note { background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #d8e3f0; }
+  .note strong { color: #7fb0f0; }
+  .warning { background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #f0d8d5; }
+  .warning strong { color: #e8695b; }
+  pre { background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.92em; line-height: 1.5; border: 1px solid #33384a; }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula { background: #21252e; border: 1px solid #33384a; border-radius: 6px; padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>The Machine Learning Development Process</h1>
+  <p>Course 2, Week 3 (Part 3) — Iterative Loop, Error Analysis, Adding Data, Transfer Learning &amp; Full Project Cycle</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#loop">The iterative loop of ML development</a></li>
+    <li><a href="#spam">Running example: building a spam classifier</a></li>
+    <li><a href="#error">Error analysis: your second most important diagnostic</a></li>
+    <li><a href="#adding">Adding data efficiently</a></li>
+    <li><a href="#augmentation">Data augmentation</a></li>
+    <li><a href="#synthesis">Data synthesis</a></li>
+    <li><a href="#centric">Data-centric vs. model-centric AI</a></li>
+    <li><a href="#transfer">Transfer learning</a></li>
+    <li><a href="#cycle">The full cycle of a machine learning project</a></li>
+    <li><a href="#ethics">Fairness, bias, and ethics (brief)</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="loop">
+<h2>1. The iterative loop of ML development</h2>
+
+<p>Nearly every ML project follows the same three-step loop, and a model almost never works well on the first pass through it:</p>
+
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="350" cy="130" r="100" fill="none" stroke="#1f4e8c" stroke-width="8" stroke-dasharray="6 4"/>
+  <rect x="270" y="15" width="160" height="55" rx="8" fill="#1f4e8c"/>
+  <text x="350" y="38" font-size="12" text-anchor="middle" fill="#fff">Choose architecture</text>
+  <text x="350" y="55" font-size="11" text-anchor="middle" fill="#cfe0f7">(model, data, etc.)</text>
+  <rect x="480" y="180" width="150" height="50" rx="8" fill="#4a9d5c"/>
+  <text x="555" y="210" font-size="12" text-anchor="middle" fill="#fff">Train model</text>
+  <rect x="60" y="180" width="180" height="55" rx="8" fill="#d98a2b"/>
+  <text x="150" y="203" font-size="12" text-anchor="middle" fill="#fff">Diagnostics</text>
+  <text x="150" y="219" font-size="11" text-anchor="middle" fill="#fff2e0">(bias, variance, error analysis)</text>
+  <path d="M420,30 L470,150" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a1)"/>
+  <path d="M480,205 L245,205" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a1)"/>
+  <path d="M150,180 L280,45" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a1)"/>
+</svg>
+
+<ol>
+  <li><strong>Choose an architecture</strong> — the model type, what data to use, hyperparameters.</li>
+  <li><strong>Implement and train it.</strong></li>
+  <li><strong>Run diagnostics</strong> — bias/variance analysis, and error analysis (Section 3) — to decide what to change.</li>
+</ol>
+
+<p>Then you loop back to step 1 with a revised choice: a bigger network, a different &lambda;, more data, more or fewer features. It commonly takes several trips around this loop before reaching the performance you want.</p>
+</section>
+
+<section class="card" id="spam">
+<h2>2. Running example: building a spam classifier</h2>
+
+<p>To ground the rest of this part, here's the example used throughout: classifying emails as spam or not spam.</p>
+
+<div class="formula">
+Supervised learning: x = features of the email, &nbsp; y = 1 (spam) or 0 (not spam)
+</div>
+
+<p>One common way to build the feature vector x: take the top 10,000 words in the English language (or some dictionary), and set x<sub>1</sub>, x<sub>2</sub>, ..., x<sub>10000</sub> to 1 if that word appears in the email (0 otherwise) — or, as a variant, the <em>count</em> of how many times the word appears rather than just a 0/1 flag. Feed this x into logistic regression or a neural network to predict spam vs. not-spam.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the whole point of building this concrete classifier is to have a real running example for the rest of this part — when a diagnostic says "get more pharma-spam examples" or "try transfer learning," it's grounded in an actual model rather than an abstract idea.
+</div>
+
+<p>Once trained, this classifier — like every model — won't work as well as hoped on the first try. The list of things you could try next is long: collect more data (e.g. a "honeypot" project — deliberately creating fake email addresses to attract spam and harvest labeled examples), build features from the email's routing/header information, build more sophisticated features from the email body (e.g. treating "discount" and "discounting" as the same word), or write code to detect deliberate misspellings like <code>w4tches</code>, <code>med1cine</code>, <code>m0rtgage</code>.</p>
+
+<div class="warning">
+  <strong>The problem this creates:</strong> every one of these ideas is plausible, but blindly working through all of them wastes enormous time — some will barely move the needle while others could fix most of your errors. You need a way to tell which is which <em>before</em> investing weeks in any of them. That's exactly what error analysis (next section) is for.
+</div>
+</section>
+
+<section class="card" id="error">
+<h2>3. Error analysis: your second most important diagnostic</h2>
+
+<p>If bias/variance analysis is the single most useful diagnostic in ML development, error analysis is a close second. The idea is simple: <strong>manually look through the examples your algorithm got wrong, and find patterns.</strong></p>
+
+<h3>The process</h3>
+<p>Say you have m<sub>cv</sub> = 5000 cross-validation examples, and the algorithm misclassifies 1000 of them. Rather than reading all 1000, randomly sample a manageable subset — commonly around 100 examples — and manually tag each with what seems to have gone wrong. Categories can overlap: one email can be both pharma spam <em>and</em> have unusual routing <em>and</em> contain a deliberate misspelling.</p>
+
+<svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg">
+  <text x="350" y="20" font-size="13" text-anchor="middle" fill="#16386b" font-weight="bold">100 misclassified emails, manually tagged</text>
+  <rect x="40" y="40" width="150" height="100" fill="#c0392b" opacity="0.85"/>
+  <text x="115" y="95" font-size="13" text-anchor="middle" fill="#fff">Pharma spam</text>
+  <text x="115" y="115" font-size="20" text-anchor="middle" fill="#fff" font-weight="bold">21</text>
+  <rect x="200" y="105" width="150" height="35" fill="#4a9d5c" opacity="0.85"/>
+  <text x="275" y="128" font-size="12" text-anchor="middle" fill="#fff">Misspellings — 3</text>
+  <rect x="360" y="95" width="150" height="45" fill="#d98a2b" opacity="0.85"/>
+  <text x="435" y="122" font-size="12" text-anchor="middle" fill="#fff">Unusual routing — 7</text>
+  <rect x="520" y="55" width="150" height="85" fill="#1f4e8c" opacity="0.85"/>
+  <text x="595" y="100" font-size="13" text-anchor="middle" fill="#fff">Phishing</text>
+  <text x="595" y="120" font-size="18" text-anchor="middle" fill="#fff" font-weight="bold">18</text>
+</svg>
+
+<table>
+  <tr><th>Category</th><th>Count (of 100)</th><th>Implication</th></tr>
+  <tr><td>Pharmaceutical spam</td><td>21</td><td>Big problem — worth targeted investment</td></tr>
+  <tr><td>Deliberate misspellings (w4tches, med1cine)</td><td>3</td><td>Small — even a perfect fix only rescues 3 examples</td></tr>
+  <tr><td>Unusual email routing</td><td>7</td><td>Moderate</td></tr>
+  <tr><td>Phishing / password theft</td><td>18</td><td>Big problem — worth targeted investment</td></tr>
+  <tr><td>Spam hidden in an embedded image</td><td>5</td><td>Small-to-moderate</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters:</strong> the counts turn "I have six vague ideas" into "these two categories explain 39 of my 100 errors, this one explains 3." That reprioritizes effort immediately — building a whole misspelling-detection system to fix 3% of errors is a poor use of time next to fixing pharma spam or phishing, which together cover almost 40%.
+</div>
+
+<div class="warning">
+  <strong>A real lesson from the lecture:</strong> the instructor once spent significant time building algorithms to catch deliberate misspellings in spam, only to later realize the actual impact was small — precisely the kind of wasted effort error analysis is meant to prevent by doing the counting <em>before</em> committing the engineering time.
+</div>
+
+<h3>A key limitation</h3>
+<p>Error analysis works best on tasks <strong>humans are also good at</strong> — you can read a misclassified email and reason about why the model got it wrong. For tasks even humans struggle with (e.g. predicting exactly which ad someone will click), it's much harder to manually diagnose "why" an example was wrong, and this technique loses much of its power.</p>
+</section>
+
+<section class="card" id="adding">
+<h2>4. Adding data efficiently</h2>
+
+<p>Bias/variance analysis tells you <em>whether</em> more data would help (high variance → yes; high bias → no by itself). Error analysis tells you <em>what kind</em> of data to prioritize. Combining the two:</p>
+
+<ul>
+  <li><strong>Add more data of everything</strong> — the default approach, but can be slow and expensive since you're not targeting the actual weak spots.</li>
+  <li><strong>Add more data of the specific types error analysis flagged</strong> — e.g. if pharma spam is 21% of your errors, go find more pharma-spam examples specifically, rather than more generic email data. One concrete way: if you have unlabeled emails sitting around, have a labeler skim through and pull out ones that look like pharma spam.</li>
+</ul>
+
+<div class="why">
+  <strong>Why this matters:</strong> targeted data collection can boost performance far more, for far less labeling cost, than a generic "collect more of everything" effort — because you're specifically feeding the model more examples of the failure mode it actually has, instead of diluting that signal with data on failure modes it doesn't have.
+</div>
+</section>
+
+<section class="card" id="augmentation">
+<h2>5. Data augmentation</h2>
+
+<p>Beyond collecting brand-new labeled examples, <strong>data augmentation</strong> creates new training examples by modifying existing ones — especially powerful for images and audio.</p>
+
+<h3>Images (e.g. OCR letter recognition)</h3>
+<p>Take a training image of the letter "A" and rotate it, enlarge it, shrink it, change its contrast, or (for letters where it still makes sense) mirror it. Each distorted copy keeps the same label — it's still an "A" — teaching the model that these transformations don't change what the letter is. A more advanced version overlays a grid on the letter and randomly warps it, generating a much richer set of variations from a single source image.</p>
+
+<svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg">
+  <rect x="30" y="40" width="80" height="80" fill="#fff" stroke="#16386b" stroke-width="2"/>
+  <text x="70" y="90" font-size="40" text-anchor="middle" fill="#16386b" font-family="Georgia">A</text>
+  <text x="70" y="135" font-size="11" text-anchor="middle" fill="#333">original</text>
+  <text x="150" y="85" font-size="20" fill="#666">&#8594;</text>
+  <g transform="translate(180,40) rotate(15)">
+    <rect width="80" height="80" fill="#fff" stroke="#4a9d5c" stroke-width="2"/>
+    <text x="40" y="55" font-size="40" text-anchor="middle" fill="#4a9d5c" font-family="Georgia">A</text>
+  </g>
+  <rect x="320" y="30" width="100" height="100" fill="#fff" stroke="#4a9d5c" stroke-width="2"/>
+  <text x="370" y="90" font-size="55" text-anchor="middle" fill="#4a9d5c" font-family="Georgia">A</text>
+  <text x="370" y="145" font-size="11" text-anchor="middle" fill="#333">enlarged</text>
+  <rect x="470" y="55" width="55" height="55" fill="#fff" stroke="#4a9d5c" stroke-width="2"/>
+  <text x="497" y="90" font-size="28" text-anchor="middle" fill="#4a9d5c" font-family="Georgia">A</text>
+  <text x="497" y="130" font-size="11" text-anchor="middle" fill="#333">shrunk</text>
+  <path d="M580,50 Q600,40 620,55 Q640,70 610,85 Q580,100 600,115" stroke="#4a9d5c" stroke-width="1.2" fill="none"/>
+  <text x="605" y="140" font-size="20" text-anchor="middle" fill="#4a9d5c" font-family="Georgia">A</text>
+  <text x="605" y="150" font-size="11" text-anchor="middle" fill="#333">warped</text>
+</svg>
+
+<h3>Audio (e.g. speech recognition)</h3>
+<p>Take a clean recording ("What is today's weather?") and mix it with background noise — a crowd, a car interior, or a simulated bad cellphone connection — to produce three new, realistic training examples from one original clip. This was described as a critical technique for building more accurate speech recognizers in practice.</p>
+
+<div class="warning">
+  <strong>The rule that makes or breaks augmentation:</strong> the distortion introduced must be representative of the kind of noise actually present in your <em>test</em> set. Rotating, warping, or adding realistic background noise works because test-time inputs really do vary this way. Adding purely random, meaningless per-pixel noise to images, by contrast, usually does <em>not</em> help — because that kind of noise essentially never appears in real test data, so the model just wastes capacity learning to ignore something it will never actually see again.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> augmentation is like training a lifeguard using pool conditions that mimic the ocean — waves, currents, glare — because those are the conditions they'll actually face. Training them to handle random unrelated chaos (say, a fire alarm mid-swim) doesn't transfer to the job they'll actually do.
+</div>
+</section>
+
+<section class="card" id="synthesis">
+<h2>6. Data synthesis</h2>
+
+<p>Whereas augmentation modifies an <em>existing</em> example, <strong>data synthesis</strong> creates brand-new examples entirely from scratch.</p>
+
+<p>The lecture's example is Photo OCR — reading text out of photographs "in the wild." Real photographed text is messy: varied fonts, angles, lighting. To generate large amounts of realistic training data, you can use your computer's own text editor: type random text in many different fonts, then screenshot it with varied colors and contrast. The result looks convincingly similar to real photographed text, and can be generated in bulk far faster than photographing and labeling real signs.</p>
+
+<div class="note">
+  <strong>Note:</strong> synthetic data generation has mostly proven useful for computer vision tasks, and less so for audio — it's not a universal technique, but where it applies (as with Photo OCR) it can be a major and fast source of extra training data.
+</div>
+</section>
+
+<section class="card" id="centric">
+<h2>7. Data-centric vs. model-centric AI</h2>
+
+<p>Historically, most ML research took a <strong>model-centric</strong> approach: download a fixed, standard dataset, and spend all your effort improving the algorithm/model/code that runs on it.</p>
+
+<p>But today's algorithms (linear/logistic regression, neural networks, decision trees) are already quite good and work well across many applications. That shifts the highest-leverage effort, in many practical projects, toward a <strong>data-centric</strong> approach: holding the model relatively fixed and instead engineering the <em>data</em> — targeted collection guided by error analysis, augmentation, or synthesis.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this reframes "what should I spend my next week on?" — sometimes the more efficient path to better performance isn't a fancier model, it's better, more targeted data, which is exactly what Sections 3–6 gave you the tools to pursue.
+</div>
+</section>
+
+<section class="card" id="transfer">
+<h2>8. Transfer learning</h2>
+
+<p>For applications where you simply don't have much labeled data, transfer learning lets you borrow knowledge from a large dataset on a <em>different but related</em> task.</p>
+
+<h3>How it works</h3>
+<p>Say you want to recognize handwritten digits 0–9 but only have a small labeled dataset. Instead, find a large dataset — e.g. 1 million images across 1000 classes (cats, dogs, cars, people, ...) — and train a neural network on that first. This gives you learned parameters W<sup>[1]</sup>,b<sup>[1]</sup> through W<sup>[5]</sup>,b<sup>[5]</sup> for a 5-layer network.</p>
+
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+  <text x="350" y="18" font-size="12" text-anchor="middle" fill="#16386b" font-weight="bold">Pre-trained on 1M images, 1000 classes</text>
+  <g>
+    <rect x="30" y="35" width="50" height="60" rx="6" fill="#1f4e8c"/>
+    <rect x="100" y="35" width="50" height="60" rx="6" fill="#1f4e8c"/>
+    <rect x="170" y="35" width="50" height="60" rx="6" fill="#1f4e8c"/>
+    <rect x="240" y="35" width="50" height="60" rx="6" fill="#1f4e8c"/>
+    <rect x="330" y="35" width="70" height="60" rx="6" fill="#c0392b"/>
+    <text x="365" y="70" font-size="11" text-anchor="middle" fill="#fff">1000 out</text>
+  </g>
+  <text x="60" y="115" font-size="10" text-anchor="middle" fill="#333">W1,b1</text>
+  <text x="130" y="115" font-size="10" text-anchor="middle" fill="#333">W2,b2</text>
+  <text x="200" y="115" font-size="10" text-anchor="middle" fill="#333">W3,b3</text>
+  <text x="270" y="115" font-size="10" text-anchor="middle" fill="#333">W4,b4</text>
+  <text x="365" y="115" font-size="10" text-anchor="middle" fill="#333">W5,b5 (discarded)</text>
+  <text x="350" y="150" font-size="12" text-anchor="middle" fill="#16386b" font-weight="bold">Fine-tuned for digits 0-9 (copied W1-W4)</text>
+  <rect x="30" y="165" width="50" height="60" rx="6" fill="#4a9d5c"/>
+  <rect x="100" y="165" width="50" height="60" rx="6" fill="#4a9d5c"/>
+  <rect x="170" y="165" width="50" height="60" rx="6" fill="#4a9d5c"/>
+  <rect x="240" y="165" width="50" height="60" rx="6" fill="#4a9d5c"/>
+  <rect x="330" y="165" width="55" height="60" rx="6" fill="#d98a2b"/>
+  <text x="357" y="200" font-size="11" text-anchor="middle" fill="#fff">10 out</text>
+  <text x="60" y="245" font-size="10" text-anchor="middle" fill="#333">copied, fixed or fine-tuned</text>
+  <text x="357" y="245" font-size="10" text-anchor="middle" fill="#333">trained from scratch</text>
+</svg>
+
+<p>Copy over W<sup>[1]</sup>,b<sup>[1]</sup> through W<sup>[4]</sup>,b<sup>[4]</sup> — the earlier layers — but replace the final 1000-unit output layer with a fresh 10-unit layer (for digits 0–9), whose parameters W<sup>[5]</sup>,b<sup>[5]</sup> must be trained from scratch since the dimensions changed.</p>
+
+<h3>Two fine-tuning options</h3>
+<ul>
+  <li><strong>Option 1:</strong> freeze W<sup>[1]</sup>...W<sup>[4]</sup>, only train the new output layer. Better when your own dataset is very small.</li>
+  <li><strong>Option 2:</strong> train all parameters, using the copied values as the starting point (initialization) rather than random initialization. Better with a somewhat larger dataset.</li>
+</ul>
+
+<p>This two-step process has names: step 1 (training on the large, unrelated dataset) is <strong>supervised pre-training</strong>; step 2 (further training on your small target dataset) is <strong>fine-tuning</strong>.</p>
+
+<div class="why">
+  <strong>Why this works:</strong> the earlier layers of an image-trained network learn increasingly generic visual building blocks — edges in layer 1, corners from grouped edges in layer 2, basic curves and shapes further in — regardless of whether the original task was "cats vs. dogs" or anything else. Those generic building blocks are just as useful for recognizing digit strokes as for recognizing a cat's ear, so transferring them gives the new task a huge head start instead of learning edges and corners all over again from a handful of digit images.
+</div>
+
+<div class="warning">
+  <strong>The one hard restriction:</strong> the input type must match between pre-training and fine-tuning. A network pre-trained on images can only transfer to another image task; one pre-trained on audio transfers to audio tasks; one pre-trained on text transfers to text tasks. You can't usefully transfer an image-pretrained network to an audio task.
+</div>
+
+<p>In practice, you rarely need to do the pre-training step yourself — researchers regularly publish pre-trained networks (the lecture mentions GPT-3, BERT, and ImageNet-pretrained models as well-known examples) that anyone can download and fine-tune, sometimes getting good results from as few as 50 of your own labeled examples once fine-tuning on top of a strong pre-trained base.</p>
+</section>
+
+<section class="card" id="cycle">
+<h2>9. The full cycle of a machine learning project</h2>
+
+<p>Training a model well is only part of shipping a real ML system. The full cycle, illustrated with a speech-recognition example:</p>
+
+<svg viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="20,20 90,20 110,50 90,80 20,80 40,50" fill="#4a9d5c"/>
+  <text x="65" y="54" font-size="11" text-anchor="middle" fill="#fff">Scope project</text>
+  <polygon points="130,20 210,20 230,50 210,80 130,80 150,50" fill="#1f4e8c"/>
+  <text x="180" y="54" font-size="11" text-anchor="middle" fill="#fff">Collect data</text>
+  <polygon points="250,20 330,20 350,50 330,80 250,80 270,50" fill="#d98a2b"/>
+  <text x="300" y="54" font-size="11" text-anchor="middle" fill="#fff">Train model</text>
+  <polygon points="370,20 460,20 480,50 460,80 370,80 390,50" fill="#7c3fa0"/>
+  <text x="425" y="54" font-size="11" text-anchor="middle" fill="#fff">Deploy in production</text>
+  <path d="M300,80 L300,105 L180,105 L180,80" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a2)"/>
+  <text x="240" y="118" font-size="10" fill="#333">loop back for more data</text>
+</svg>
+
+<ol>
+  <li><strong>Scope the project</strong> — decide what to work on (e.g. speech recognition for voice search).</li>
+  <li><strong>Collect data</strong> — decide what data is needed, then go get the audio and its transcripts/labels.</li>
+  <li><strong>Train the model</strong> — apply bias/variance analysis and error analysis, iterating. It's common for this step to loop back to collecting more data — sometimes more data of everything, sometimes a specific type (the lecture's example: discovering the model performed poorly specifically on car-noise background audio, then using data augmentation to generate more car-noise training clips).</li>
+  <li><strong>Deploy in production</strong> — make the system available to real users.</li>
+</ol>
+
+<h3>What "deploy" typically looks like</h3>
+<p>A common pattern: the trained model sits behind an <strong>inference server</strong>. A client app (e.g. a mobile search app) makes an API call, sending input x (an audio clip); the inference server runs the model and returns a prediction &#375; (e.g. the transcribed text).</p>
+
+<p>Depending on scale, this can require real software engineering: reliable and efficient predictions, scaling to many users, and — where privacy and consent allow — logging inputs and predictions. That logged data supports <strong>monitoring</strong>: e.g. discovering that newly-famous names or newly-elected politicians aren't recognized because they weren't in the original training data, which signals a need to retrain and update the deployed model.</p>
+
+<div class="note">
+  <strong>Note:</strong> this broader discipline — building, deploying, scaling, monitoring, and updating ML systems reliably — has its own name: <strong>MLOps</strong> (Machine Learning Operations). Depending on the team, the people who train the model may be different from the people who own deployment and MLOps.
+</div>
+</section>
+
+<section class="card" id="ethics">
+<h2>10. Fairness, bias, and ethics (brief)</h2>
+
+<p>ML systems affecting large numbers of people have, in several well-documented real cases, exhibited unacceptable bias — a hiring tool that discriminated against women, face recognition systems misidentifying dark-skinned individuals at higher rates, and biased loan-approval systems. There have also been harmful misuses entirely separate from bias, like non-consensual deepfakes, engagement-optimized algorithms amplifying toxic content, and bots used for fraud or fake engagement.</p>
+
+<p>There's no simple checklist that guarantees an ethical system, but the general guidance offered is: assemble a diverse team to brainstorm what could go wrong (with particular attention to vulnerable groups), research relevant industry standards, audit the system for identified harms before deployment, and have a mitigation plan ready in case problems surface after deployment. If a project seems unethical despite being financially attractive, the recommendation is simply not to build it.</p>
+</section>
+
+<section class="card" id="summary">
+<h2>11. Summary</h2>
+
+<table>
+  <tr><th>Tool</th><th>Answers</th></tr>
+  <tr><td>Bias/variance analysis</td><td>Would more data help at all?</td></tr>
+  <tr><td>Error analysis</td><td>What <em>kind</em> of data or feature work would help most?</td></tr>
+  <tr><td>Data augmentation / synthesis</td><td>How do I get more of that specific data cheaply?</td></tr>
+  <tr><td>Transfer learning</td><td>What if I can't get much data at all for this task?</td></tr>
+  <tr><td>Full project cycle</td><td>What happens before and after training — scoping, deployment, monitoring?</td></tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>

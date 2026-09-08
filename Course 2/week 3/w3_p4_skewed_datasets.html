@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 3 (Part 4) — Skewed Datasets: Precision, Recall &amp; F1</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; background: #14161c; color: #dcdad3; margin: 0; line-height: 1.65; }
+  header { background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c); color: #fff; padding: 42px 8vw 34px; }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc { background: #1c1f28; border: 1px solid #33384a; border-radius: 10px; padding: 20px 26px; margin-top: -22px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card { background: #1c1f28; border: 1px solid #33384a; border-radius: 10px; padding: 26px 30px; margin-top: 34px; }
+  section.card h2 { color: #7fb0f0; border-bottom: 2px solid #2e3342; padding-bottom: 8px; margin-top: 0; }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why { background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #e8dfce; }
+  .why strong { color: #e5a94f; }
+  .analogy { background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #dbe8dc; }
+  .analogy strong { color: #6fc082; }
+  .note { background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #d8e3f0; }
+  .note strong { color: #7fb0f0; }
+  .warning { background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px; padding: 14px 18px; margin: 18px 0; color: #f0d8d5; }
+  .warning strong { color: #e8695b; }
+  pre { background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.92em; line-height: 1.5; border: 1px solid #33384a; }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula { background: #21252e; border: 1px solid #33384a; border-radius: 6px; padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Skewed Datasets: Precision, Recall &amp; F1</h1>
+  <p>Course 2, Week 3 (Part 4, final) — Why Accuracy Breaks Down, and What to Use Instead</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#problem">Why accuracy fails on skewed data</a></li>
+    <li><a href="#confusion">The confusion matrix</a></li>
+    <li><a href="#precision-recall">Precision and recall, defined</a></li>
+    <li><a href="#catch">How precision/recall catch the "always predict 0" cheat</a></li>
+    <li><a href="#tradeoff">Trading off precision and recall via the threshold</a></li>
+    <li><a href="#f1">Combining them: the F1 score</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="problem">
+<h2>1. Why accuracy fails on skewed data</h2>
+
+<p>A <strong>skewed dataset</strong> is one where the ratio of positive to negative examples is far from 50/50 — e.g. a rare disease that only 0.5% of patients actually have.</p>
+
+<p>Suppose your classifier achieves 1% error (99% accuracy) on this task. That sounds great — until you compare it to a trivial baseline: a program that just always prints <code>y = 0</code>, never diagnosing anyone. Since only 0.5% of patients actually have the disease, that dumb program is right 99.5% of the time — <strong>lower error than your trained model.</strong></p>
+
+<div class="formula">
+"Always predict 0" &rarr; 99.5% accuracy (0.5% error)
+<br>
+Your trained model &rarr; 99% accuracy (1% error)
+</div>
+
+<div class="warning">
+  <strong>Why this matters:</strong> the "always predict 0" program is completely useless — it never diagnoses a single patient. Yet it beats your real model on plain accuracy. This means accuracy alone can't tell you whether 99% is a good score or a bad one, and it can't reliably rank two real algorithms against each other either (is 99.2% better or worse than 99.6%, if one of them is secretly just guessing the majority class more often?).
+</div>
+
+<p>You need a metric that specifically <strong>penalizes never predicting the rare class</strong> — that's what precision and recall are built for.</p>
+</section>
+
+<section class="card" id="confusion">
+<h2>2. The confusion matrix</h2>
+
+<p>To compute precision and recall, first tabulate every prediction into a 2&times;2 <strong>confusion matrix</strong>: actual class (1 or 0) across the top, predicted class (1 or 0) down the side.</p>
+
+<svg viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg">
+  <text x="310" y="20" font-size="13" text-anchor="middle" fill="#16386b" font-weight="bold">Actual class</text>
+  <text x="220" y="45" font-size="13" text-anchor="middle" fill="#333">1</text>
+  <text x="400" y="45" font-size="13" text-anchor="middle" fill="#333">0</text>
+  <text x="60" y="140" font-size="13" fill="#16386b" font-weight="bold" transform="rotate(-90 60 140)">Predicted class</text>
+  <text x="130" y="115" font-size="13" text-anchor="middle" fill="#333">1</text>
+  <text x="130" y="215" font-size="13" text-anchor="middle" fill="#333">0</text>
+  <rect x="150" y="60" width="140" height="100" fill="#1f4e8c" opacity="0.85"/>
+  <text x="220" y="100" font-size="13" text-anchor="middle" fill="#fff">True Positive</text>
+  <text x="220" y="130" font-size="22" text-anchor="middle" fill="#fff" font-weight="bold">15</text>
+  <rect x="330" y="60" width="140" height="100" fill="#c0392b" opacity="0.85"/>
+  <text x="400" y="100" font-size="13" text-anchor="middle" fill="#fff">False Positive</text>
+  <text x="400" y="130" font-size="22" text-anchor="middle" fill="#fff" font-weight="bold">5</text>
+  <rect x="150" y="160" width="140" height="100" fill="#d98a2b" opacity="0.85"/>
+  <text x="220" y="200" font-size="13" text-anchor="middle" fill="#fff">False Negative</text>
+  <text x="220" y="230" font-size="22" text-anchor="middle" fill="#fff" font-weight="bold">10</text>
+  <rect x="330" y="160" width="140" height="100" fill="#4a9d5c" opacity="0.85"/>
+  <text x="400" y="200" font-size="13" text-anchor="middle" fill="#fff">True Negative</text>
+  <text x="400" y="230" font-size="22" text-anchor="middle" fill="#fff" font-weight="bold">70</text>
+  <text x="220" y="278" font-size="12" text-anchor="middle" fill="#333">25 actual positives</text>
+  <text x="400" y="278" font-size="12" text-anchor="middle" fill="#333">75 actual negatives</text>
+</svg>
+
+<table>
+  <tr><th>Cell</th><th>Meaning</th><th>Count (example)</th></tr>
+  <tr><td>True Positive (TP)</td><td>Predicted 1, actually 1 — correctly caught</td><td>15</td></tr>
+  <tr><td>False Positive (FP)</td><td>Predicted 1, actually 0 — false alarm</td><td>5</td></tr>
+  <tr><td>False Negative (FN)</td><td>Predicted 0, actually 1 — missed case</td><td>10</td></tr>
+  <tr><td>True Negative (TN)</td><td>Predicted 0, actually 0 — correctly cleared</td><td>70</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters:</strong> the confusion matrix separates "how many did we get right" into four distinct kinds of right/wrong, because for a rare condition the two kinds of mistakes (a false alarm vs. a missed diagnosis) have very different real-world costs — a single "accuracy" number blends them together and loses that distinction entirely.
+</div>
+</section>
+
+<section class="card" id="precision-recall">
+<h2>3. Precision and recall, defined</h2>
+
+<p>By convention, y = 1 is the rare class you actually care about detecting.</p>
+
+<div class="formula">
+Precision = TP / (TP + FP) &nbsp;&nbsp;=&nbsp;&nbsp; 15 / (15+5) = 0.75
+<br><br>
+Recall = TP / (TP + FN) &nbsp;&nbsp;=&nbsp;&nbsp; 15 / (15+10) = 0.60
+</div>
+
+<ul>
+  <li><strong>Precision</strong> — "Of all the patients we predicted have the disease, what fraction actually do?" (75% here — when this model raises an alarm, it's right 3 times out of 4.)</li>
+  <li><strong>Recall</strong> — "Of all the patients who actually have the disease, what fraction did we correctly catch?" (60% here — the model finds 6 out of every 10 real cases.)</li>
+</ul>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of a airport metal-detector alarm. Precision asks: of everyone the detector flags, how many are actually carrying something? Recall asks: of everyone actually carrying something, how many does the detector catch? A detector that's too twitchy has low precision (lots of false alarms); one that's too lax has low recall (lots of missed contraband).
+</div>
+</section>
+
+<section class="card" id="catch">
+<h2>4. How precision/recall catch the "always predict 0" cheat</h2>
+
+<p>Go back to the useless "always predict y = 0" program from Section 1. It never predicts positive, so TP = 0.</p>
+
+<div class="formula">
+Recall = 0 / (0 + FN) = 0
+</div>
+
+<p>Recall collapses to exactly zero — instantly exposing that this "model" never actually catches a single real case, no matter how good its accuracy looked. (Precision technically becomes 0/0 — undefined — but by convention is also just reported as 0 in this situation.)</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the whole point of switching metrics. A model with zero precision or zero recall is immediately flagged as useless, which accuracy alone was completely blind to. Any genuinely useful model on a skewed dataset needs both numbers to be reasonably high — not just one.
+</div>
+</section>
+
+<section class="card" id="tradeoff">
+<h2>5. Trading off precision and recall via the threshold</h2>
+
+<p>Logistic regression outputs f(x) between 0 and 1. Normally you threshold at 0.5: predict 1 if f(x) &ge; 0.5. But you can move that threshold — and doing so directly trades precision against recall.</p>
+
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="190" x2="640" y2="190" stroke="#333" stroke-width="1.5"/>
+  <line x1="60" y1="190" x2="60" y2="20" stroke="#333" stroke-width="1.5"/>
+  <path d="M75,30 Q300,60 625,175" stroke="#1f4e8c" stroke-width="3" fill="none"/>
+  <circle cx="90" cy="35" r="5" fill="#c0392b"/>
+  <text x="120" y="35" font-size="11" fill="#c0392b">threshold = 0.99 &rarr; high precision, low recall</text>
+  <circle cx="615" cy="172" r="5" fill="#c0392b"/>
+  <text x="380" y="205" font-size="11" fill="#c0392b">threshold = 0.01 &rarr; low precision, high recall</text>
+  <text x="20" y="15" font-size="12" fill="#16386b">Precision</text>
+  <text x="600" y="205" font-size="12" fill="#16386b">Recall</text>
+</svg>
+
+<h3>Raising the threshold (e.g. to 0.7 or 0.9)</h3>
+<p>You now only predict "has the disease" when very confident. Fewer positive predictions overall, but the ones you do make are more trustworthy &rarr; <strong>higher precision, lower recall</strong>. This suits situations where treatment is invasive/expensive and you only want to act when quite sure.</p>
+
+<h3>Lowering the threshold (e.g. to 0.3)</h3>
+<p>You predict "has the disease" more liberally — "when in doubt, predict positive." You catch more true cases, but also generate more false alarms &rarr; <strong>lower precision, higher recall</strong>. This suits situations where a missed diagnosis is far worse than an unnecessary follow-up test.</p>
+
+<div class="formula">
+Predict 1 if f<sub>w,b</sub>(x) &ge; threshold &nbsp;&nbsp;(general form; 0.5 is just one choice of threshold)
+</div>
+
+<div class="note">
+  <strong>Note:</strong> unlike choosing a model's parameters or hyperparameters, picking this threshold isn't something cross validation does for you automatically — it's a judgment call you make based on the real-world costs of a false positive vs. a false negative for your specific application. Plotting precision against recall across many threshold values (as in the curve above) is a common way to see the whole trade-off before choosing a point on it.
+</div>
+</section>
+
+<section class="card" id="f1">
+<h2>6. Combining them: the F1 score</h2>
+
+<p>Sometimes you need to compare algorithms automatically rather than eyeball a curve — e.g. picking among 3 candidate models, each with its own precision/recall pair.</p>
+
+<table>
+  <tr><th>Algorithm</th><th>Precision</th><th>Recall</th><th>Plain average</th></tr>
+  <tr><td>1</td><td>0.5</td><td>0.4</td><td>0.45</td></tr>
+  <tr><td>2</td><td>0.7</td><td>0.1</td><td>0.40</td></tr>
+  <tr><td>3</td><td>0.02</td><td>1.0</td><td>0.51</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Why the plain average fails:</strong> Algorithm 3 gets the highest average (0.51) — but its precision is 0.02, meaning it's predicting positive almost indiscriminately (this is essentially the "always predict 1" version of the earlier cheat). The plain average completely hides that this is a nearly useless model, because a very high recall can mathematically outweigh a near-zero precision in a simple average.
+</div>
+
+<p>The fix is the <strong>F1 score</strong> — the harmonic mean of precision and recall, which specifically punishes a very low value in either metric rather than letting a high one compensate for it:</p>
+
+<div class="formula">
+F1 = 1 / ( (1/2)(1/P + 1/R) ) &nbsp;&nbsp;=&nbsp;&nbsp; 2PR / (P + R)
+</div>
+
+<table>
+  <tr><th>Algorithm</th><th>Precision</th><th>Recall</th><th>F1 score</th></tr>
+  <tr><td>1</td><td>0.5</td><td>0.4</td><td>0.444</td></tr>
+  <tr><td>2</td><td>0.7</td><td>0.1</td><td>0.175</td></tr>
+  <tr><td>3</td><td>0.02</td><td>1.0</td><td>0.0392</td></tr>
+</table>
+
+<p>Now Algorithm 1 clearly comes out on top — F1 pulls each score toward whichever of P or R is lower, so Algorithm 3's near-zero precision drags its F1 score down to nearly zero too, correctly flagging it as the weakest choice despite its perfect recall.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> F1 gives you a single number to rank models by when precision and recall disagree about which is "best" — without falling for the same trap accuracy and the plain average both fall into: letting one extreme, easily-gamed metric hide behind a good-looking overall score.
+</div>
+
+<div class="note">
+  <strong>Note:</strong> mathematically this formula is called the harmonic mean of P and R — a way of averaging that leans toward the smaller of the two values rather than treating them symmetrically like an arithmetic mean does. You don't need to memorize the term, just what it does.
+</div>
+</section>
+
+<section class="card" id="summary">
+<h2>7. Summary</h2>
+
+<table>
+  <tr><th>Metric</th><th>Answers</th><th>Weakness it fixes</th></tr>
+  <tr><td>Accuracy</td><td>What fraction of predictions were correct overall?</td><td>&mdash; (this is the metric that breaks on skewed data)</td></tr>
+  <tr><td>Precision</td><td>When we predict positive, how often are we right?</td><td>Catches a model that predicts positive too freely</td></tr>
+  <tr><td>Recall</td><td>Of all real positives, how many did we catch?</td><td>Catches a model that never predicts positive (the "always 0" cheat)</td></tr>
+  <tr><td>F1 score</td><td>A single ranking number balancing both</td><td>Catches gaming either metric alone (unlike a plain average)</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Common mistake to avoid:</strong> reporting only accuracy (or only one of precision/recall) on a skewed dataset. A model can look excellent on accuracy while being functionally useless — always check precision and recall together, and consider F1 when comparing multiple candidates.
+</div>
+</section>
+
+</div>
+</body>
+</html>
