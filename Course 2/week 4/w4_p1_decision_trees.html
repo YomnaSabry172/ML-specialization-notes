@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 4 (Part 1) — Decision Trees</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Decision Trees</h1>
+  <p>Course 2, Week 4 (Part 1) — The Core Algorithm: Splitting, Entropy, Information Gain, Encoding, and Regression Trees</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#model">What a decision tree actually is</a></li>
+    <li><a href="#process">The learning process: two key decisions</a></li>
+    <li><a href="#purity">Measuring purity: entropy</a></li>
+    <li><a href="#gain">Choosing a split: information gain</a></li>
+    <li><a href="#putting-together">Putting it together: the recursive algorithm</a></li>
+    <li><a href="#onehot">Features with more than two values: one-hot encoding</a></li>
+    <li><a href="#continuous">Continuous-valued features</a></li>
+    <li><a href="#regression">Regression trees (optional): predicting a number</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="model">
+<h2>1. What a decision tree actually is</h2>
+
+<p>The running example this week is a cat adoption center. You have 10 animals, each described by three categorical features — <strong>ear shape</strong> (pointy/floppy), <strong>face shape</strong> (round/not round), and <strong>whiskers</strong> (present/absent) — and a binary label: cat or not cat. This is binary classification with categorical inputs.</p>
+
+<p>A decision tree is a flowchart-like structure that makes a prediction by asking a sequence of yes/no-style questions about the features:</p>
+
+<ul>
+  <li>The <strong>root node</strong> is the topmost node — the first question asked, applied to every example.</li>
+  <li><strong>Decision nodes</strong> (the ovals below it) each look at one feature and route the example left or right depending on its value.</li>
+  <li><strong>Leaf nodes</strong> (the rectangles at the bottom) don't ask anything further — they just output a prediction.</li>
+</ul>
+
+<p>To classify a new animal, you start at the root, answer the question posed there, follow the branch matching your example's feature value, and keep going until you land on a leaf. Whatever that leaf says, is the prediction.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> the "roots at the top, leaves at the bottom" layout feels backwards if you picture a real tree — but think of it as an indoor hanging plant instead. The roots are anchored up top (where the tree "starts" conceptually), and the leaves dangle down toward the bottom, which is exactly where you land when you're done asking questions and ready for an answer.
+</div>
+
+<div class="why">
+  <strong>Why this matters:</strong> for a fixed dataset, there isn't just one possible tree — you could split on ear shape first, or whiskers first, or in a dozen other orders, and each choice produces a different tree with different accuracy on new data. The entire rest of this week is about answering one question precisely: <em>out of all the trees you could build, how does the algorithm decide which questions to ask, and in what order, so that the result generalizes well?</em> That's what Sections 2–5 build up to.
+</div>
+
+</section>
+
+<section class="card" id="process">
+<h2>2. The learning process: two key decisions</h2>
+
+<p>Building a tree from a training set is a recursive process. Here's a concrete run-through with the cat dataset:</p>
+
+<ol>
+  <li><strong>Root node:</strong> of the three features, suppose the algorithm decides ear shape gives the best split. All 10 examples are divided: 5 with pointy ears go left, 5 with floppy ears go right.</li>
+  <li><strong>Left branch:</strong> looking only at those 5 pointy-eared examples, the algorithm picks the next best feature to split on — say, face shape. 4 round-faced examples go further left, 1 not-round example goes right.</li>
+  <li>The 4 round-faced examples are all cats — 100% one class — so a leaf node is created here that always predicts "cat." Nothing more to split; splitting further would gain you nothing.</li>
+  <li>The 1 remaining example is 0% cats (i.e. it's a dog), so a leaf predicting "not cat" is created there too.</li>
+  <li><strong>Right branch:</strong> back at the 5 floppy-eared examples (1 cat, 4 dogs), the algorithm splits again — say on whiskers. Present vs. absent produces two more pure groups, and two more leaves are created.</li>
+</ol>
+
+<p>Notice this is the same basic step — "pick the best feature, split the data, recurse on each half" — applied over and over on smaller and smaller subsets. That repetition is exactly why it's called a <strong>recursive algorithm</strong>: building the left subtree and building the right subtree are literally the same sub-problem as building the whole tree, just on fewer examples.</p>
+
+<p>Every time you're at a node with a mix of classes, you face two decisions:</p>
+
+<h3>Decision 1 — Which feature to split on?</h3>
+<p>At the root, and again at every node below it, you have to choose among the available features (ear shape, face shape, whiskers). The chosen feature should <strong>maximize purity</strong> — meaning the two resulting subsets should be as close as possible to "all cats" or "all dogs," rather than a 50/50 mix. If you had access to a (hypothetical) "has cat DNA" feature, splitting on it would send 100% of cats one way and 100% of dogs the other — perfectly pure in one step. Real features like ear shape only get you partway there, which is exactly why you need a principled way to score "how good is this split" — that's entropy and information gain, covered in Sections 3–4.</p>
+
+<h3>Decision 2 — When to stop splitting?</h3>
+<p>You don't split forever. Four common stopping criteria:</p>
+<ul>
+  <li><strong>A node is 100% one class</strong> — it's already pure, so turn it into a leaf immediately.</li>
+  <li><strong>Maximum depth reached</strong> — depth counts hops from the root (root = depth 0, its children = depth 1, and so on). Capping depth keeps the tree from growing unboundedly.</li>
+  <li><strong>Improvement in purity is too small</strong> — if splitting further barely reduces impurity, it's not worth the added complexity.</li>
+  <li><strong>Too few examples remain at a node</strong> — splitting a group of, say, 3 examples into even smaller slivers rarely helps and mostly just memorizes noise.</li>
+</ul>
+
+<div class="why">
+  <strong>Why this matters:</strong> both stopping rules exist for the same underlying reason — <strong>controlling overfitting</strong>. A tree that keeps splitting until every leaf is perfectly pure on the training set will often carve out tiny, idiosyncratic regions that don't generalize — it's memorizing quirks of these 10 examples rather than learning the real pattern distinguishing cats from dogs. Keeping the tree smaller (shallower depth, fewer needless splits) trades a bit of training accuracy for much better performance on new data.
+</div>
+
+<div class="note">
+  <strong>Note on how this feels:</strong> decision trees evolved as a patchwork — one researcher proposed a base version, others added stopping criteria, splitting refinements, and so on, each for their own reasons. So if the full algorithm feels like a collection of separate heuristics bolted together rather than one clean derivation, that's a fair reaction — it does work very well in practice regardless.
+</div>
+
+</section>
+
+<section class="card" id="purity">
+<h2>3. Measuring purity: entropy</h2>
+
+<p>To make Decision 1 (which feature to split on) objective rather than a judgment call, you need a number that captures "how mixed is this set of examples." That number is <strong>entropy</strong>, denoted H.</p>
+
+<p>Define <code>p₁</code> as the fraction of examples in a set that belong to the positive class (cats, label = 1). Entropy as a function of p₁:</p>
+
+<div class="formula">
+H(p₁) = &minus;p₁·log₂(p₁) &minus; p₀·log₂(p₀) &nbsp;&nbsp; where p₀ = 1 &minus; p₁
+</div>
+
+<p>Equivalently, written purely in terms of p₁:</p>
+
+<div class="formula">
+H(p₁) = &minus;p₁·log₂(p₁) &minus; (1&minus;p₁)·log₂(1&minus;p₁)
+</div>
+
+<table>
+  <tr><th>Set composition</th><th>p₁</th><th>H(p₁)</th><th>Interpretation</th></tr>
+  <tr><td>3 cats, 3 dogs</td><td>3/6 = 0.5</td><td>1.0</td><td>Maximum impurity — perfectly mixed</td></tr>
+  <tr><td>5 cats, 1 dog</td><td>5/6 ≈ 0.83</td><td>≈0.65</td><td>Fairly pure</td></tr>
+  <tr><td>6 cats, 0 dogs</td><td>6/6 = 1.0</td><td>0</td><td>Perfectly pure</td></tr>
+  <tr><td>2 cats, 4 dogs</td><td>2/6 ≈ 0.33</td><td>≈0.92</td><td>Quite impure (closer to 50/50 than the 5/1 case)</td></tr>
+  <tr><td>0 cats, 6 dogs</td><td>0/6 = 0</td><td>0</td><td>Perfectly pure (all one class, just the other one)</td></tr>
+</table>
+
+<p>Plotted against p₁, H looks like a hump: it starts at 0 (all one class), rises to a peak of 1 at p₁ = 0.5 (perfectly mixed), then falls back to 0 at p₁ = 1 (all the other class).</p>
+
+<div class="note">
+  <strong>Why log base 2, and why 0·log(0) = 0:</strong> logs are taken base 2 purely by convention, so that the peak of the curve lands exactly at 1 — a clean, easy-to-read number. Using natural log instead would just rescale the curve vertically and still work, but the peak wouldn't be a round number anymore. Separately, when p₁ or p₀ is exactly 0, the term <code>0·log₂(0)</code> is mathematically undefined (log(0) = &minus;∞), but by convention it's <em>defined</em> to equal 0 for entropy purposes — which correctly gives H = 0 for a perfectly pure set, matching the intuition that a pure set has zero impurity.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of entropy as "how surprised would you be by the next example drawn from this set?" If the set is all cats, you're never surprised (entropy 0) — you know it'll be a cat. If it's a 50/50 mix, you have zero ability to guess ahead of time (maximum entropy, 1) — it's a coin flip.
+</div>
+
+<div class="note">
+  <strong>Note:</strong> the lecture flags that entropy's formula resembles the logistic loss from the previous course, and says there's a real mathematical reason for that, but it's not something you need to dig into to use entropy for building trees. There's also an alternative impurity measure used in some libraries called the <strong>Gini criterion</strong>, which behaves similarly (0 → 1 → 0 shape) — entropy is simply the one used throughout this course for consistency.
+</div>
+
+</section>
+
+<section class="card" id="gain">
+<h2>4. Choosing a split: information gain</h2>
+
+<p>Entropy alone tells you how impure <em>one</em> set is. To choose <em>which feature to split on</em>, you need to compare candidate splits — and each split produces <em>two</em> subsets (left and right), so you need a way to combine their two entropy values into one comparable number.</p>
+
+<h3>Step 1 — weighted average entropy</h3>
+<p>Simply averaging the left and right entropy values isn't quite right, because a highly impure branch with many examples is worse than a highly impure branch with only a few. So the two entropies are combined as a <strong>weighted average</strong>, weighted by what fraction of examples went to each side:</p>
+
+<div class="formula">
+w<sup>left</sup>·H(p₁<sup>left</sup>) + w<sup>right</sup>·H(p₁<sup>right</sup>)
+</div>
+
+<p>where w<sup>left</sup> and w<sup>right</sup> are the fractions of the parent node's examples that went left and right respectively (they sum to 1).</p>
+
+<h3>Step 2 — measure the reduction, not the raw weighted entropy</h3>
+<p>Rather than using that weighted average directly, the convention is to compute how much entropy <em>decreased</em> relative to the parent node before splitting. This is called <strong>information gain</strong>:</p>
+
+<div class="formula">
+Information Gain = H(p₁<sup>root</sup>) &minus; ( w<sup>left</sup>·H(p₁<sup>left</sup>) + w<sup>right</sup>·H(p₁<sup>right</sup>) )
+</div>
+
+<p>Worked example at the root node (5 cats, 5 dogs, so p₁<sup>root</sup> = 0.5, H = 1) comparing all three candidate features:</p>
+
+<table>
+  <tr><th>Split feature</th><th>Left (p₁, H)</th><th>Right (p₁, H)</th><th>Weighted entropy</th><th>Information gain</th></tr>
+  <tr><td>Ear shape</td><td>4/5 = 0.8, H≈0.72</td><td>1/5 = 0.2, H≈0.72</td><td>0.72</td><td><strong>0.28</strong></td></tr>
+  <tr><td>Face shape</td><td>4/7≈0.57, H≈0.99</td><td>1/3≈0.33, H≈0.92</td><td>0.97</td><td>0.03</td></tr>
+  <tr><td>Whiskers</td><td>3/4=0.75, H≈0.81</td><td>2/6≈0.33, H≈0.92</td><td>0.88</td><td>0.12</td></tr>
+</table>
+
+<p>Ear shape gives the highest information gain (0.28), so it's chosen as the root split — matching the tree built in Section 2.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> computing the <em>reduction</em> rather than just the raw weighted entropy isn't just cosmetic — it directly enables one of the stopping criteria from Section 2. If the best available information gain at some node is below a small threshold, that's the algorithm's signal that "splitting further isn't worth it," and it can stop and create a leaf instead. You can't express that rule cleanly without first framing the score as a <em>gain</em> relative to not splitting.
+</div>
+
+<h3>General formula</h3>
+<div class="formula">
+Information Gain = H(p₁<sup>root</sup>) &minus; ( w<sup>left</sup>·H(p₁<sup>left</sup>) + w<sup>right</sup>·H(p₁<sup>right</sup>) )
+</div>
+<p>where p₁<sup>root</sup>, p₁<sup>left</sup>, p₁<sup>right</sup> are the fractions of positive (cat) examples in the parent node, left subset, and right subset respectively, and w<sup>left</sup>, w<sup>right</sup> are the fractions of the parent's examples that ended up in each subset.</p>
+
+</section>
+
+<section class="card" id="putting-together">
+<h2>5. Putting it together: the recursive algorithm</h2>
+
+<p>The full decision tree learning algorithm, stated as a loop:</p>
+
+<ol>
+  <li>Start with all training examples at the root node.</li>
+  <li>Calculate information gain for every candidate feature, and pick the one with the highest gain.</li>
+  <li>Split the dataset according to that feature, creating a left branch and a right branch.</li>
+  <li>Keep repeating this splitting process on each new branch — recursively treating each branch as its own smaller "root node" problem — until a stopping criterion is met (100% one class, max depth reached, information gain below threshold, or too few examples left).</li>
+</ol>
+
+<p>This is exactly what "recursive" means here: building the left subtree is the identical procedure as building the whole tree, just restricted to the subset of examples that went left. The same is true for the right subtree. The recursion bottoms out whenever a stopping criterion fires and a leaf gets created instead of another split.</p>
+
+<div class="note">
+  <strong>Note:</strong> it's entirely valid for the algorithm to split on the <em>same feature more than once</em> in different branches (e.g. face shape appearing under both the pointy-ear and floppy-ear branches) if that's what the information-gain comparison favors independently in each branch — the algorithm doesn't remember or forbid reusing a feature name.
+</div>
+
+</section>
+
+<section class="card" id="onehot">
+<h2>6. Features with more than two values: one-hot encoding</h2>
+
+<p>So far, every feature had exactly two possible values (pointy/floppy, round/not round, present/absent). What if a categorical feature can take <em>k</em> possible values — for example, ear shape becomes pointy, floppy, <em>or</em> oval (k = 3)?</p>
+
+<p>One option is to let a single split create three branches instead of two. But the standard approach used here instead is <strong>one-hot encoding</strong>: replace the one k-valued feature with <em>k</em> new binary features, one per possible value.</p>
+
+<p>For ear shape with 3 possible values, you'd create: "is ear shape pointy?", "is ear shape floppy?", "is ear shape oval?" — each is 0 or 1. For any given example, exactly one of these three new features is 1 (the "hot" one) and the rest are 0 — hence the name <em>one-hot</em>.</p>
+
+<div class="formula">
+k possible categorical values &rarr; k new binary (0/1) features, exactly one of which is 1 per example
+</div>
+
+<div class="why">
+  <strong>Why this matters:</strong> after one-hot encoding, every feature is back to being binary — so the exact same splitting, entropy, and information-gain machinery from Sections 3–4 applies with zero modification. One-hot encoding doesn't add new capability to the tree algorithm; it just reshapes the input so the existing algorithm's assumptions (binary-valued features) keep holding.
+</div>
+
+<div class="note">
+  <strong>Note — this isn't tree-specific:</strong> one-hot encoding is a general technique for feeding categorical data into any model that expects numeric inputs, not just decision trees. The same 3 (ear shape) + 1 (face shape) + 1 (whiskers) = 5 one-hot features could equally be fed into logistic regression or a neural network to train a cat classifier.
+</div>
+
+</section>
+
+<section class="card" id="continuous">
+<h2>7. Continuous-valued features</h2>
+
+<p>Now suppose you add a genuinely numeric feature: the animal's <strong>weight</strong> in pounds (cats tend to be lighter than dogs on average, though there's overlap). How does splitting work on a feature that isn't a small set of discrete values?</p>
+
+<p>The approach: pick a <strong>threshold</strong> value <em>t</em>, and split examples into "weight ≤ t" (left) vs. "weight &gt; t" (right). The algorithm needs to search over many candidate thresholds and pick whichever one yields the highest information gain — exactly the same information-gain scoring as before, just applied to a threshold-based split instead of a categorical one.</p>
+
+<p>Worked example from the lecture, comparing three candidate thresholds on weight:</p>
+
+<table>
+  <tr><th>Threshold</th><th>Split produced</th><th>Information gain</th></tr>
+  <tr><td>weight ≤ 8</td><td>2 cats left; 3 cats + 5 dogs right</td><td>0.24</td></tr>
+  <tr><td>weight ≤ 9</td><td>4 cats (all cats) left; 1 cat + 5 dogs right</td><td><strong>0.61</strong></td></tr>
+  <tr><td>weight ≤ 13</td><td>(different split)</td><td>0.40</td></tr>
+</table>
+
+<p>Threshold 9 wins here — it produces the highest information gain of the three, and (per the worked example) also beats every other feature's information gain, so the tree would split on "weight ≤ 9" at that node.</p>
+
+<div class="note">
+  <strong>Which thresholds to actually try:</strong> the standard convention is to sort all training examples by the feature's value, then test the midpoints between each pair of consecutive sorted values as candidate thresholds. With 10 training examples, that produces 9 candidate thresholds to evaluate — you don't need to guess at arbitrary threshold values.
+</div>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the same core algorithm as Sections 4–5 — compute information gain, pick the best option — just with one extra inner loop: instead of "which feature has the best information gain," it becomes "which (feature, threshold) pair has the best information gain," since a continuous feature effectively offers many candidate splits rather than one.
+</div>
+
+</section>
+
+<section class="card" id="regression">
+<h2>8. Regression trees (optional): predicting a number</h2>
+
+<p>Everything so far predicted a category (cat / not cat). A <strong>regression tree</strong> generalizes decision trees to predict a continuous number instead — here, predicting an animal's <strong>weight</strong> as the target output Y (note: in this section weight is the thing being <em>predicted</em>, not an input feature as it was in Section 7).</p>
+
+<h3>What variance is, and why it replaces entropy here</h3>
+
+<div class="note">
+  <strong>Definition — variance:</strong> variance is a statistical measure of how spread out, or how widely dispersed, a set of numbers is around their average. A set of numbers that are all close together has low variance; a set of numbers spanning a wide range has high variance. Formally, for a set of values y⁽¹⁾, ..., y⁽ᵐ⁾ with mean ȳ, variance is the average of the squared deviations from the mean:
+  <div class="formula">
+  Variance = (1/m) &sum;<sub>i=1</sub><sup>m</sup> (y<sup>(i)</sup> &minus; ȳ)²
+  </div>
+  You don't need to hand-compute this for the course — the key intuitive point is just: <strong>low variance = the numbers are clustered tightly; high variance = the numbers are scattered widely.</strong>
+</div>
+
+<p>For classification, entropy measured impurity of class labels. For regression, there's no notion of "class label" to be pure or impure about — instead, what you want each leaf's group of examples to have in common is a <em>similar target value</em>. So regression trees use <strong>variance</strong> in place of entropy: a good split is one where the weights within each resulting branch are tightly clustered (low variance), rather than one where the class labels are pure.</p>
+
+<p>Concretely, from the lecture's data: one candidate split produced a left branch with weights {7.2, 9.2, 8.4, 7.6, 10.2} — variance 1.47 (tightly clustered) — versus a different split's branch of {8.8, 15, 11, 18, 20} — variance 21.87 (widely spread). Lower variance means the examples in that branch agree with each other much more about what the target value should be, which is exactly what you want a leaf's prediction to be able to rely on.</p>
+
+<h3>Reduction in variance (the regression analogue of information gain)</h3>
+
+<p>Just as classification didn't use raw weighted entropy but the <em>reduction</em> relative to the parent (information gain), regression trees use the <strong>reduction in variance</strong>:</p>
+
+<div class="formula">
+Reduction in Variance = Variance(root) &minus; ( w<sup>left</sup>·Variance(left) + w<sup>right</sup>·Variance(right) )
+</div>
+
+<p>Worked example — root node variance (all 10 weights together) = 20.51:</p>
+
+<table>
+  <tr><th>Split feature</th><th>Left variance, w<sup>left</sup></th><th>Right variance, w<sup>right</sup></th><th>Reduction in variance</th></tr>
+  <tr><td>Ear shape</td><td>1.47, 5/10</td><td>21.87, 5/10</td><td><strong>8.84</strong></td></tr>
+  <tr><td>Face shape</td><td>27.80, 7/10</td><td>1.37, 3/10</td><td>0.64</td></tr>
+  <tr><td>Whiskers</td><td>0.75, 4/10</td><td>23.32, 6/10</td><td>6.22</td></tr>
+</table>
+
+<p>Ear shape gives the largest reduction in variance (8.84), so it's chosen as the root split for the regression tree — the exact same "pick whichever candidate maximizes the reduction score" logic as classification, just with variance in place of entropy.</p>
+
+<h3>How predictions are made at the leaves</h3>
+
+<p>Once the tree is fully built and a new test example reaches a leaf, the predicted weight is simply the <strong>average of the training-set weights that landed in that same leaf during training</strong>. For example, a leaf containing training weights 7.2, 9.2, 7.6, and 10.2 would predict their average, 8.35 lbs, for any new animal routed to that same leaf.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the core conceptual shift from classification to regression trees — a classification leaf answers "what class is this?" by majority vote / purity, while a regression leaf answers "what value is this?" by averaging. Everything else about the tree — the recursive splitting structure, comparing candidate features, stopping criteria — carries over unchanged; only the impurity measure (variance instead of entropy) and the leaf's prediction rule (average instead of majority class) differ.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of variance the way you'd think about a group of people's guesses on a trivia question. If everyone in the group guessed answers clustered tightly around the true value, that group is "low variance" and you can trust their average. If their guesses are all over the place, the group is "high variance" and the average is a much shakier prediction. A regression tree is built specifically to keep sorting examples into groups whose target values agree with each other as tightly as possible.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>9. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>Role</th></tr>
+  <tr><td>Root / decision / leaf nodes</td><td>Structure of the tree: where questions are asked (root, decision nodes) vs. where predictions are made (leaves)</td></tr>
+  <tr><td>Entropy H(p₁)</td><td>Measures impurity of a set for classification; 0 = pure, 1 = maximally mixed</td></tr>
+  <tr><td>Information gain</td><td>Reduction in entropy from a candidate split — the score used to choose which feature (classification) to split on</td></tr>
+  <tr><td>One-hot encoding</td><td>Converts a k-valued categorical feature into k binary features so the standard algorithm still applies</td></tr>
+  <tr><td>Threshold splits</td><td>How continuous-valued features are handled — search candidate thresholds, score each by information gain</td></tr>
+  <tr><td>Variance</td><td>Measures spread of numeric target values within a set — the regression-tree analogue of entropy</td></tr>
+  <tr><td>Reduction in variance</td><td>The regression-tree analogue of information gain — score used to choose splits when predicting a number</td></tr>
+  <tr><td>Stopping criteria</td><td>Node is pure / max depth reached / gain below threshold / too few examples — all exist to limit overfitting</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Common point of confusion to avoid:</strong> entropy/information gain and variance/reduction-in-variance are not two different algorithms — they are the same recursive splitting procedure, just paired with the impurity measure appropriate to the task (categorical labels vs. numeric targets). If you understand one, you understand the structure of the other; only the formula for "how impure/spread out is this set" changes.
+</div>
+
+</section>
+
+</div>
+</body>
+</html>

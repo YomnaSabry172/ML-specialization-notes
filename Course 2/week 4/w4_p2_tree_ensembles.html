@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 2, Week 4 (Part 2) — Tree Ensembles, Random Forest, XGBoost</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tree Ensembles, Random Forest &amp; XGBoost</h1>
+  <p>Course 2, Week 4 (Part 2) — Why one tree isn't enough, how ensembles are built, boosting, decision trees vs. neural networks, and the practice lab</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#weakness">Why a single tree isn't robust</a></li>
+    <li><a href="#ensemble">Tree ensembles: voting instead of one answer</a></li>
+    <li><a href="#sampling">Sampling with replacement</a></li>
+    <li><a href="#randomforest">The random forest algorithm</a></li>
+    <li><a href="#randomizing">Randomizing the feature choice</a></li>
+    <li><a href="#xgboost">XGBoost: boosting and deliberate practice</a></li>
+    <li><a href="#dtvsnn">Decision trees vs. neural networks</a></li>
+    <li><a href="#lab">Practice lab: implementing all three in scikit-learn</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="weakness">
+<h2>1. Why a single tree isn't robust</h2>
+
+<p>A single decision tree has a serious weakness: it can be <strong>highly sensitive to small changes in the training data</strong>. In the cat classification example, changing just <em>one</em> of the 10 training examples (a single cat's features) is enough to flip which feature gives the highest information gain at the root — from ear shape to whiskers. That one swap cascades: the entire left and right subtrees built recursively from that root end up completely different.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> a model whose output can flip dramatically because of one different training example isn't trustworthy — it suggests the tree is latching onto something fragile in this particular dataset rather than a genuinely stable pattern. The fix isn't to make one tree "more careful" — it's to stop relying on any single tree's decision at all.
+</div>
+
+</section>
+
+<section class="card" id="ensemble">
+<h2>2. Tree ensembles: voting instead of one answer</h2>
+
+<p>The fix is to build <strong>many</strong> decision trees — a <strong>tree ensemble</strong> — and let them vote. Given a new test example, you run it through every tree in the ensemble and take the <strong>majority vote</strong> of their predictions as the final answer.</p>
+
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .n { fill:#fff; stroke:#333; stroke-width:2; }
+    .lbl { font-family: Georgia, serif; font-size:15px; fill:#222; }
+    .edge { stroke:#555; stroke-width:1.5; fill:none; }
+    .pred { font-family: Georgia, serif; font-size:15px; font-weight:bold; fill:#0a1f44; }
+  </style>
+  <!-- Tree 1 -->
+  <ellipse class="n" cx="110" cy="45" rx="55" ry="24"/>
+  <text class="lbl" x="110" y="50" text-anchor="middle">Whiskers</text>
+  <line class="edge" x1="110" y1="69" x2="70" y2="115"/>
+  <line class="edge" x1="110" y1="69" x2="180" y2="115"/>
+  <ellipse class="n" cx="70" cy="140" rx="50" ry="22"/>
+  <text class="lbl" x="70" y="145" text-anchor="middle">Ear shape</text>
+  <rect class="n" x="150" y="120" width="70" height="40"/>
+  <text class="lbl" x="185" y="145" text-anchor="middle">Not cat</text>
+  <line class="edge" x1="70" y1="162" x2="45" y2="205"/>
+  <line class="edge" x1="70" y1="162" x2="105" y2="205"/>
+  <rect class="n" x="15" y="205" width="60" height="38"/>
+  <text class="lbl" x="45" y="228" text-anchor="middle">Cat</text>
+  <rect class="n" x="80" y="205" width="70" height="38"/>
+  <text class="lbl" x="115" y="228" text-anchor="middle">Not cat</text>
+  <text class="pred" x="90" y="275" text-anchor="middle">Vote: Cat</text>
+
+  <!-- Tree 2 -->
+  <ellipse class="n" cx="450" cy="45" rx="55" ry="24"/>
+  <text class="lbl" x="450" y="50" text-anchor="middle">Ear shape</text>
+  <line class="edge" x1="450" y1="69" x2="390" y2="115"/>
+  <line class="edge" x1="450" y1="69" x2="510" y2="115"/>
+  <ellipse class="n" cx="390" cy="140" rx="52" ry="22"/>
+  <text class="lbl" x="390" y="145" text-anchor="middle">Face shape</text>
+  <ellipse class="n" cx="510" cy="140" rx="52" ry="22"/>
+  <text class="lbl" x="510" y="145" text-anchor="middle">Whiskers</text>
+  <line class="edge" x1="390" y1="162" x2="360" y2="205"/>
+  <line class="edge" x1="390" y1="162" x2="420" y2="205"/>
+  <rect class="n" x="325" y="205" width="70" height="38"/>
+  <text class="lbl" x="360" y="228" text-anchor="middle">Not cat</text>
+  <rect class="n" x="400" y="205" width="70" height="38"/>
+  <text class="lbl" x="435" y="228" text-anchor="middle">Not cat</text>
+  <line class="edge" x1="510" y1="162" x2="480" y2="205"/>
+  <line class="edge" x1="510" y1="162" x2="545" y2="205"/>
+  <rect class="n" x="480" y="205" width="60" height="38"/>
+  <text class="lbl" x="510" y="228" text-anchor="middle">Cat</text>
+  <rect class="n" x="550" y="205" width="70" height="38"/>
+  <text class="lbl" x="585" y="228" text-anchor="middle">Not cat</text>
+  <text class="pred" x="435" y="275" text-anchor="middle">Vote: Not cat</text>
+
+  <!-- Tree 3 -->
+  <ellipse class="n" cx="790" cy="45" rx="55" ry="24"/>
+  <text class="lbl" x="790" y="50" text-anchor="middle">Face shape</text>
+  <line class="edge" x1="790" y1="69" x2="740" y2="115"/>
+  <line class="edge" x1="790" y1="69" x2="850" y2="115"/>
+  <rect class="n" x="705" y="115" width="65" height="38"/>
+  <text class="lbl" x="737" y="138" text-anchor="middle">Cat</text>
+  <ellipse class="n" cx="850" cy="140" rx="50" ry="22"/>
+  <text class="lbl" x="850" y="145" text-anchor="middle">Whiskers</text>
+  <line class="edge" x1="850" y1="162" x2="820" y2="205"/>
+  <line class="edge" x1="850" y1="162" x2="880" y2="205"/>
+  <rect class="n" x="790" y="205" width="60" height="38"/>
+  <text class="lbl" x="820" y="228" text-anchor="middle">Cat</text>
+  <rect class="n" x="855" y="205" width="70" height="38"/>
+  <text class="lbl" x="890" y="228" text-anchor="middle">Not cat</text>
+  <text class="pred" x="805" y="275" text-anchor="middle">Vote: Cat</text>
+</svg>
+<p class="svg-caption">Three trees in an ensemble, each trained slightly differently, voting on the same new test example. Majority vote here: 2 "Cat" vs. 1 "Not cat" &rarr; final prediction is Cat.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> voting is precisely what neutralizes the fragility from Section 1. Any single tree still has the same sensitivity to small data changes as before — but now it only contributes <em>one vote out of many</em>. If one tree flips its answer due to some quirk, the majority of the other trees can still carry the correct prediction through. This directly makes the overall algorithm more <strong>robust</strong>.
+</div>
+
+<div class="warning">
+  <strong>The obvious question this raises:</strong> if you train the exact same algorithm on the exact same 10 examples multiple times, you'd just get the exact same tree every time — that gives you no diversity to vote across. You need a way to generate <em>meaningfully different but still reasonable</em> training sets from your one original dataset. That's exactly what Section 3 (sampling with replacement) solves.
+</div>
+
+</section>
+
+<section class="card" id="sampling">
+<h2>3. Sampling with replacement</h2>
+
+<p>The lecture's own demonstration: imagine four colored tokens — red, yellow, green, blue — in a bag. To sample <strong>with replacement</strong>, you reach in, draw one token (say, green), <strong>put it back in the bag</strong>, shake, and draw again. Because the token goes back in before the next draw, you might draw the same color twice (e.g. green, yellow, blue, blue) and might not draw some color at all (no red, in that example).</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> this is exactly like rolling a die repeatedly rather than dealing cards from a shrinking deck. Each "draw" doesn't reduce what's available for the next draw — every draw is independent and drawn from the full original set again.
+</div>
+
+<p>Applied to building a tree ensemble: take your original <em>m</em> training examples (10 cats/dogs), and generate a <strong>new training set of the same size <em>m</em></strong> by drawing examples one at a time <em>with replacement</em> from the original set. The resulting new training set will:</p>
+
+<ul>
+  <li>be the same size as the original (10 examples),</li>
+  <li>contain some <strong>repeated</strong> examples (since a given original example can be drawn more than once), and</li>
+  <li><strong>not</strong> contain all of the original examples (since some may never get drawn at all).</li>
+</ul>
+
+<div class="why">
+  <strong>Why this matters:</strong> this construction is exactly what solves the "meaningfully different but still reasonable" problem flagged in Section 2. Each newly-sampled training set is drawn from the same underlying distribution as the original (so a tree trained on it is still a plausible model of the same problem), but it isn't identical to the original (so different trees end up seeing slightly different data, and therefore end up making slightly different splits). That's the building block the random forest algorithm (Section 4) uses directly.
+</div>
+
+</section>
+
+<section class="card" id="randomforest">
+<h2>4. The random forest algorithm</h2>
+
+<p>Putting sampling with replacement to work, here's the base ensemble-building procedure, given a training set of size <em>m</em>:</p>
+
+<div class="formula">
+For b = 1 to B:<br>
+&nbsp;&nbsp;Use sampling with replacement to create a new training set of size m<br>
+&nbsp;&nbsp;Train a decision tree on this new dataset
+</div>
+
+<p>You repeat this <em>B</em> times, ending up with <em>B</em> different decision trees. A typical choice for <em>B</em> is around <strong>64–128</strong> (roughly 100). Setting <em>B</em> larger never hurts accuracy, but returns diminish quickly past ~100 — going to, say, 1000 trees mostly just slows down computation without meaningfully improving predictions.</p>
+
+<p>This base procedure — repeatedly sampling with replacement and training a tree each time — is sometimes called a <strong>bagged decision tree</strong> (the name comes from that "put it in a bag" sampling procedure; conventionally written with a lowercase <em>b</em> for the loop counter and uppercase <em>B</em> for the total count, both standing for "bag").</p>
+
+<div class="note">
+  <strong>Note:</strong> bagging alone already helps, but there's one more refinement that turns "bagged decision trees" specifically into the <strong>random forest</strong> algorithm — covered next.
+</div>
+
+</section>
+
+<section class="card" id="randomizing">
+<h2>5. Randomizing the feature choice</h2>
+
+<p>A remaining weakness with plain bagging: even though each tree trains on a slightly different sampled dataset, it's common for many or even <em>all</em> of the B trees to independently land on the <strong>same feature</strong> at the root node (and near the root), especially when one feature is a genuinely strong predictor. If all your trees agree at the top, they're not really diverse — and their votes become correlated rather than independent, undermining the whole point of ensembling.</p>
+
+<p>The random forest's fix: at <strong>every node</strong>, when choosing which feature to split on, if <em>n</em> total features are available, restrict the algorithm to a <strong>random subset of k &lt; n</strong> features, and let it pick the best (highest information gain) feature <strong>only from within that subset</strong> — not from all <em>n</em>.</p>
+
+<div class="formula">
+Typical choice: k = &radic;n
+</div>
+
+<p>For example, with <em>n</em> = 3 features (ear shape, face shape, whiskers), this technique doesn't have much room to matter — it's really intended for problems where <em>n</em> is large (tens, hundreds of features), where forcing each split to consider only a random handful of them meaningfully diversifies which feature wins at any given node across different trees.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> randomizing the feature subset at each split forces different trees to explore different "views" of the data, even when trained on similar sampled sets. Combined with sampling with replacement, the random forest algorithm ends up averaging over <em>two</em> independent sources of randomness (which examples, and which features are even considered) — and that's what makes it substantially more robust to small changes in the training set than either a single tree or plain bagging alone. Any one small change to the data has already been "explored" as one of many small variations the ensemble has seen, so it's much less likely to swing the overall (voted) output.
+</div>
+
+</section>
+
+<section class="card" id="xgboost">
+<h2>6. XGBoost: boosting and deliberate practice</h2>
+
+<p>Random forest builds all <em>B</em> trees independently and somewhat in parallel — each tree doesn't know or care what the others got right or wrong. <strong>Boosting</strong> changes that: trees are built <em>one after another</em>, and each new tree is deliberately steered toward the examples the ensemble-so-far is still getting wrong.</p>
+
+<div class="analogy">
+  <strong>Analogy — deliberate practice:</strong> the lecture draws this directly from music practice. If you're learning a 5-minute piano piece, replaying the whole piece start to finish, over and over, is inefficient. It's far more effective to play through once, identify the specific passages you're still fumbling, and then drill <em>just those passages</em> repeatedly. Boosting applies the same idea to building trees: rather than treating every training example equally on every round, it identifies which examples the model built so far handles badly, and focuses the next tree's training more heavily on exactly those.
+</div>
+
+<h3>How the "reweighting" actually works, step by step</h3>
+
+<p>The boosting procedure modifies the sampling-with-replacement loop from Section 4 as follows:</p>
+
+<div class="formula">
+For b = 1 to B:<br>
+&nbsp;&nbsp;Use sampling with replacement to create a new training set of size m<br>
+&nbsp;&nbsp;<span style="color:#d98a2b">But instead of picking from all m examples with equal (1/m) probability, make it more likely to pick misclassified examples from previously trained trees</span><br>
+&nbsp;&nbsp;Train a decision tree on this new dataset
+</div>
+
+<ol>
+  <li><strong>First tree (b = 1):</strong> built the ordinary way — sampling with replacement, every one of the <em>m</em> original examples equally likely to be picked (probability 1/m each).</li>
+  <li><strong>Evaluate:</strong> take the tree(s) built so far and run them (as an ensemble, if b &gt; 1) against the <em>original</em> training set (not a resampled one). Mark each example as correctly or incorrectly classified.</li>
+  <li><strong>Second tree onward (b = 2, 3, ..., B):</strong> when sampling with replacement to build the next training set, the examples that are <strong>still being misclassified</strong> by trees 1 through b&minus;1 are given a <strong>higher probability of being picked</strong> than the examples already being handled correctly. So the new sampled training set is skewed to contain more copies of the "hard" examples.</li>
+  <li>A new tree is trained on this reweighted-and-resampled set — meaning it disproportionately sees the examples the ensemble is currently failing on, and is therefore pushed to learn splits that help specifically with those.</li>
+</ol>
+
+<div class="why">
+  <strong>Why this matters — this is the part you specifically flagged:</strong> the reweighting is what turns "just building more trees" into "building trees that each patch a specific weakness of the ensemble so far." A plain bagged ensemble or random forest builds each tree blind to what the others got wrong; a boosted ensemble builds each new tree with its attention <em>directed</em> at the current failure cases, which is why boosting tends to converge to a stronger ensemble with fewer trees than un-directed bagging. The lecture is explicit that the precise mathematical rule for exactly <em>how much</em> more likely a misclassified example becomes is fairly complex — but you do not need those details to use a boosted-tree implementation effectively.
+</div>
+
+<div class="note">
+  <strong>Note — how XGBoost specifically implements this:</strong> rather than literally re-running the sampling-with-replacement procedure with adjusted probabilities each round, XGBoost instead assigns different <strong>weights</strong> directly to different training examples (larger weight = more influence during that round's tree training on examples still being missed). This achieves the same "focus on what's still wrong" effect described above, without needing to actually generate a large number of randomly resampled datasets — which is part of why XGBoost is fast. The underlying intuition — deliberately practicing the hard parts — is unchanged; only the mechanism for expressing "pay more attention to this example" differs (a weight, rather than a resampling probability).
+</div>
+
+<h3>XGBoost in practice</h3>
+
+<p>XGBoost stands for e<strong>X</strong>treme <strong>G</strong>radient <strong>Boost</strong>ing. It is by far the most commonly used decision-tree-ensemble implementation today — fast, open-source, and a frequent winner in both machine learning competitions (e.g. Kaggle) and commercial applications (XGBoost and deep learning are cited as the two algorithm families that dominate competition wins). Beyond the boosting mechanism itself, XGBoost also ships with good default choices for splitting criteria and stopping criteria, and has <strong>built-in regularization</strong> to help control overfitting.</p>
+
+<p>Usage is nearly identical for classification and regression — only the class name changes:</p>
+
+<pre>Classification                          Regression
+from xgboost import XGBClassifier       from xgboost import XGBRegressor
+
+model = XGBClassifier()                 model = XGBRegressor()
+model.fit(X_train, y_train)             model.fit(X_train, y_train)
+y_pred = model.predict(X_test)          y_pred = model.predict(X_test)</pre>
+
+</section>
+
+<section class="card" id="dtvsnn">
+<h2>7. Decision trees vs. neural networks</h2>
+
+<p>Both families are powerful, but they suit different situations. This isn't a "which is objectively better" comparison — it's about matching the tool to the data and constraints you have.</p>
+
+<table>
+  <tr><th></th><th>Decision Trees / Tree Ensembles</th><th>Neural Networks</th></tr>
+  <tr>
+    <td><strong>Best data type</strong></td>
+    <td>Tabular / structured data — data that looks like a spreadsheet (rows = examples, columns = features, whether categorical or continuous)</td>
+    <td>Works well on <em>all</em> data types: tabular, and also unstructured data (images, video, audio, text), and mixes of both</td>
+  </tr>
+  <tr>
+    <td><strong>Unstructured data</strong> (images/audio/text)</td>
+    <td>Not recommended</td>
+    <td>Preferred choice</td>
+  </tr>
+  <tr>
+    <td><strong>Training speed</strong></td>
+    <td>Fast</td>
+    <td>Can be slower, especially large networks</td>
+  </tr>
+  <tr>
+    <td><strong>Interpretability</strong></td>
+    <td>A single small tree (a few dozen nodes) can be printed and read by a human — though this is somewhat overstated once you have an ensemble of 100 large trees, which becomes just as hard to inspect directly and may need separate visualization tooling</td>
+    <td>Generally treated as a "black box"</td>
+  </tr>
+  <tr>
+    <td><strong>Transfer learning</strong></td>
+    <td>Not applicable / not typically used</td>
+    <td>Works — critical when you only have a small dataset for your specific task, since you can pretrain on a much larger related dataset first</td>
+  </tr>
+  <tr>
+    <td><strong>Stringing multiple models together</strong></td>
+    <td>Harder — you can only train one decision tree at a time</td>
+    <td>Easier — multiple networks chained together can still all be trained jointly via gradient descent</td>
+  </tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is a practical decision-making guide, not a theoretical ranking. If your data is genuinely tabular (the heart-disease dataset in this week's lab is a good example — patient age, blood pressure, cholesterol, categorical symptoms, etc.), trees and neural networks are often <em>competitive</em> with each other, and trees have the edge in training speed. The moment your data includes images, audio, or raw text, neural networks become the clear preferred choice, because trees have no natural way to exploit that kind of structure.
+</div>
+
+<div class="note">
+  <strong>Practical recommendation from the lecture:</strong> if you've decided a tree-based approach fits your problem, use a tree <strong>ensemble</strong> rather than a single tree in almost all cases — and specifically, default to <strong>XGBoost</strong> for most applications. A single tree is only preferable under a genuinely tight computational budget, since an ensemble is inherently more expensive to train and run than one tree.
+</div>
+
+<p>Both decision trees and neural networks fit into the same overall iterative development loop covered in Week 3 — choose architecture (model, data, etc.) &rarr; train model &rarr; run diagnostics (bias, variance, error analysis) &rarr; adjust &rarr; repeat. Because tree-based models train fast, that loop can typically be cycled through more quickly when using trees, which is itself a practical advantage during model development, independent of final accuracy.</p>
+
+</section>
+
+<section class="card" id="lab">
+<h2>8. Practice lab: implementing all three in scikit-learn</h2>
+
+<p>The lab uses a real tabular dataset — the <strong>Heart Failure Prediction</strong> dataset (11 patient features such as age, sex, chest pain type, resting blood pressure, cholesterol, and others, predicting a binary <code>HeartDisease</code> label) — and walks through building a <code>DecisionTreeClassifier</code>, a <code>RandomForestClassifier</code>, and an <code>XGBClassifier</code>, all from scikit-learn/XGBoost, on the same data.</p>
+
+<h3>Step 1 — One-hot encoding with pandas</h3>
+<p>Five of the eleven features are categorical with more than two possible values (Sex, ChestPainType, RestingECG, ExerciseAngina, ST_Slope), so they need one-hot encoding before any of these models can use them (matching Section 6 of Part 1). Rather than hand-building the binary columns, pandas' built-in <code>pd.get_dummies</code> does it directly:</p>
+
+<pre>cat_variables = ['Sex', 'ChestPainType', 'RestingECG',
+                 'ExerciseAngina', 'ST_Slope']
+
+# Replaces each categorical column with its one-hot encoded columns;
+# non-categorical columns are left untouched.
+df = pd.get_dummies(data = df,
+                     prefix = cat_variables,
+                     columns = cat_variables)</pre>
+
+<div class="note">
+  <strong>Note:</strong> binary features (already 0/1, or already only two categories) don't need one-hot encoding — encoding them would just recreate the same information in a different shape. The lab only applies <code>get_dummies</code> to the variables that have <strong>3 or more</strong> distinct values, consistent with the "k possible values &rarr; k binary features" rule from Part 1, Section 6.
+</div>
+
+<h3>Step 2 — Splitting the dataset</h3>
+<pre>X_train, X_val, y_train, y_val = train_test_split(
+    df[features], df['HeartDisease'],
+    train_size = 0.8, random_state = RANDOM_STATE)</pre>
+<p>An 80/20 train/validation split, with <code>random_state</code> fixed for reproducibility (this is the <code>RANDOM_STATE = 55</code> passed to every sklearn call in the notebook).</p>
+
+<h3>Step 3 — Decision tree, and tuning against overfitting</h3>
+<p>Two hyperparameters are swept one at a time to see their effect on train vs. validation accuracy:</p>
+<ul>
+  <li><code>min_samples_split</code> — the minimum number of examples required at a node before it's allowed to split further. <strong>Higher</strong> values reduce the number of splits and help reduce overfitting.</li>
+  <li><code>max_depth</code> — the maximum depth the tree is allowed to reach. <strong>Lower</strong> values also reduce splits and help reduce overfitting.</li>
+</ul>
+<pre>model = DecisionTreeClassifier(min_samples_split = min_samples_split,
+                                random_state = RANDOM_STATE).fit(X_train, y_train)</pre>
+<p>The lab's finding: pushing <code>max_depth</code> too low (below ~3) causes <strong>underfitting</strong> — both train and validation accuracy drop, because the tree can't make enough splits to separate the classes. Pushing it too high (&ge;5 or so) causes <strong>overfitting</strong> — training accuracy climbs while validation accuracy falls. The chosen sweet spot in the lab: <code>max_depth = 4</code>, <code>min_samples_split = 50</code>.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is a direct, hands-on instance of the bias/variance tradeoff from Week 3 — too shallow a tree underfits (high bias), too deep a tree overfits (high variance) — with <code>max_depth</code> and <code>min_samples_split</code> acting as the tuning knobs that trade one against the other.
+</div>
+
+<h3>Step 4 — Random forest</h3>
+<p>Same hyperparameters apply (since a random forest is just an ensemble of decision trees), plus one new one: <code>n_estimators</code> — the number of trees in the forest (<em>B</em> from Section 4).</p>
+<pre>random_forest_model = RandomForestClassifier(n_estimators = 100,
+                                              max_depth = 16,
+                                              min_samples_split = 10).fit(X_train, y_train)</pre>
+<p>Two implementation notes worth keeping in mind:</p>
+<ul>
+  <li><code>max_features</code> controls the k-out-of-n randomized feature subset from Section 5 (default behavior already implements the k = &radic;n idea).</li>
+  <li><code>n_jobs</code> lets multiple trees be trained in parallel across CPU cores, since fitting each tree is independent of the others — this only affects training <em>speed</em>, not the final result.</li>
+</ul>
+
+<h3>Step 5 — XGBoost, with early stopping</h3>
+<p>XGBoost adds one more important parameter beyond what a plain tree/forest has: the <strong>learning rate</strong> — the step size used internally by the gradient descent XGBoost runs to minimize error at each boosting round.</p>
+<p>A distinctive and very practical XGBoost feature: it can take a separate evaluation set during <code>.fit()</code> and stop training automatically once further rounds stop helping:</p>
+<pre>n = int(len(X_train) * 0.8)  # 80% to actually fit, 20% held out to monitor
+X_train_fit, X_train_eval, y_train_fit, y_train_eval = (
+    X_train[:n], X_train[n:], y_train[:n], y_train[n:])
+
+xgb_model = XGBClassifier(n_estimators = 500, learning_rate = 0.1,
+                           verbosity = 1, random_state = RANDOM_STATE)
+xgb_model.fit(X_train_fit, y_train_fit,
+              eval_set = [(X_train_eval, y_train_eval)],
+              early_stopping_rounds = 10)</pre>
+
+<div class="note">
+  <strong>How <code>early_stopping_rounds</code> actually behaves:</strong> even though <code>n_estimators = 500</code> allows up to 500 trees, the model tracks whichever round so far had the <em>best</em> (lowest) evaluation metric. If 10 consecutive rounds pass without beating that best score, training stops early. In the lab's run, the best round was round 16, and training stopped at round 26 (16 + 10) — meaning only 26 trees were actually built, not 500. Important detail: the model returned is the one from the <em>stopping</em> round (26), not the best round (16) — so <code>early_stopping_rounds</code> is a stopping condition, not an automatic "roll back to the best checkpoint" mechanism.
+</div>
+
+<div class="why">
+  <strong>Why this matters:</strong> more boosting rounds means more estimators, and more estimators can eventually mean overfitting — this is boosting's own version of the same overfitting risk that <code>max_depth</code> and <code>min_samples_split</code> manage for a single tree. Early stopping is a practical, largely automatic way to cap the number of rounds right around where validation performance stops improving, without you having to hand-tune <code>n_estimators</code> by trial and error.
+</div>
+
+<h3>Comparing all three</h3>
+<p>All three models expose the same basic interface (<code>.fit(X_train, y_train)</code>, <code>.predict(X)</code>), so comparing them is just a matter of computing <code>accuracy_score</code> on train and validation sets for each. In the lab's run, the tuned decision tree, tuned random forest, and XGBoost end up in a similar ballpark on validation accuracy for this dataset — consistent with Section 7's point that trees and neural networks (and, by extension, different tree-ensemble variants) are often competitive with each other on genuinely tabular data.</p>
+
+</section>
+
+<section class="card" id="summary">
+<h2>9. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>Role</th></tr>
+  <tr><td>Tree ensemble</td><td>Multiple trees voting together — fixes a single tree's sensitivity to small data changes</td></tr>
+  <tr><td>Sampling with replacement</td><td>Draws a new same-size training set from the original, with repeats possible — the mechanism that makes each tree in the ensemble see slightly different data</td></tr>
+  <tr><td>Random forest</td><td>Bagging (sampling w/ replacement + train a tree, repeated B times) plus randomizing which k of n features each split is even allowed to consider</td></tr>
+  <tr><td>k = &radic;n</td><td>Typical size of the randomly-chosen feature subset at each split in a random forest</td></tr>
+  <tr><td>Boosting / XGBoost</td><td>Trees built sequentially, each one focused (via resampling probability, or in XGBoost's case, example weights) on the examples the ensemble-so-far is still misclassifying</td></tr>
+  <tr><td>Decision trees vs. neural networks</td><td>Trees: fast, good for tabular data, ensembles recommended (XGBoost by default). Neural nets: needed for unstructured data, support transfer learning and joint training of chained models</td></tr>
+  <tr><td>Lab hyperparameters</td><td>max_depth / min_samples_split control over/underfitting for a single tree; n_estimators adds tree count for forests; learning_rate + early_stopping_rounds are XGBoost-specific controls</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Don't conflate bagging and boosting:</strong> both build many trees, but bagging (plain random forest) builds them <strong>independently</strong> and in parallel, each blind to the others' mistakes — diversity comes purely from random sampling of data and features. Boosting (XGBoost) builds them <strong>sequentially</strong>, and each new tree is deliberately pointed at the current ensemble's weak spots. This is the single most important distinction between the two families covered this week.
+</div>
+
+</section>
+
+</div>
+</body>
+</html>
