@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 1 (Part 2) — Anomaly Detection</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+  .source-note { font-size: 0.85em; color: #9a978d; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Anomaly Detection</h1>
+  <p>Course 3, Week 1 (Part 2) — Density Estimation, the Gaussian Model, Evaluation, and Feature Engineering</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#finding">Finding unusual events: the density-estimation idea</a></li>
+    <li><a href="#gaussian">The Gaussian (normal) distribution</a></li>
+    <li><a href="#algorithm">The anomaly detection algorithm</a></li>
+    <li><a href="#evaluation">Developing and evaluating an anomaly detection system</a></li>
+    <li><a href="#metrics-recap">Quick recap: precision, recall, and F1 score</a></li>
+    <li><a href="#vs-supervised">Anomaly detection vs. supervised learning</a></li>
+    <li><a href="#features">Choosing what features to use</a></li>
+    <li><a href="#error-analysis">Error analysis and improving the feature set</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="finding">
+<h2>1. Finding unusual events: the density-estimation idea</h2>
+
+<p>Anomaly detection is your second unsupervised learning algorithm. Given an unlabeled dataset of mostly <strong>normal</strong> events, it learns what "normal" looks like, and then flags anything that deviates significantly from that as a possible <strong>anomaly</strong>.</p>
+
+<p>The running example: an aircraft engine manufacturer measures features for every engine it produces — heat generated (x₁), vibration intensity (x₂), and so on. Most manufactured engines are fine; only a small number are flawed. The question for a brand-new engine is: does it look similar to the engines seen before, or does it look weird enough to warrant a closer inspection before it's shipped?</p>
+
+<p>The standard approach is <strong>density estimation</strong>: build a model of <em>p(x)</em> — the probability of seeing a given combination of feature values — directly from the training data. Regions where training examples cluster densely get assigned high probability; regions far from any training data get assigned low probability. Given a new example x_test, you compute p(x_test), and:</p>
+
+<div class="formula">
+if p(x_test) &lt; ε &nbsp;→&nbsp; flag as anomaly<br>
+if p(x_test) ≥ ε &nbsp;→&nbsp; treat as normal
+</div>
+
+<p>(ε, epsilon, is just a small threshold number you choose.)</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> notice this never requires labeled anomalous examples to build the core model — p(x) is learned purely from normal data. That's what makes this unsupervised, and it's also the source of one of anomaly detection's biggest practical strengths (covered in Section 6): the model doesn't need to have seen a specific type of failure before to flag it as unusual.
+</div>
+
+<p>Real-world uses beyond aircraft engines: fraud detection (modeling p(x) over a user's login frequency, page visits, transaction count, typing speed, etc.), manufacturing QA for circuit boards/smartphones/etc., and monitoring machines in a data center or cell towers (memory use, CPU load, network traffic) to catch hardware failures or intrusions before they cause bigger problems.</p>
+
+</section>
+
+<section class="card" id="gaussian">
+<h2>2. The Gaussian (normal) distribution</h2>
+
+<p>To actually build p(x), we need a concrete mathematical model of "probability of a value" — that's the <strong>Gaussian distribution</strong> (also called the normal distribution, or the bell-shaped curve).</p>
+
+<p>For a single number x, the Gaussian distribution is described by two parameters: the mean <strong>μ</strong> (where the curve is centered) and the variance <strong>σ²</strong> (how wide/spread out the curve is; σ itself is the standard deviation).</p>
+
+<div class="formula">
+p(x; μ, σ²) = (1 / √(2πσ²)) · exp( &minus;(x&minus;μ)² / (2σ²) )
+</div>
+
+<p>Changing μ shifts the curve left/right without changing its shape. Changing σ changes the width: a smaller σ gives a taller, narrower curve (values tightly clustered near μ); a larger σ gives a shorter, wider curve (values more spread out). The area under the curve always equals 1, which is why a narrower curve must also be taller.</p>
+
+<p>Given a training set of plain numbers, you estimate μ and σ² directly from the data:</p>
+
+<div class="formula">
+μ = (1/m) &sum;<sub>i=1</sub><sup>m</sup> x⁽ⁱ⁾ &nbsp;&nbsp;&nbsp;&nbsp; σ² = (1/m) &sum;<sub>i=1</sub><sup>m</sup> (x⁽ⁱ⁾ &minus; μ)²
+</div>
+
+<p>(These are just "the average" and "the average squared deviation from the average" — the same quantities you'd compute for any dataset. Note: some statistics courses divide by m&minus;1 instead of m for the variance; in practice this makes almost no difference, and the lectures use 1/m throughout.)</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of μ as "where most values tend to sit" and σ as "how much they typically wander from that." A tight cluster of test scores around 75 has small σ; scores scattered from 20 to 100 have large σ, even if both groups happen to average out to the same μ.
+</div>
+
+</section>
+
+<section class="card" id="algorithm">
+<h2>3. The anomaly detection algorithm</h2>
+
+<p>Real examples have <strong>n</strong> features, not just one — an engine might have heat, vibration, pressure, and more. The algorithm extends the single-number Gaussian idea by modeling <em>each feature separately</em> with its own Gaussian, then multiplying them together:</p>
+
+<div class="formula">
+p(x) = p(x₁; μ₁, σ₁²) · p(x₂; μ₂, σ₂²) · ... · p(xₙ; μₙ, σₙ²) = &prod;<sub>j=1</sub><sup>n</sup> p(xⱼ; μⱼ, σⱼ²)
+</div>
+
+<p>This multiplication assumes the features are <strong>statistically independent</strong> of each other — knowing the value of x₁ tells you nothing about x₂'s value. In practice, the algorithm still tends to work reasonably well even when this assumption is only approximately true; you don't need a deep grasp of statistical independence to use it effectively.</p>
+
+<div class="analogy">
+  <strong>Why multiply, intuitively:</strong> suppose there's a 1-in-10 chance an engine runs unusually hot, and separately a 1-in-20 chance it vibrates unusually hard. The chance that a given engine does <em>both</em> is (1/10) × (1/20) = 1/200 — multiplying captures how much rarer it is for several unusual things to happen together than for any one of them alone.
+</div>
+
+<h3>The algorithm, step by step</h3>
+<ol>
+  <li><strong>Choose n features</strong> x₁, ..., xₙ that you believe might be indicative of anomalies.</li>
+  <li><strong>Fit parameters:</strong> compute μⱼ and σⱼ² for every feature j, using the ordinary mean/variance formulas from Section 2, applied separately to each feature's column of data. (Vectorized: μ is just the average of all the training vectors x⁽ⁱ⁾ at once.)</li>
+  <li><strong>Given a new example x, compute p(x)</strong> using the product formula above, and flag it as an anomaly if p(x) &lt; ε.</li>
+</ol>
+
+<div class="why">
+  <strong>Why this matters — the real intuition behind the whole algorithm:</strong> because p(x) is a <em>product</em> of per-feature probabilities, the overall p(x) becomes very small if <em>even just one</em> feature has a value that's unusually large or unusually small compared to what the model has seen for that feature. In other words, the algorithm is really a systematic way of asking, feature by feature: "is any single one of these values weird on its own?" — and if so, flagging the whole example, even if every other feature looks perfectly ordinary.
+</div>
+
+</section>
+
+<section class="card" id="evaluation">
+<h2>4. Developing and evaluating an anomaly detection system</h2>
+
+<p>This is the part worth slowing down on, because it's where a lot of the practical difficulty in anomaly detection actually lives.</p>
+
+<h3>Why you need "real-number evaluation" at all</h3>
+<p>When you're tuning an anomaly detection system — trying different features, adjusting ε — every one of those decisions is much easier to make correctly if you have a single number that tells you whether the change made things better or worse. Without that, you're just guessing.</p>
+
+<h3>Where the labels come from</h3>
+<p>Anomaly detection is fundamentally unsupervised — you fit p(x) using only unlabeled data, treated as if it's all normal (y = 0). But in practice, you usually <em>do</em> have a small number of previously confirmed anomalies lying around (a handful of known-flawed engines, say). The trick is to reserve those labeled examples specifically for <strong>evaluation</strong>, not for fitting p(x) itself:</p>
+
+<div class="formula">
+Training set: x⁽¹⁾, ..., x⁽ᵐ⁾ &nbsp;(assume ALL normal — y = 0 for every training example, even if a few anomalies accidentally slip in)<br><br>
+Cross-validation set: (x_cv⁽¹⁾, y_cv⁽¹⁾), ..., (x_cv⁽ᵐᶜᵛ⁾, y_cv⁽ᵐᶜᵛ⁾) &nbsp;— mostly normal (y=0), plus a few known anomalies (y=1)<br>
+Test set: (x_test⁽¹⁾, y_test⁽¹⁾), ..., (x_test⁽ᵐᵗᵉˢᵗ⁾, y_test⁽ᵐᵗᵉˢᵗ⁾) &nbsp;— same structure as the CV set
+</div>
+
+<h3>Worked example: 10,000 engines</h3>
+<p>Say you've manufactured 10,000 good engines and have 20 known-flawed ones on record. A typical split:</p>
+
+<table>
+  <tr><th>Set</th><th>Normal (y=0)</th><th>Anomalous (y=1)</th><th>Purpose</th></tr>
+  <tr><td>Training</td><td>6,000</td><td>0 (assumed all normal)</td><td>Fit the Gaussian parameters μ, σ²</td></tr>
+  <tr><td>Cross-validation</td><td>2,000</td><td>10</td><td>Tune ε, tune which features xⱼ to use</td></tr>
+  <tr><td>Test</td><td>2,000</td><td>10</td><td>Final, unbiased evaluation after tuning is done</td></tr>
+</table>
+
+<div class="note">
+  <strong>Note:</strong> it's fine if a genuine anomaly accidentally ends up in the unlabeled training set — the algorithm will typically still do okay, since it's the overwhelming majority of normal examples that shapes the fitted Gaussian.
+</div>
+
+<h3>The "no test set" alternative</h3>
+<p>When you have <em>very</em> few labeled anomalies (say, only 2), splitting them further into both a CV set and a separate test set leaves you with almost nothing in either. In that case, a common alternative is to skip the test set entirely and put all your labeled anomalies into the cross-validation set alone (e.g., train on 6,000 good engines; CV on the remaining 4,000 good engines plus all 20 anomalies).</p>
+
+<div class="warning">
+  <strong>The trade-off with this alternative:</strong> you can still tune ε and your features using the CV set, but you lose any independent, unbiased way to measure how the final system will perform on genuinely new data — because every decision you made was tuned against the very same set you'd otherwise use to check yourself. This raises real risk of overfitting your choices (of ε, of which features to include) specifically to that CV set, so its reported performance may be optimistic compared to what you'll actually see later. Use this fallback only when you truly don't have enough labeled anomalies to do otherwise.
+</div>
+
+<h3>The actual evaluation procedure</h3>
+<ol>
+  <li>Fit p(x) on the training set only.</li>
+  <li>For each cross-validation (or test) example x, predict: <code>y = 1 if p(x) &lt; ε, else y = 0</code>.</li>
+  <li>Compare these predictions against the true labels y_cv to see how well the algorithm is actually doing.</li>
+</ol>
+
+<div class="why">
+  <strong>Why plain accuracy is the wrong metric here:</strong> in the worked example, the CV set has 2,000 normal examples and only 10 anomalies — a massively <strong>skewed</strong> (imbalanced) dataset. A do-nothing classifier that labels every single example "normal" would already score roughly 2000/2010 ≈ 99.5% accuracy while catching zero anomalies — which is exactly the failure mode that skewed-data metrics (Section 5) exist to catch. This is the direct continuation of the skewed-datasets discussion from Course 2, Week 3.
+</div>
+
+</section>
+
+<section class="card" id="metrics-recap">
+<h2>5. Quick recap: precision, recall, and F1 score</h2>
+
+<p>You've seen these before, but here's a self-contained recap so this file stands on its own.</p>
+
+<p>Once you've labeled predictions as "anomaly" (1) or "normal" (0) and compared them to the true labels, every prediction falls into one of four buckets:</p>
+
+<table>
+  <tr><th></th><th>Actually anomalous (y=1)</th><th>Actually normal (y=0)</th></tr>
+  <tr><td><strong>Predicted anomaly</strong></td><td>True Positive (TP) — correctly caught</td><td>False Positive (FP) — false alarm</td></tr>
+  <tr><td><strong>Predicted normal</strong></td><td>False Negative (FN) — missed anomaly</td><td>True Negative (TN) — correctly cleared</td></tr>
+</table>
+
+<div class="formula">
+Precision = TP / (TP + FP) &nbsp;&nbsp;&nbsp;&nbsp; Recall = TP / (TP + FN)
+</div>
+
+<ul>
+  <li><strong>Precision</strong> answers: "Of everything I flagged as an anomaly, what fraction actually was one?" Low precision means you're crying wolf a lot — flooding your security/inspection team with false alarms.</li>
+  <li><strong>Recall</strong> answers: "Of all the anomalies that actually existed, what fraction did I actually catch?" Low recall means real problems are slipping through undetected.</li>
+</ul>
+
+<p>These two pull against each other: an extremely cautious threshold (very small ε, flags almost nothing) tends to have high precision but low recall (you rarely cry wolf, but you also miss most real anomalies). A very sensitive threshold (large ε, flags almost everything) does the opposite. Neither number alone tells the full story, which is why the <strong>F1 score</strong> combines them into one number via the harmonic mean:</p>
+
+<div class="formula">
+F1 = 2 · (Precision · Recall) / (Precision + Recall)
+</div>
+
+<div class="why">
+  <strong>Why the harmonic mean and not a plain average:</strong> the harmonic mean punishes a big imbalance between the two numbers much more than an ordinary average would. A model with precision = 1.0 and recall = 0.01 has a plain average of about 0.5 (looks decent) but an F1 of about 0.02 (correctly reveals it's nearly useless) — because it's barely catching any real anomalies at all. F1 forces both precision and recall to actually be reasonably good before it gives you a high score.
+</div>
+
+<div class="note">
+  <strong>How this applies here, specifically:</strong> because the CV/test sets have very few positive (anomalous) examples, precision/recall/F1 — rather than plain accuracy — are what you'd actually compute to decide whether one choice of ε or one choice of features is better than another. Whichever choice gives the higher F1 (or whichever balance of precision/recall matters more for your application — e.g., in aircraft engines you'd likely prioritize recall, since missing a real defect is far costlier than an extra inspection) is the one you keep.
+</div>
+
+</section>
+
+<section class="card" id="vs-supervised">
+<h2>6. Anomaly detection vs. supervised learning</h2>
+
+<p>If you already have some labeled anomalies for evaluation, a natural question is: why not just use those labels to train a supervised classifier instead? The choice is genuinely subtle, and comes down to two related factors.</p>
+
+<table>
+  <tr><th></th><th>Anomaly detection</th><th>Supervised learning</th></tr>
+  <tr>
+    <td><strong>Typical data shape</strong></td>
+    <td>Very few positive (y=1) examples — 0 to 20 is common — and a large number of negative examples</td>
+    <td>A reasonably large number of <em>both</em> positive and negative examples</td>
+  </tr>
+  <tr>
+    <td><strong>Core assumption</strong></td>
+    <td>Future anomalies may look <strong>nothing like</strong> any positive example seen so far — there could be many different, unrelated "types" of anomaly</td>
+    <td>Future positive examples are likely to <strong>resemble</strong> the positive examples already in the training set</td>
+  </tr>
+  <tr>
+    <td><strong>What's actually learned</strong></td>
+    <td>What normal (y=0) data looks like — anything that deviates a lot gets flagged, including entirely new failure modes never seen before</td>
+    <td>A boundary that separates the specific known positive class from the negative class</td>
+  </tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters — the core distinction, restated simply:</strong> anomaly detection asks "does this look like the normal stuff I've seen?" and flags anything that doesn't — so a brand-new kind of failure, never observed before, still gets caught, because it just won't resemble the normal data either. Supervised learning instead asks "does this look like the specific bad examples I was shown?" — so it's well-suited to a problem where the bad cases you'll see in the future look basically like the bad cases you've already collected, but poorly suited to catching a genuinely novel kind of failure your training set never contained.
+</div>
+
+<h3>The examples that make this concrete</h3>
+<table>
+  <tr><th>Application</th><th>Best fit</th><th>Why</th></tr>
+  <tr><td>Financial fraud</td><td>Anomaly detection</td><td>New fraud schemes appear constantly; a scheme invented next year may look nothing like anything in your training data</td></tr>
+  <tr><td>Email spam</td><td>Supervised learning</td><td>Spam keeps promoting similar categories of things (pills, cheap watches, etc.) year after year — future spam resembles past spam closely enough</td></tr>
+  <tr><td>Manufacturing — brand-new, never-seen defect type</td><td>Anomaly detection</td><td>You want to catch failure modes you've never encountered, e.g. a new way an aircraft engine could break</td></tr>
+  <tr><td>Manufacturing — known recurring defect (e.g. scratched phone screens)</td><td>Supervised learning</td><td>You already have plenty of labeled examples of this exact, recurring defect type</td></tr>
+  <tr><td>Data-center machines / security intrusions</td><td>Anomaly detection</td><td>A hacked machine, or a new hacking technique, can behave in a way nothing in the training set resembles</td></tr>
+  <tr><td>Weather prediction, disease classification from known symptoms</td><td>Supervised learning</td><td>A small number of well-understood output categories recur consistently over time</td></tr>
+</table>
+
+<p class="source-note">For additional external framing on this same supervised-vs-unsupervised distinction as applied to anomaly detection specifically, GeeksforGeeks' "Machine Learning for Anomaly Detection" article covers the same split (supervised anomaly detection needing a labeled dataset of both normal and anomalous samples, vs. unsupervised methods that only assume anomalies are rare and statistically different from normal data) from an implementation-focused angle, which can be a useful second pass if this section still feels abstract.</p>
+
+<div class="note">
+  <strong>One more nuance worth keeping in mind:</strong> even with only ~20 labeled positive examples, it might technically be <em>possible</em> to train a supervised model — the deciding factor isn't strictly the count, it's whether you believe future anomalies will resemble your current handful of examples (→ supervised) or could be something entirely new (→ anomaly detection).
+</div>
+
+</section>
+
+<section class="card" id="features">
+<h2>7. Choosing what features to use</h2>
+
+<p>Feature choice matters <em>more</em> for anomaly detection than for supervised learning. In supervised learning, mislabeled or irrelevant features are less damaging because the labels y give the algorithm a strong enough signal to learn what to ignore or how to re-weight things. Anomaly detection has no such signal — it only sees unlabeled data — so it's much harder for the algorithm to "figure out on its own" that a feature is unhelpful. That makes careful, manual feature curation a bigger part of the job here.</p>
+
+<h3>Step 1 — try to make features look more Gaussian</h3>
+<p>Since the whole algorithm models each feature as Gaussian, features that are already roughly bell-shaped tend to work best. The practical workflow: plot a histogram of the feature (<code>plt.hist(x)</code>). If it already looks symmetric and bell-shaped, keep it as-is. If it's skewed (e.g., piles up near zero and tails off to the right), try transforming it and re-plotting until it looks more Gaussian:</p>
+
+<div class="formula">
+x ← log(x) &nbsp;&nbsp; or &nbsp;&nbsp; x ← log(x + c) &nbsp;&nbsp; or &nbsp;&nbsp; x ← √x &nbsp;&nbsp; or &nbsp;&nbsp; x ← x^(1/3) &nbsp;&nbsp; (or other fractional powers)
+</div>
+
+<p>In practice this is trial and error in a notebook: try <code>np.log(x)</code>, look at the histogram, try a different exponent or a different constant <em>c</em>, and keep whichever transform looks most symmetric/bell-shaped. (A larger value of <em>c</em> transforms the distribution less strongly — it's a tunable knob, not a fixed constant.) There exist formal statistical tests for "how Gaussian is this," but in practice, eyeballing a histogram and picking something reasonable works fine for this purpose.</p>
+
+<div class="warning">
+  <strong>Practical gotcha:</strong> <code>log(0)</code> is undefined (negative infinity), so if your feature contains zeros, you'll hit an error taking a raw log — this is exactly why <code>log(x + c)</code> with a small constant <em>c</em> (e.g. 0.001) is used instead of plain <code>log(x)</code>.
+</div>
+
+<div class="warning">
+  <strong>Don't forget:</strong> whatever transformation you apply to a feature in the training set, you must apply the exact same transformation to that feature in the cross-validation and test sets too — otherwise you're comparing p(x) computed on inconsistent scales.
+</div>
+
+<h3>Step 2 — engineer features that specifically separate anomalies from normal data</h3>
+<p>Beyond just "make it Gaussian," you want features that will genuinely take on unusual values specifically <em>when</em> something is wrong. Concretely, when choosing features to monitor computers in a data center, you might start with:</p>
+
+<div class="formula">
+x₁ = memory use &nbsp;&nbsp; x₂ = disk accesses/sec &nbsp;&nbsp; x₃ = CPU load &nbsp;&nbsp; x₄ = network traffic
+</div>
+
+<p>But a machine could have high CPU load <em>and</em> high network traffic totally normally (e.g. it's serving lots of video). What's actually unusual is a machine with high CPU load <strong>and</strong> unusually low network traffic — that combination, on its own, isn't captured well by any single one of x₁–x₄ in isolation. So you engineer a new, combined feature:</p>
+
+<div class="formula">
+x₅ = CPU load / network traffic &nbsp;&nbsp;&nbsp;&nbsp; x₆ = (CPU load)² / network traffic
+</div>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the same underlying principle as Section 3's "one weird feature tanks the whole product" — but applied in reverse, as a design tool. If no single existing feature is unusual on its own for a given anomaly, but a specific <em>ratio or combination</em> of features is, then engineering that combination directly into a new feature gives the Gaussian model something concrete to catch. The goal for any candidate feature is: it should be large (typical) for normal examples, and become noticeably small (atypical) specifically for the anomalies you care about in your cross-validation set.
+</div>
+
+</section>
+
+<section class="card" id="error-analysis">
+<h2>8. Error analysis and improving the feature set</h2>
+
+<p>After training, the goal is: p(x) should be ≥ ε (large) for normal examples, and &lt; ε (small) specifically for anomalous ones. The most common problem you'll actually run into: <strong>p(x) ends up comparable — and large — for both normal and anomalous examples</strong>, meaning the model can't tell them apart with your current feature set and threshold.</p>
+
+<p>Concretely: imagine plotting a single feature x₁ (say, number of transactions) for a fraud-detection problem. Most points cluster together, and there's one anomalous point sitting just slightly past the edge of that main cluster. Because it's only <em>slightly</em> outside the bulk of normal data, the fitted Gaussian may still assign it a fairly high p(x) — not low enough to fall below ε. The algorithm fails to flag it, even though a human looking at the full picture might recognize something is off.</p>
+
+<h3>The fix: look at specific missed anomalies, and ask what a human would have used to catch them</h3>
+<p>This is a manual, inspection-driven process, structurally similar to error analysis in supervised learning:</p>
+<ol>
+  <li>Train the model, then look specifically at which anomalies in the cross-validation set the algorithm is <strong>failing</strong> to flag (p(x) came out too large for them).</li>
+  <li>For each missed case, ask: "what made me (a human) suspect this was anomalous, even though this feature's value looked ordinary?"</li>
+  <li>If you can identify a <strong>new feature</strong> that captures that intuition, add it.</li>
+</ol>
+
+<p>Worked example: suppose a fraudulent user's number of transactions (x₁) looks completely normal — nothing suspicious there. But you notice this same user has an <strong>unusually fast typing speed</strong> — a totally different signal x₂ that the model wasn't using at all. Adding x₂ = typing speed as a second feature means the anomaly detector now fits a 2D Gaussian using both x₁ and x₂ together. Even though this user's x₁ was unremarkable, their combination of (ordinary x₁, extreme x₂) now sits clearly outside the high-probability region of the fitted 2D Gaussian — and gets correctly flagged.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this shows precisely why "p(x) is comparable for normal and anomalous examples" is usually a <strong>feature problem</strong>, not necessarily a fundamentally broken model. The Gaussian machinery itself doesn't change — what changes is giving it a dimension along which the anomaly actually stands out. This is also why Section 7's advice to engineer combined/ratio features (like CPU-load-over-network-traffic) is so directly useful here: those engineered features are often exactly the kind of new signal that turns an undetectable anomaly into a detectable one.
+</div>
+
+<div class="note">
+  <strong>The full development loop, tied together:</strong> train p(x) on the training set → evaluate on the CV set using precision/recall/F1 (Sections 4–5) → for anomalies still being missed, do this error-analysis inspection → engineer or transform features (Section 7) based on what you find → re-fit and re-evaluate. This loop is the practical core of building a working anomaly detection system — it's rarely a one-shot fit.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>9. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>Role</th></tr>
+  <tr><td>Density estimation</td><td>Build a model of p(x) from mostly-normal unlabeled data; flag p(x) &lt; ε as anomalous</td></tr>
+  <tr><td>Gaussian distribution</td><td>Bell-shaped probability model with parameters μ (center) and σ² (spread), fit via ordinary mean/variance</td></tr>
+  <tr><td>Multivariate p(x)</td><td>Product of per-feature Gaussians — assumes independence; one wildly off feature can tank the whole product</td></tr>
+  <tr><td>Train/CV/test split</td><td>Fit p(x) on unlabeled (assumed-normal) training data; use a small number of known anomalies in CV/test to tune ε and features</td></tr>
+  <tr><td>Precision/Recall/F1</td><td>Needed instead of accuracy because anomaly data is heavily skewed; F1 balances the trade-off between false alarms and missed anomalies</td></tr>
+  <tr><td>Anomaly detection vs. supervised</td><td>Use anomaly detection when future anomalies may look nothing like past ones (fraud, novel defects, hacking); use supervised learning when future positives resemble past ones (spam, known defects)</td></tr>
+  <tr><td>Feature engineering</td><td>Transform features toward Gaussian shape; engineer ratio/combination features that specifically separate anomalies from normal data</td></tr>
+  <tr><td>Error analysis</td><td>Inspect specifically-missed anomalies, find what a human would have used to catch them, and add that as a new feature</td></tr>
+</table>
+
+</section>
+
+</div>
+</body>
+</html>
