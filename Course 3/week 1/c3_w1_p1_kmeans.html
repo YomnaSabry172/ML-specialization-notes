@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 1 (Part 1) — K-means Clustering</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  .why {
+    background: #2c2618;
+    border-left: 5px solid #d98a2b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e;
+    border-left: 5px solid #4a9d5c;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432;
+    border-left: 5px solid #2f6fb5;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e;
+    color: #d8dae0;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; }
+  .formula {
+    background: #21252e;
+    border: 1px solid #33384a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 1.05em;
+    margin: 14px 0;
+    color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>K-means Clustering</h1>
+  <p>Course 3, Week 1 (Part 1) — Your First Unsupervised Learning Algorithm</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#what-is">What is clustering?</a></li>
+    <li><a href="#intuition">K-means intuition: the two repeating steps</a></li>
+    <li><a href="#algorithm">The K-means algorithm, formally</a></li>
+    <li><a href="#not-separated">K-means on data without clear clusters</a></li>
+    <li><a href="#objective">The optimization objective: the distortion cost function</a></li>
+    <li><a href="#why-steps-work">Why each step of the algorithm reduces the cost</a></li>
+    <li><a href="#init">Initializing K-means, and the local optima problem</a></li>
+    <li><a href="#choosing-k">Choosing the number of clusters, K</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<section class="card" id="what-is">
+<h2>1. What is clustering?</h2>
+
+<p>Every algorithm from Courses 1 and 2 was <strong>supervised learning</strong>: you had a training set with input features <em>and</em> a target label Y, and the algorithm's job was to learn a mapping from X to Y. <strong>Clustering</strong> is your first <strong>unsupervised learning</strong> algorithm — you're given only inputs X, with <strong>no labels at all</strong>, and the job is to find some structure or pattern in the data on its own.</p>
+
+<p>Concretely, a clustering algorithm looks at a dataset and tries to group the examples into clusters — sets of points that are close to (similar to) each other, and relatively far from (dissimilar to) points in other clusters. Nobody tells the algorithm what the "correct" groups are; it has to discover them purely from how the data points are distributed.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is a genuinely different problem setup from everything so far, not just a new algorithm bolted onto old assumptions. There's no cost function comparing predictions to ground-truth labels, because there are no ground-truth labels. That's also why, as you'll see in Section 8, there often isn't a single "correct" number of clusters — without labels telling you the right answer, what counts as a good clustering can genuinely depend on judgment and downstream purpose.
+</div>
+
+</section>
+
+<section class="card" id="intuition">
+<h2>2. K-means intuition: the two repeating steps</h2>
+
+<p>Take a dataset of 30 unlabeled points, and ask K-means to find <em>K</em> = 2 clusters. K-means works by repeating two steps over and over:</p>
+
+<ol>
+  <li><strong>Assign points to cluster centroids.</strong> Guess two locations to be the centers of the clusters — called <strong>cluster centroids</strong> — shown as a red cross and a blue cross. (The very first guess is random and typically not very good — that's fine, it's just a starting point.) Then, for every one of the 30 points, check whether it's closer to the red centroid or the blue centroid, and color/assign it accordingly.</li>
+  <li><strong>Move the cluster centroids.</strong> Look at all the points now colored red, and move the red centroid to their average location. Do the same for the blue points and the blue centroid.</li>
+</ol>
+
+<p>Then you just repeat: re-assign every point to whichever (now-moved) centroid is closer, re-color, then re-compute each centroid's new average location. Each pass through these two steps can change some points' colors and shift the centroids a bit more.</p>
+
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .lbl { font-family: Georgia, serif; font-size:14px; fill:#222; }
+    .stepbox { fill:#eef3fb; stroke:#2f6fb5; stroke-width:1.5; }
+  </style>
+  <rect class="stepbox" x="20" y="30" width="280" height="180" rx="8"/>
+  <text class="lbl" x="160" y="55" text-anchor="middle" font-weight="bold">Step 1: Assign points</text>
+  <circle cx="80" cy="90" r="6" fill="#c0392b"/>
+  <circle cx="100" cy="70" r="6" fill="#c0392b"/>
+  <circle cx="70" cy="110" r="6" fill="#c0392b"/>
+  <circle cx="110" cy="100" r="6" fill="#c0392b"/>
+  <text x="90" y="60" font-size="20" fill="#c0392b" text-anchor="middle">&#10007;</text>
+  <circle cx="230" cy="150" r="6" fill="#2f6fb5"/>
+  <circle cx="250" cy="170" r="6" fill="#2f6fb5"/>
+  <circle cx="210" cy="170" r="6" fill="#2f6fb5"/>
+  <circle cx="240" cy="140" r="6" fill="#2f6fb5"/>
+  <text x="235" y="185" font-size="20" fill="#2f6fb5" text-anchor="middle">&#10007;</text>
+  <text class="lbl" x="160" y="200" text-anchor="middle">color each point by nearer centroid</text>
+
+  <path d="M 305 120 L 345 120" stroke="#7fb0f0" stroke-width="3" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7fb0f0"/>
+    </marker>
+  </defs>
+
+  <rect class="stepbox" x="360" y="30" width="320" height="180" rx="8"/>
+  <text class="lbl" x="520" y="55" text-anchor="middle" font-weight="bold">Step 2: Move centroids</text>
+  <circle cx="420" cy="90" r="6" fill="#c0392b"/>
+  <circle cx="440" cy="70" r="6" fill="#c0392b"/>
+  <circle cx="410" cy="110" r="6" fill="#c0392b"/>
+  <circle cx="450" cy="100" r="6" fill="#c0392b"/>
+  <text x="430" y="95" font-size="20" fill="#c0392b" text-anchor="middle">&#10007;</text>
+  <circle cx="570" cy="150" r="6" fill="#2f6fb5"/>
+  <circle cx="590" cy="170" r="6" fill="#2f6fb5"/>
+  <circle cx="550" cy="170" r="6" fill="#2f6fb5"/>
+  <circle cx="580" cy="140" r="6" fill="#2f6fb5"/>
+  <text x="572" y="158" font-size="20" fill="#2f6fb5" text-anchor="middle">&#10007;</text>
+  <text class="lbl" x="520" y="200" text-anchor="middle">centroid &rarr; average of its points</text>
+</svg>
+<p class="svg-caption">The two steps K-means alternates between, per iteration. The centroid's new position (right) sits at the average location of the points assigned to it (left).</p>
+
+<p>Eventually, running these two steps stops changing anything: no point switches color, and no centroid moves. At that point, K-means has <strong>converged</strong>.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of it like organizing a classroom into study groups by seating proximity, with no assigned leader. You start with two random meeting spots. Everyone walks to whichever spot is closer (Step 1). Then each spot's location updates to the average seat position of everyone who came to it (Step 2). People re-check which spot is now closer and may switch. Repeat until nobody wants to switch anymore — you've settled into stable groups.
+</div>
+
+</section>
+
+<section class="card" id="algorithm">
+<h2>3. The K-means algorithm, formally</h2>
+
+<p>Notation: cluster centroids are written <em>μ₁, μ₂, ..., μ_K</em> — each one is a vector with the same number of dimensions as your training examples (if each example has <em>n</em> features, each μ is also an <em>n</em>-dimensional vector). <em>c⁽ⁱ⁾</em> is the index (from 1 to K) of whichever centroid training example <em>x⁽ⁱ⁾</em> is currently assigned to.</p>
+
+<div class="formula">
+Randomly initialize K cluster centroids μ₁, ..., μ_K<br><br>
+Repeat {<br>
+&nbsp;&nbsp;# Assign points to cluster centroids<br>
+&nbsp;&nbsp;for i = 1 to m:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;c⁽ⁱ⁾ := index k (1 to K) that minimizes ||x⁽ⁱ⁾ &minus; μ_k||²<br><br>
+&nbsp;&nbsp;# Move cluster centroids<br>
+&nbsp;&nbsp;for k = 1 to K:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;μ_k := average (mean) of points assigned to cluster k<br>
+}
+</div>
+
+<p>The term <code>||x⁽ⁱ⁾ &minus; μ_k||</code> is the <strong>Euclidean distance</strong> (also called the L2 norm) between the example and a candidate centroid — the ordinary straight-line distance. In implementation, it's more convenient to minimize the <em>squared</em> distance, since the centroid that minimizes squared distance is guaranteed to be the same one that minimizes plain distance (squaring is monotonic for non-negative numbers), and squared distance avoids an unnecessary square-root computation.</p>
+
+<p>Worked example for moving a centroid: if cluster 1 currently has training examples 1, 5, 6, and 10 assigned to it, then:</p>
+<div class="formula">
+μ₁ = (1/4)&nbsp;[ x⁽¹⁾ + x⁽⁵⁾ + x⁽⁶⁾ + x⁽¹⁰⁾ ]
+</div>
+<p>— the mean of those four (vector-valued) training examples, computed coordinate-by-coordinate (average of all the x₁ values, average of all the x₂ values, and so on for however many features you have).</p>
+
+<div class="warning">
+  <strong>Corner case — an empty cluster:</strong> what happens if, after an assignment step, a centroid ends up with zero points assigned to it? Then Step 2 would be trying to average zero points, which is undefined. The most common fix is simply to <strong>eliminate that cluster</strong>, leaving you with K&minus;1 clusters. A less common alternative is to randomly reinitialize that one centroid and hope it picks up points on the next round — but eliminating the cluster is the standard practice.
+</div>
+
+</section>
+
+<section class="card" id="not-separated">
+<h2>4. K-means on data without clear clusters</h2>
+
+<p>K-means is most intuitive on data with visually obvious, well-separated blobs — but it's frequently applied to data where the points vary <strong>continuously</strong>, with no truly distinct groups at all.</p>
+
+<p>The lecture's example: sizing t-shirts. Collect height/weight data from likely customers — this data typically doesn't form clean separate clusters; height and weight vary smoothly across the population. Running K-means with, say, K = 3 anyway will still partition the data into three regions, and those regions can be used directly as sensible "small," "medium," and "large" sizing groups — using each cluster's centroid as the representative height/weight to design that size around.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this shows K-means isn't only useful when there's a "true" clustering to discover — it's also a practical tool for <strong>partitioning continuous data into workable groups</strong> for a business or engineering decision, even when there's no ground truth about how many groups "really" exist. This directly sets up Section 8, where choosing K = 3 vs. K = 5 for t-shirt sizes becomes a business trade-off rather than a search for the one correct number.
+</div>
+
+</section>
+
+<section class="card" id="objective">
+<h2>5. The optimization objective: the distortion cost function</h2>
+
+<p>Every supervised algorithm you've seen posed a cost function and minimized it (usually via gradient descent). K-means is no different in spirit — it's also minimizing a specific cost function — it's just using the two-step procedure from Sections 2–3 as its optimization method, instead of gradient descent.</p>
+
+<p>Additional notation: <em>μ_c⁽ⁱ⁾</em> means "the centroid of whichever cluster example <em>x⁽ⁱ⁾</em> is currently assigned to." (E.g. if training example 10 is assigned to cluster 2, then <em>c⁽¹⁰⁾</em> = 2, and <em>μ_c⁽¹⁰⁾</em> is shorthand for <em>μ₂</em> — the location of that specific centroid.)</p>
+
+<p>The K-means cost function, sometimes called the <strong>distortion function</strong>:</p>
+
+<div class="formula">
+J(c⁽¹⁾, ..., c⁽ᵐ⁾, μ₁, ..., μ_K) = (1/m) &sum;<sub>i=1</sub><sup>m</sup> ||x⁽ⁱ⁾ &minus; μ_c⁽ⁱ⁾||²
+</div>
+
+<p>In words: for every training example, take the squared distance between that example and the centroid it's currently assigned to, and average those squared distances across all <em>m</em> examples. K-means is trying to find both the cluster <strong>assignments</strong> (c⁽¹⁾, ..., c⁽ᵐ⁾) and the centroid <strong>locations</strong> (μ₁, ..., μ_K) that jointly make this average as small as possible:</p>
+
+<div class="formula">
+min<sub>c⁽¹⁾,...,c⁽ᵐ⁾, μ₁,...,μ_K</sub>&nbsp; J(c⁽¹⁾, ..., c⁽ᵐ⁾, μ₁, ..., μ_K)
+</div>
+
+<div class="note">
+  <strong>Note on the name:</strong> "distortion" isn't a particularly intuitive name for this cost function, but it's the standard term used in the literature — if you see someone refer to "the distortion" in the context of K-means, this J is what they mean.
+</div>
+
+</section>
+
+<section class="card" id="why-steps-work">
+<h2>6. Why each step of the algorithm reduces the cost</h2>
+
+<p>This is the part that explains <em>why</em> the two-step procedure in Sections 2–3 is really gradient-descent-like optimization in disguise, and why it's guaranteed to converge.</p>
+
+<h3>Step 1 (assignment) minimizes J with respect to c, holding μ fixed</h3>
+<p>Suppose you fix the centroid locations and only ask: what's the best value of <em>c⁽ⁱ⁾</em> for a given point <em>x⁽ⁱ⁾</em>? Since the only term of J that involves <em>c⁽ⁱ⁾</em> is <code>||x⁽ⁱ⁾ &minus; μ_c⁽ⁱ⁾||²</code>, minimizing it means choosing whichever centroid makes that distance smallest — i.e., assigning the point to its <strong>nearest</strong> centroid. That's exactly the "color each point by the closer centroid" rule from Sections 2–3, now justified as literally minimizing J.</p>
+
+<h3>Step 2 (moving centroids) minimizes J with respect to μ, holding c fixed</h3>
+<p>Now fix which points belong to which cluster, and ask: what location for a centroid μ_k minimizes the average squared distance to its assigned points? It turns out the <strong>mean</strong> of those points is provably the location that minimizes this.</p>
+
+<p>Worked numeric example (a cluster with 2 points, initial centroid poorly placed): if the two squared distances from the current centroid location are 1² = 1 and 9² = 81, the average is (1 + 81) / 2 = 41. Moving the centroid to the actual mean of the two points changes both distances to 5 and 5, giving an average of (25 + 25) / 2 = 25 — a smaller value. This isn't a coincidence for this example: the mean is mathematically the location that minimizes the average squared distance to a set of points, which is exactly why Step 2 recomputes the centroid as the average.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> because both steps individually only ever decrease (or leave unchanged) the cost function J, K-means is <strong>guaranteed to converge</strong> — J should never increase from one iteration to the next. This gives you two very practical tools: (1) if you ever observe J going <em>up</em>, there's a bug in your implementation; (2) you can use "J stopped decreasing" as your actual convergence check, rather than guessing how many iterations to run. If J is still decreasing but very slowly, that's a judgment call — similar to gradient descent, running longer might help a little, but it's often reasonable to stop and call it "close enough."
+</div>
+
+</section>
+
+<section class="card" id="init">
+<h2>7. Initializing K-means, and the local optima problem</h2>
+
+<h3>How to actually pick the initial centroids</h3>
+<p>Always choose K &lt; m (the number of clusters can't exceed the number of training examples — you need at least one example per cluster). The standard initialization method: <strong>randomly pick K training examples</strong>, and set μ₁, ..., μ_K to <em>be</em> those K examples' locations exactly (rather than arbitrary random points in space, which is how earlier illustrations simplified it for clarity).</p>
+
+<h3>The local optima problem</h3>
+<p>Because the starting centroids are random, different random initializations can lead K-means to converge to genuinely different final clusterings — and not all of them are equally good. With K = 3 on one dataset, one initialization might converge to three well-separated, sensible clusters. A different initialization — say, one that happens to place two of the three initial centroids inside the same natural group and the third elsewhere — can converge to a visibly worse clustering. Both are places where the two-step procedure has stopped improving J (so both are technically "converged"), but they correspond to different values of J: the worse clustering is a <strong>local optimum</strong> of the distortion cost function, not the global optimum.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> Section 6 proved that each step of K-means always decreases J — but that guarantee is <em>local</em>. It guarantees you won't get worse from where you currently are; it says nothing about whether you started somewhere that leads to the best possible outcome overall. This is the direct cost of using an alternating-minimization procedure instead of something with global guarantees — and it's precisely why initialization strategy matters enough to get its own section.
+</div>
+
+<h3>The fix: multiple random initializations</h3>
+<p>Since you now have a cost function J to actually <em>measure</em> how good a given converged clustering is, you can run K-means multiple times from different random initializations, and simply keep whichever run produced the lowest final J:</p>
+
+<div class="formula">
+For i = 1 to 100 {<br>
+&nbsp;&nbsp;Randomly initialize K-means (pick K random training examples)<br>
+&nbsp;&nbsp;Run K-means to convergence &rarr; get c⁽¹⁾,...,c⁽ᵐ⁾, μ₁,...,μ_K<br>
+&nbsp;&nbsp;Compute cost function (distortion) J(c⁽¹⁾,...,c⁽ᵐ⁾, μ₁,...,μ_K)<br>
+}<br><br>
+Pick the set of clusters that gave the lowest cost J
+</div>
+
+<p>A typical number of random initializations to try is somewhere between <strong>50 and 1000</strong> (100 is a common default). Going much beyond ~1000 tends to just cost more compute with diminishing returns, while trying at least 50–100 initializations substantially improves your odds of landing on a good clustering rather than a poor local optimum.</p>
+
+<div class="note">
+  <strong>Practical takeaway:</strong> in practice, you should almost always run K-means with multiple random initializations rather than a single one — it costs extra compute, but it's a straightforward and effective way to avoid getting stuck at a clearly inferior local minimum.
+</div>
+
+</section>
+
+<section class="card" id="choosing-k">
+<h2>8. Choosing the number of clusters, K</h2>
+
+<p>K-means needs K as an input — but for a lot of real datasets, the "right" number of clusters is genuinely <strong>ambiguous</strong>. Different people looking at the same scatter plot might reasonably say "2 clusters" or "4 clusters" and both be defensible, precisely because clustering is unsupervised: there's no labeled ground truth telling you the correct K.</p>
+
+<h3>The elbow method</h3>
+<p>One technique from the academic literature: run K-means across a range of values of K, and plot the resulting distortion J as a function of K. J will generally start high (few clusters) and decrease as K increases. If the plot shows a sharp drop up to some K, followed by a much slower decrease afterward, that bend is called the "elbow" — and you'd pick the K at that bend.</p>
+
+<div class="warning">
+  <strong>Important limitation, stated directly in the lecture:</strong> the elbow method is not actually recommended as a go-to technique — the instructor explicitly says he rarely uses it himself. The problem: for a lot of real applications, the J-vs-K curve decreases smoothly with no clear elbow at all, leaving you with nothing clean to pick.
+</div>
+
+<div class="warning">
+  <strong>A related mistake to avoid entirely:</strong> never choose K purely by minimizing J. Distortion J will (almost) always keep decreasing as K increases — adding more clusters basically always lets you fit the data more tightly. Minimizing J directly would just push you toward choosing the largest possible K, which defeats the purpose of clustering (at the extreme, K = m gives every point its own cluster and J = 0, which is useless).
+</div>
+
+<h3>The actual recommended approach: evaluate on the downstream task</h3>
+<p>In practice, you're usually running K-means to get clusters you'll actually <em>use</em> for something afterward. The recommended approach is to evaluate different values of K based on how well each one serves that downstream purpose — not based on the clustering metric alone.</p>
+
+<p>Back to the t-shirt sizing example: running K-means with K = 3 gives you S/M/L sizing; K = 5 gives you XS/S/M/L/XL. Both are perfectly valid clusterings of the same data — neither is more "correct" in a mathematical sense. The actual decision comes down to a business trade-off: more sizes (larger K) means a better fit for more people, but also higher manufacturing and shipping costs from producing more distinct sizes. You'd run K-means with both K = 3 and K = 5, look at the resulting clusters, and pick based on that fit-vs-cost trade-off — not based on which one has lower distortion.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the throughline of the whole choosing-K discussion — since clustering has no ground-truth answer to check against, "good" is defined by usefulness for whatever you're actually trying to accomplish with the clusters, not by any purely internal statistical criterion. The same logic will resurface later in the course (e.g. K-means applied to image compression involves a similar quality-vs-size trade-off when picking K).
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>9. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>Role</th></tr>
+  <tr><td>Clustering</td><td>Unsupervised learning: group unlabeled data by similarity, with no target Y to guide it</td></tr>
+  <tr><td>Cluster centroid (μ_k)</td><td>The "center" representative point of cluster k; same dimensionality as the training examples</td></tr>
+  <tr><td>Two repeating steps</td><td>(1) Assign each point to its nearest centroid, (2) move each centroid to the mean of its assigned points</td></tr>
+  <tr><td>Distortion cost function J</td><td>Average squared distance between each point and its assigned centroid — what K-means is actually minimizing</td></tr>
+  <tr><td>Convergence</td><td>Guaranteed, because both steps only ever decrease (or hold) J — use "J stopped decreasing" as your stopping check</td></tr>
+  <tr><td>Local optima</td><td>Different random initializations can converge to different (not equally good) clusterings</td></tr>
+  <tr><td>Multiple random initializations</td><td>Run K-means many times (50–1000), keep the run with lowest J — the standard fix for local optima</td></tr>
+  <tr><td>Choosing K</td><td>Often genuinely ambiguous; elbow method exists but is unreliable in practice — prefer evaluating K based on the downstream task</td></tr>
+</table>
+
+</section>
+
+</div>
+</body>
+</html>
