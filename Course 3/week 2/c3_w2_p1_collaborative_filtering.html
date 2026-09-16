@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 2 (Part 1) — Recommender Systems: Collaborative Filtering</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  section.card h4 { color: #b7d3f5; margin-top: 20px; margin-bottom: 6px; }
+  .why {
+    background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px;
+    overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em;
+    line-height: 1.55; border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; background: #21252e; padding: 1px 5px; border-radius: 4px; }
+  pre code { background: none; padding: 0; }
+  .formula {
+    background: #21252e; border: 1px solid #33384a; border-radius: 6px;
+    padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+  .step {
+    background: #1a1d26; border: 1px solid #2e3342; border-radius: 8px;
+    padding: 16px 20px; margin: 14px 0;
+  }
+  .step-num {
+    display: inline-block; background: #2f6fb5; color: #fff; font-weight: bold;
+    border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px;
+    margin-right: 10px; font-family: Georgia, serif;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Recommender Systems: Collaborative Filtering</h1>
+  <p>Course 3, Week 2 (Part 1) — Concepts, Full Math, and Step-by-Step Implementation (both with and without pre-given item features)</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#setup">Problem setup &amp; notation</a></li>
+    <li><a href="#per-item">Approach A — using per-item features you already have</a>
+      <ol type="a"><li><a href="#per-item-concept">Concept</a></li><li><a href="#per-item-impl">Implementation from scratch (NumPy)</a></li></ol>
+    </li>
+    <li><a href="#collab-concept">Approach B — collaborative filtering (learning the features yourself)</a></li>
+    <li><a href="#collab-cost">The joint cost function J(w, b, x)</a></li>
+    <li><a href="#collab-impl">Implementing collaborative filtering from scratch (NumPy)</a></li>
+    <li><a href="#binary">Binary labels (favs / likes / clicks)</a></li>
+    <li><a href="#mean-norm">Mean normalization</a></li>
+    <li><a href="#tf">TensorFlow implementation, step by step</a></li>
+    <li><a href="#related">Finding related items</a></li>
+    <li><a href="#limits">Limitations of collaborative filtering</a></li>
+    <li><a href="#summary">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="setup">
+<h2>1. Problem setup &amp; notation</h2>
+
+<p>The running example all week: a movie streaming site where users rate movies 0–5 stars. Some ratings are missing (the user hasn't watched that movie yet).</p>
+
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td><code>n_u</code></td><td>number of users</td></tr>
+<tr><td><code>n_m</code></td><td>number of movies (items)</td></tr>
+<tr><td><code>n</code></td><td>number of features per movie</td></tr>
+<tr><td><code>r(i,j)</code></td><td>1 if user j rated movie i, else 0</td></tr>
+<tr><td><code>y(i,j)</code></td><td>the rating user j gave movie i (only meaningful when r(i,j)=1)</td></tr>
+<tr><td><code>x^(i)</code></td><td>feature vector for movie i (length n)</td></tr>
+<tr><td><code>w^(j), b^(j)</code></td><td>parameters "belonging to" user j</td></tr>
+<tr><td><code>m^(j)</code></td><td>number of movies user j has actually rated</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters:</strong> almost the entire week is one idea, applied twice. The prediction rule <code>w^(j)&middot;x^(i) + b^(j)</code> never changes. What changes is <em>which of w, b, x you already know and which you must learn</em>. Keep that one fact in your head and the rest of the week stops feeling like new material and starts feeling like variations on a theme.
+</div>
+
+<div class="note">
+  <strong>The key masking trick used everywhere:</strong> because not every user rates every movie, every sum in this week's math is written as "sum over pairs (i,j) <em>where r(i,j)=1</em>" — never a plain sum over all i,j. In code this becomes a boolean mask array R (same shape as the ratings matrix) that you multiply element-wise into your error terms so that unrated entries contribute exactly zero to the cost and to the gradient.
+</div>
+
+</section>
+
+<section class="card" id="per-item">
+<h2>2. Approach A — using per-item features you already have</h2>
+
+<h3 id="per-item-concept">2a. Concept</h3>
+
+<p>Assume, temporarily, that someone hands you feature vectors for every movie — e.g. <code>x_1</code> = "how much romance" and <code>x_2</code> = "how much action," each 0–1. This turns the whole problem into <strong>n_u separate linear regression problems</strong>: one regression model per user, all sharing the same input features x, but each with its own parameters <code>w^(j), b^(j)</code>.</p>
+
+<div class="formula">
+predicted rating of user j on movie i &nbsp;=&nbsp; w<sup>(j)</sup> &middot; x<sup>(i)</sup> + b<sup>(j)</sup>
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> imagine every movie already comes with a nutrition label (romance %, action %). Each user is their own little "taste function" that reads the label and outputs a predicted star rating. Alice's taste function weighs romance heavily and ignores action; Carol's does the opposite. You are literally fitting a separate line (well, hyperplane) per person, using the exact same x-axis (the movie's features) each time.
+</div>
+
+<h4>Cost function to learn one user's (w^(j), b^(j))</h4>
+<div class="formula">
+J(w<sup>(j)</sup>,b<sup>(j)</sup>) = (1/2m<sup>(j)</sup>) &sum;<sub>i:r(i,j)=1</sub> (w<sup>(j)</sup>&middot;x<sup>(i)</sup>+b<sup>(j)</sup> &minus; y<sup>(i,j)</sup>)² &nbsp;+&nbsp; (&lambda;/2m<sup>(j)</sup>) &sum;<sub>k=1</sub><sup>n</sup> (w<sub>k</sub><sup>(j)</sup>)²
+</div>
+<p>This is exactly the linear-regression cost function from Course 1, restricted to only the movies that user j actually rated (that's the <code>i:r(i,j)=1</code> under the sum). The lecture drops the 1/m^(j) constant later since it doesn't change which w,b minimize J — it's just there to make the loss scale-comparable across users with different numbers of ratings.</p>
+
+<h4>Cost function to learn ALL users at once</h4>
+<div class="formula">
+J(w<sup>(1)</sup>,b<sup>(1)</sup>,...,w<sup>(n_u)</sup>,b<sup>(n_u)</sup>) = &sum;<sub>j=1</sub><sup>n_u</sup> [ same per-user cost above ]
+</div>
+<p>You just sum the per-user cost across all users, then run gradient descent (or Adam) on the whole stacked parameter vector at once — that's the entire algorithm for this approach.</p>
+
+<div class="warning">
+  <strong>Where this breaks down:</strong> it assumes someone can hand you clean, meaningful features for every item. In practice you rarely have that — you don't know in advance "how much romance" a movie has as a clean number. That gap is exactly the motivation for collaborative filtering in Section 3: instead of being given x, you <em>learn</em> it from the ratings themselves.
+</div>
+
+<h3 id="per-item-impl">2b. Implementation from scratch (NumPy) — with given features</h3>
+
+<p>Below is the complete, runnable pipeline: no TensorFlow, no black boxes — every gradient written out by hand so you can see exactly what's happening at each step.</p>
+
+<div class="step"><span class="step-num">1</span><strong>Set up the data.</strong> The ratings matrix Y (movies × users), the "was it rated" mask R, and the given feature matrix X (movies × features).</div>
+<pre><code>import numpy as np
+
+# Y[i, j] = rating user j gave movie i (0 if unrated — placeholder, ignored via R)
+Y = np.array([
+    [5, 5, 0, 0],   # Love at Last
+    [5, 0, 0, 0],   # Romance Forever   (0 = "not rated" placeholder)
+    [0, 4, 0, 0],   # Cute Puppies of Love
+    [0, 0, 5, 4],   # Nonstop Car Chases
+    [0, 0, 5, 0],   # Swords vs Karate
+], dtype=float)
+
+# R[i, j] = 1 if user j actually rated movie i, else 0  -- the crucial mask
+R = np.array([
+    [1, 1, 0, 0],
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 1],
+    [0, 0, 1, 0],
+])
+
+# Given features per movie: [romance, action]
+X = np.array([
+    [0.90, 0.00],
+    [1.00, 0.01],
+    [0.99, 0.00],
+    [0.10, 1.00],
+    [0.00, 0.90],
+])
+
+n_m, n_u = Y.shape   # 5 movies, 4 users
+n = X.shape[1]        # 2 features
+</code></pre>
+
+<div class="step"><span class="step-num">2</span><strong>Initialize parameters</strong> — one (w, b) pair per user, stacked into matrices for vectorized math.</div>
+<pre><code>np.random.seed(1)
+W = np.random.randn(n_u, n) * 0.01   # shape (n_u, n) -- W[j] is user j's w-vector
+b = np.zeros(n_u)                     # shape (n_u,)
+</code></pre>
+
+<div class="step"><span class="step-num">3</span><strong>Vectorized prediction.</strong> Predicted rating for every (movie, user) pair at once is just a matrix multiply.</div>
+<pre><code>def predict(X, W, b):
+    # X: (n_m, n), W: (n_u, n)  ->  X @ W.T : (n_m, n_u), then add b (broadcasts over rows)
+    return X @ W.T + b
+</code></pre>
+
+<div class="step"><span class="step-num">4</span><strong>Cost function, masked and regularized.</strong> This is the direct NumPy translation of the formula in Section 2a.</div>
+<pre><code>def cost(X, W, b, Y, R, lam):
+    err = (predict(X, W, b) - Y) * R          # zero out unrated entries
+    J = 0.5 * np.sum(err**2)
+    J += (lam/2) * np.sum(W**2)                # regularize w only (not b), per the lecture
+    return J
+</code></pre>
+
+<div class="step"><span class="step-num">5</span><strong>Gradients, derived by hand.</strong> Since J is just squared error plus an L2 term, the calculus is the same as ordinary linear regression, just restricted by the mask R.</div>
+<pre><code>def gradients(X, W, b, Y, R, lam):
+    err = (predict(X, W, b) - Y) * R           # (n_m, n_u)
+    dW = err.T @ X + lam * W                   # (n_u, n)  -- err.T@X sums over movies for each user
+    db = np.sum(err, axis=0)                   # (n_u,)
+    return dW, db
+</code></pre>
+
+<div class="step"><span class="step-num">6</span><strong>Gradient descent loop.</strong></div>
+<pre><code>alpha = 0.01
+lam = 1.0
+for it in range(2000):
+    dW, db = gradients(X, W, b, Y, R, lam)
+    W -= alpha * dW
+    b -= alpha * db
+    if it % 400 == 0:
+        print(it, cost(X, W, b, Y, R, lam))
+
+preds = predict(X, W, b)
+print(preds)   # preds[i, j] = predicted rating of user j on movie i, for EVERY movie including unrated ones
+</code></pre>
+
+<div class="note">
+  <strong>What you actually use this for:</strong> once trained, look at <code>preds[i, j]</code> for the (i, j) pairs where <code>R[i,j] == 0</code> — those are your recommendations. Sort each user's column by predicted rating, descending, and the top unrated movies are what you'd show them.
+</div>
+
+</section>
+
+<section class="card" id="collab-concept">
+<h2>3. Approach B — collaborative filtering: learning the features yourself</h2>
+
+<div class="analogy">
+  <strong>The core insight, as an analogy first:</strong> imagine you're handed a stack of report cards (the ratings) but no textbook (no movie features). You don't know anything about the movies. But suppose someone <em>does</em> hand you each user's "taste profile" (w, b) — e.g. "Alice weighs romance at 5, action at 0." If Alice rated a movie 5 stars, and you know her taste profile only rewards romance, you can work backwards: that movie must be very romantic. Do this across many users who rated the same movie, and their disagreements/agreements triangulate what the movie's hidden features must be. That triangulation — using many people's opinions of the same item to reverse-engineer what the item is like — is why it's called <strong>collaborative</strong> filtering: the users collaborate (indirectly, via their ratings) to teach the system about the items.
+</div>
+
+<h3>Step 1 of the intuition: guessing x from known w, b</h3>
+<p>Suppose (hypothetically) you already know every user's parameters: <code>w^(1)=[5,0], w^(2)=[5,0], w^(3)=[0,5], w^(4)=[0,5]</code>, all <code>b=0</code>. Movie 1 was rated 5 by user 1 and user 2, and would-be-rated 0 by users 3 and 4 (they only like action, and gave action movies of this genre 0). Since prediction is <code>w&middot;x</code>, we need an <code>x^(1)</code> such that:</p>
+<div class="formula">
+w<sup>(1)</sup>&middot;x<sup>(1)</sup>&asymp;5, &nbsp; w<sup>(2)</sup>&middot;x<sup>(1)</sup>&asymp;5, &nbsp; w<sup>(3)</sup>&middot;x<sup>(1)</sup>&asymp;0, &nbsp; w<sup>(4)</sup>&middot;x<sup>(1)</sup>&asymp;0
+</div>
+<p><code>x^(1) = [1, 0]</code> satisfies all four simultaneously (since w^(1),w^(2) only look at the first coordinate, and w^(3),w^(4) only look at the second). That's the whole trick: with four equations (four users' ratings) and two unknowns (the two features), you have enough constraints to solve for x.</p>
+
+<div class="why">
+  <strong>Why this is only possible in collaborative filtering, and not ordinary regression:</strong> the lecture is explicit about this point, and it's the single most important thing to internalize this week. In a normal linear regression problem, you have ONE fixed set of features per example and you learn ONE w. You cannot also "learn the x's," because with just one user's ratings, there isn't enough information — infinitely many (w, x) pairs would fit the same single number equally well (e.g. w=10,x=0.5 predicts the same thing as w=5,x=1). It's only because <strong>multiple different users, each with their own w, all rated the same movie</strong> that the system of equations becomes over-determined enough to pin down x uniquely (up to a rotation you don't care about). More users rating the same item = more independent linear constraints on that item's hidden feature vector.
+</div>
+
+<h3>Step 2: cost function to learn x, given w and b</h3>
+<p>Symmetric to Section 2a, but now solving for x instead of w:</p>
+<div class="formula">
+J(x<sup>(i)</sup>) = (1/2) &sum;<sub>j:r(i,j)=1</sub> (w<sup>(j)</sup>&middot;x<sup>(i)</sup>+b<sup>(j)</sup> &minus; y<sup>(i,j)</sup>)² &nbsp;+&nbsp; (&lambda;/2) &sum;<sub>k=1</sub><sup>n</sup> (x<sub>k</sub><sup>(i)</sup>)²
+</div>
+<p>Note the sum is now over <em>users j who rated movie i</em> (the roles of i and j have swapped compared to Section 2a's cost). Summing this over every movie i = 1..n_m gives the cost for learning ALL the movies' features at once — mirroring exactly how Section 2a summed over all users.</p>
+
+</section>
+
+<section class="card" id="collab-cost">
+<h2>4. The joint cost function J(w, b, x)</h2>
+
+<p>In reality you have <em>neither</em> w,b <em>nor</em> x in advance — you must learn all three simultaneously. The key observation that makes this possible: the cost-to-learn-(w,b) sum (Section 2a) and the cost-to-learn-x sum (Section 3, step 2) both sum over exactly the same set of (movie, user) pairs — the ones with a rating. One sums "for each user, over their rated movies"; the other sums "for each movie, over the users who rated it." Both are just two different orders of iterating over the same set of rated (i,j) pairs. That means they can be fused into one double sum:</p>
+
+<div class="formula">
+J(w,b,x) &nbsp;=&nbsp; (1/2) &sum;<sub>(i,j):r(i,j)=1</sub> (w<sup>(j)</sup>&middot;x<sup>(i)</sup>+b<sup>(j)</sup> &minus; y<sup>(i,j)</sup>)²<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp; (&lambda;/2) &sum;<sub>j=1</sub><sup>n_u</sup> &sum;<sub>k=1</sub><sup>n</sup> (w<sub>k</sub><sup>(j)</sup>)² &nbsp;+&nbsp; (&lambda;/2) &sum;<sub>i=1</sub><sup>n_m</sup> &sum;<sub>k=1</sub><sup>n</sup> (x<sub>k</sub><sup>(i)</sup>)²
+</div>
+
+<div class="note">
+  <strong>Reading this cost function in one sentence:</strong> "sum the squared prediction error over every rating that actually exists, then penalize large w's and large x's separately." Nothing more exotic than that — the fusion of two sums into one is a bookkeeping simplification, not a new idea.
+</div>
+
+<p>You now minimize this single J jointly over w, b, AND x using gradient descent (or Adam):</p>
+<div class="formula">
+w<sub>i</sub><sup>(j)</sup> &larr; w<sub>i</sub><sup>(j)</sup> &minus; &alpha; &part;J/&part;w<sub>i</sub><sup>(j)</sup> &nbsp;&nbsp;&nbsp;
+b<sup>(j)</sup> &larr; b<sup>(j)</sup> &minus; &alpha; &part;J/&part;b<sup>(j)</sup> &nbsp;&nbsp;&nbsp;
+x<sub>k</sub><sup>(i)</sup> &larr; x<sub>k</sub><sup>(i)</sup> &minus; &alpha; &part;J/&part;x<sub>k</sub><sup>(i)</sup>
+</div>
+
+<div class="why">
+  <strong>Why x is treated as "just another parameter":</strong> this is the conceptual leap of the whole algorithm. Normally in ML, features are inputs (given, fixed) and parameters are what you learn. Here, x graduates from being an input to being a learned parameter, exactly like w and b — that's what makes this "pretty remarkable," in the instructor's words: it's one of the few standard ML settings where the features themselves come out of training rather than going in.
+</div>
+
+</section>
+
+<section class="card" id="collab-impl">
+<h2>5. Implementing collaborative filtering from scratch (NumPy)</h2>
+
+<p>Now nothing is given — we learn W, b, AND X together. The code is almost identical to Section 2b's, except X is now also a variable we update every iteration.</p>
+
+<div class="step"><span class="step-num">1</span><strong>Same data as before, but this time pretend we don't know X</strong> — we only have Y and R.</div>
+<pre><code>import numpy as np
+
+Y = np.array([
+    [5, 5, 0, 0],
+    [5, 0, 0, 0],
+    [0, 4, 0, 0],
+    [0, 0, 5, 4],
+    [0, 0, 5, 0],
+], dtype=float)
+
+R = np.array([
+    [1, 1, 0, 0],
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 1],
+    [0, 0, 1, 0],
+])
+
+n_m, n_u = Y.shape
+n_features = 2   # a hyperparameter YOU choose -- how many hidden features to learn
+</code></pre>
+
+<div class="step"><span class="step-num">2</span><strong>Initialize W, b, AND X all randomly</strong> — none of them are given anymore.</div>
+<pre><code>np.random.seed(1)
+W = np.random.randn(n_u, n_features) * 0.1
+X = np.random.randn(n_m, n_features) * 0.1
+b = np.zeros(n_u)
+</code></pre>
+
+<div class="step"><span class="step-num">3</span><strong>Prediction and cost</strong> — identical formula to before, X is just no longer treated as constant.</div>
+<pre><code>def predict(X, W, b):
+    return X @ W.T + b
+
+def cost(X, W, b, Y, R, lam):
+    err = (predict(X, W, b) - Y) * R
+    J = 0.5 * np.sum(err**2)
+    J += (lam/2) * (np.sum(W**2) + np.sum(X**2))   # NOW regularize both W and X
+    return J
+</code></pre>
+
+<div class="step"><span class="step-num">4</span><strong>Gradients w.r.t. all three parameter sets.</strong> This is the new piece: <code>dX</code>.</div>
+<pre><code>def gradients(X, W, b, Y, R, lam):
+    err = (predict(X, W, b) - Y) * R      # (n_m, n_u)
+    dW = err.T @ X + lam * W               # (n_u, n_features)
+    db = np.sum(err, axis=0)               # (n_u,)
+    dX = err @ W + lam * X                 # (n_m, n_features)  <-- symmetric to dW, just transposed roles
+    return dW, db, dX
+</code></pre>
+
+<div class="note">
+  <strong>Why dX looks like dW with err un-transposed:</strong> dW summed errors "down each column" (per user, over movies) via <code>err.T @ X</code>. dX sums errors "across each row" (per movie, over users) via <code>err @ W</code> — no transpose needed because err's rows already index movies. This mirrors exactly the symmetry between the "cost to learn w,b" and "cost to learn x" from Section 3 — same underlying computation, just contracted along the other axis.
+</div>
+
+<div class="step"><span class="step-num">5</span><strong>Joint gradient descent — update all three every iteration.</strong></div>
+<pre><code>alpha = 0.01
+lam = 1.0
+for it in range(3000):
+    dW, db, dX = gradients(X, W, b, Y, R, lam)
+    W -= alpha * dW
+    b -= alpha * db
+    X -= alpha * dX
+    if it % 500 == 0:
+        print(it, cost(X, W, b, Y, R, lam))
+
+preds = predict(X, W, b)
+</code></pre>
+
+<div class="warning">
+  <strong>Don't be alarmed if the learned X doesn't look like "romance/action."</strong> This is explicitly called out later (Section 9, Finding Related Items): the learned features are mathematically useful but not human-interpretable. There's no constraint forcing feature 1 to mean "romance" — the optimizer just finds SOME 2D representation that reproduces the ratings well. That's expected, not a bug.
+</div>
+
+<div class="note">
+  <strong>One subtlety worth flagging since it trips people up:</strong> because both W and X are free to scale (you could double every entry of X and halve every entry of W and get the identical predictions <code>w&middot;x</code>), the regularization term is what keeps both from blowing up or shrinking to degenerate solutions — it's not just "for overfitting" here, it also helps keep the joint optimization numerically well-behaved.
+</div>
+
+</section>
+
+<section class="card" id="binary">
+<h2>6. Binary labels (favs, likes, clicks)</h2>
+
+<p>Many real systems don't have 1–5 star ratings — just did-they-engage-or-not signals: purchase/no purchase, like/no like, watched 30+ seconds or not, clicked or not. Label meanings, consistently: <strong>1</strong> = engaged after being shown the item, <strong>0</strong> = did not engage after being shown it, <strong>?</strong> = not yet shown to that user at all (so we genuinely don't know).</p>
+
+<div class="why">
+  <strong>Why this needs a different model, not just relabeling:</strong> predicting a continuous star rating with linear regression and predicting a yes/no engagement probability are different tasks — exactly the same reason Course 1 moved from linear to logistic regression when the target became binary. Reusing squared-error loss on a 0/1 target would badly miscalibrate the probabilities.
+</div>
+
+<p>The fix is the same one used in Course 1: swap the linear prediction for a sigmoid-squashed one, and swap squared error for binary cross-entropy.</p>
+
+<h4>Prediction</h4>
+<div class="formula">
+f<sub>(w,b,x)</sub>(x) &nbsp;=&nbsp; g(w<sup>(j)</sup>&middot;x<sup>(i)</sup>+b<sup>(j)</sup>), &nbsp;&nbsp; g(z) = 1/(1+e<sup>&minus;z</sup>)
+</div>
+<h4>Loss for one (i,j) pair, and total cost</h4>
+<div class="formula">
+L = &minus;y<sup>(i,j)</sup> log(f(x)) &minus; (1&minus;y<sup>(i,j)</sup>) log(1&minus;f(x))
+</div>
+<div class="formula">
+J(w,b,x) = &sum;<sub>(i,j):r(i,j)=1</sub> L(f<sub>(w,b,x)</sub>(x), y<sup>(i,j)</sup>)
+</div>
+
+<h4>Implementation delta from the regression version (NumPy)</h4>
+<pre><code>def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def predict_binary(X, W, b):
+    return sigmoid(X @ W.T + b)
+
+def cost_binary(X, W, b, Y, R, lam, eps=1e-9):
+    F = predict_binary(X, W, b)
+    # binary cross-entropy, masked to only rated (shown+responded) entries
+    loss = -(Y*np.log(F+eps) + (1-Y)*np.log(1-F+eps)) * R
+    J = np.sum(loss)
+    J += (lam/2) * (np.sum(W**2) + np.sum(X**2))
+    return J
+
+def gradients_binary(X, W, b, Y, R, lam):
+    F = predict_binary(X, W, b)
+    err = (F - Y) * R                # for logistic + cross-entropy this gradient has the SAME clean form as linear regression's
+    dW = err.T @ X + lam * W
+    db = np.sum(err, axis=0)
+    dX = err @ W + lam * X
+    return dW, db, dX
+</code></pre>
+
+<div class="note">
+  <strong>Notice how little actually changed:</strong> <code>predict</code> gained a <code>sigmoid()</code>, <code>cost</code> switched to cross-entropy, and the gradient formulas are <em>identical in shape</em> to the regression case (this is the same beautiful coincidence you saw in Course 1: logistic regression's gradient has the same algebraic form as linear regression's, just with f(x) redefined). The training loop itself doesn't change at all.
+</div>
+
+</section>
+
+<section class="card" id="mean-norm">
+<h2>7. Mean normalization</h2>
+
+<p>Problem: a brand-new user (call her Eve) who hasn't rated anything yet. Because the regularization term pushes unconstrained parameters toward small values, and none of Eve's terms in the error sum exist (she has no ratings to create error), gradient descent will settle on <code>w^(Eve) &asymp; [0,0], b^(Eve) &asymp; 0</code>. That predicts every movie for Eve as <code>0&middot;x + 0 = 0</code> — every movie, zero stars. Not useful, and not even a coherent guess.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> asking a brand-new user to rate movies with a model that defaults to "you'll hate everything" is like a new employee's performance review defaulting to "fired" just because there's no data yet, instead of defaulting to "average, like everyone else until proven otherwise."
+</div>
+
+<h4>The fix, mechanically</h4>
+<div class="step"><span class="step-num">1</span>For each movie i, compute <code>&mu;_i</code> = average of that movie's <em>existing</em> ratings (across users who rated it, ignoring ?s).</div>
+<div class="step"><span class="step-num">2</span>Subtract <code>&mu;_i</code> from every existing rating of movie i before training, so the model is trained on <em>mean-centered</em> ratings, e.g. a 5-star rating on a movie averaging 2.5 becomes +2.5, a 0-star becomes &minus;2.5.</div>
+<div class="step"><span class="step-num">3</span>Train w, b, x exactly as before on these centered values.</div>
+<div class="step"><span class="step-num">4</span>At prediction time, add <code>&mu;_i</code> back: <code>prediction = w^(j)&middot;x^(i) + b^(j) + &mu;_i</code>.</div>
+
+<p>Now for Eve, whose w,b are still ~0, the prediction for movie i becomes <code>0 + &mu;_i</code> — i.e., <strong>the average rating other people gave that movie</strong>, which is a far more reasonable default than zero.</p>
+
+<div class="why">
+  <strong>Why normalize rows (per movie) rather than columns (per user), as done here:</strong> the lecture is explicit that this choice is deliberate. Normalizing rows fixes the "new user" cold-start case (give them the movie's average, which is sensible). Normalizing columns would instead target the "brand-new movie, nobody's rated it" case — but the instructor argues that's less useful, since you probably shouldn't be heavily recommending an unrated movie to lots of people in the first place, so smoothing its predictions doesn't buy you much.
+</div>
+
+<h4>Implementation delta (NumPy)</h4>
+<pre><code># mu[i] = mean rating of movie i, over users who rated it (R[i,:]==1)
+mu = np.sum(Y * R, axis=1) / np.sum(R, axis=1)     # shape (n_m,)
+
+Y_norm = (Y - mu.reshape(-1, 1)) * R   # center, then re-mask so unrated stays 0 (ignored anyway by R)
+
+# ... train W, b, X on Y_norm exactly as in Section 5 ...
+
+def predict_with_mean(X, W, b, mu):
+    return (X @ W.T + b) + mu.reshape(-1, 1)   # add mu back at prediction time
+</code></pre>
+
+<div class="note">
+  <strong>Practical note:</strong> mean normalization is applied only as a preprocessing/postprocessing step around the exact same training loop from Section 5 — no change to the cost function or gradients themselves, just to what Y contains going in and what gets added back coming out.
+</div>
+
+</section>
+
+<section class="card" id="tf">
+<h2>8. TensorFlow implementation, step by step</h2>
+
+<h3>Why TensorFlow at all, if we already wrote NumPy gradients by hand?</h3>
+<p>Collaborative filtering's cost function doesn't fit the standard <code>model.compile()</code> / <code>model.fit()</code> recipe (there's no simple stack of Dense layers computing it) — so instead of hand-deriving gradients (as we just did above) you can let TensorFlow's <strong>automatic differentiation ("Auto Diff"/"Autograd")</strong> compute them for you, given only the cost function.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> writing gradients by hand is like solving a calculus problem manually every single time your formula changes — correct, but fragile and slow to adapt. GradientTape is like handing the formula to a calculator that instantly returns the derivative for you, so you can focus on getting the cost function right and trust the derivative machinery.
+</div>
+
+<h3>Building block 1: the minimal GradientTape example from the lecture</h3>
+<p>Simplified example: <code>J = (wx &minus; 1)²</code>, with x=1, y=1 fixed, solving only for w.</p>
+<pre><code>import tensorflow as tf
+
+w = tf.Variable(3.0)     # tf.Variable marks this as something we want to OPTIMIZE
+x = 1.0
+y = 1.0
+alpha = 0.01
+
+for iter in range(30):
+    with tf.GradientTape() as tape:
+        fwb = w * x
+        costJ = (fwb - y) ** 2
+
+    [dJdw] = tape.gradient(costJ, [w])   # TensorFlow computes dJ/dw automatically
+    w.assign_add(-alpha * dJdw)           # tf.Variables need assign_add, not "w = w - ..."
+</code></pre>
+
+<div class="note">
+  <strong>The pattern to memorize:</strong> (1) declare your parameters as <code>tf.Variable</code>, (2) open <code>with tf.GradientTape() as tape:</code> and compute the cost inside that block (this "records" every operation), (3) call <code>tape.gradient(cost, [list of variables])</code> to get all the derivatives at once, (4) apply an update. Steps 2–4 repeat every iteration; step 1 happens once.
+</div>
+
+<h3>Building block 2: scaling this up to full collaborative filtering</h3>
+<div class="step"><span class="step-num">1</span><strong>Declare W, b, X as tf.Variables</strong> (all three are parameters now, per Section 4).</div>
+<pre><code>num_movies, num_users, num_features = 5, 4, 2  # n_m, n_u, n
+
+tf.random.set_seed(1)
+W = tf.Variable(tf.random.normal((num_users, num_features), dtype=tf.float64))
+X = tf.Variable(tf.random.normal((num_movies, num_features), dtype=tf.float64))
+b = tf.Variable(tf.random.normal((1, num_users), dtype=tf.float64))
+</code></pre>
+
+<div class="step"><span class="step-num">2</span><strong>Write the cost function as a plain Python function</strong> — this is the ONLY piece of math you have to supply. It's the exact same formula as Section 4 / Section 5, just written with TF ops (or even NumPy-like ops; TF will trace whichever it's given inside the tape).</div>
+<pre><code>def cofi_cost_func(X, W, b, Y_norm, R, lam):
+    j = (tf.linalg.matmul(X, W, transpose_b=True) + b - Y_norm) * R
+    J = 0.5 * tf.reduce_sum(j**2)
+    J += (lam/2) * (tf.reduce_sum(X**2) + tf.reduce_sum(W**2))
+    return J
+</code></pre>
+
+<div class="step"><span class="step-num">3</span><strong>Pick an optimizer.</strong> TF gives you access to Adam (usually converges faster/more reliably than plain gradient descent) at essentially no extra implementation cost.</div>
+<pre><code>optimizer = tf.keras.optimizers.Adam(learning_rate=1e-1)
+</code></pre>
+
+<div class="step"><span class="step-num">4</span><strong>The training loop</strong> — this replaces your entire hand-written gradient loop from Section 5.</div>
+<pre><code>iterations = 200
+lam = 1.0
+
+for iter in range(iterations):
+    with tf.GradientTape() as tape:
+        cost_value = cofi_cost_func(X, W, b, Y_norm, R, num_users, num_movies, lam)
+
+    grads = tape.gradient(cost_value, [X, W, b])         # derivatives w.r.t. ALL THREE at once
+    optimizer.apply_gradients(zip(grads, [X, W, b]))      # one Adam update step for all three
+</code></pre>
+
+<div class="why">
+  <strong>Why this is genuinely less code, not just different code:</strong> compare this to Section 5's <code>gradients()</code> function, where you had to manually work out <code>dW</code>, <code>db</code>, and <code>dX</code> by hand and verify the linear-algebra shapes lined up. Here, step 2 is the only place you wrote any math — everything past that (the derivatives, the update rule, momentum/adaptive learning rate from Adam) is handled for you. This becomes essential once cost functions get more complex than this week's (e.g. with neural networks), where deriving gradients by hand stops being practical at all.
+</div>
+
+<div class="note">
+  <strong>The <code>zip(grads, [X, W, b])</code> detail:</strong> <code>tape.gradient</code> returns a list of gradient tensors in the same order as the variable list you passed in. <code>optimizer.apply_gradients</code> expects (gradient, variable) pairs, so <code>zip</code> just re-pairs each gradient with its matching variable before handing them to the optimizer.
+</div>
+
+</section>
+
+<section class="card" id="related">
+<h2>9. Finding related items</h2>
+
+<p>Once you've learned feature vectors x^(i) for every item (from Section 5), "find items similar to item i" falls out almost for free: just find the item(s) k whose feature vector is closest to x^(i) by squared distance.</p>
+
+<div class="formula">
+distance(k, i) &nbsp;=&nbsp; &sum;<sub>l=1</sub><sup>n</sup> (x<sub>l</sub><sup>(k)</sup> &minus; x<sub>l</sub><sup>(i)</sup>)² &nbsp;=&nbsp; ||x<sup>(k)</sup> &minus; x<sup>(i)</sup>||²
+</div>
+
+<pre><code>def find_related(X, item_idx, top_k=5):
+    dists = np.sum((X - X[item_idx])**2, axis=1)
+    dists[item_idx] = np.inf     # exclude the item itself
+    return np.argsort(dists)[:top_k]
+</code></pre>
+
+<div class="note">
+  <strong>Reminder from Section 5's warning:</strong> the learned x's usually aren't individually interpretable ("feature 1 = romance") the way the hand-designed features in Section 2 were — but the <em>relative distances</em> between them are still meaningful, which is all this technique needs.
+</div>
+
+</section>
+
+<section class="card" id="limits">
+<h2>10. Limitations of collaborative filtering</h2>
+
+<h4>1. The cold-start problem</h4>
+<p>Two flavors: (a) a brand-new item that almost no one has rated yet — hard to rank confidently; (b) a brand-new user who's rated very few items — hard to personalize for. Mean normalization (Section 7) partially addresses (b) by giving new users the item's average rating as a starting guess, but doesn't fully solve either case.</p>
+
+<h4>2. No natural way to use side information</h4>
+<p>Collaborative filtering only ever looks at the ratings matrix. It has no built-in mechanism to use extra info you might already have — a movie's genre, cast, studio, budget; a user's age, gender, location, device, or explicitly stated genre preferences — even though these can be strongly predictive (the lecture even notes that which web browser someone uses correlates with behavior).</p>
+
+<div class="why">
+  <strong>Why this matters going forward:</strong> both limitations are the direct motivation for <strong>content-based filtering</strong>, covered next — an approach explicitly designed to bring in side information about users and items rather than relying purely on the ratings matrix.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>11. Summary table</h2>
+<table>
+<tr><th>Concept</th><th>Role</th></tr>
+<tr><td>r(i,j), y(i,j)</td><td>Mask of which ratings exist, and their values — every sum in this week is restricted to r(i,j)=1</td></tr>
+<tr><td>Per-item-features approach</td><td>n_u independent linear regressions sharing input x; only works if x is already given</td></tr>
+<tr><td>Collaborative filtering</td><td>Learn x itself, using the fact that multiple users rating the same item over-determines that item's feature vector</td></tr>
+<tr><td>Joint cost J(w,b,x)</td><td>Squared error over all existing ratings + separate regularization on w and on x</td></tr>
+<tr><td>Binary-label variant</td><td>Swap linear prediction for sigmoid, squared error for binary cross-entropy — gradients keep the same shape</td></tr>
+<tr><td>Mean normalization</td><td>Center each movie's ratings before training, add the mean back after — fixes the "new user predicted 0 everywhere" failure</td></tr>
+<tr><td>TensorFlow / Auto Diff</td><td>Write only the cost function; GradientTape supplies dJ/dw, dJ/db, dJ/dx automatically</td></tr>
+<tr><td>Finding related items</td><td>Nearest neighbors in learned feature space, by squared distance</td></tr>
+<tr><td>Limitations</td><td>Cold start (new users/items) and no way to incorporate side information — motivates content-based filtering next</td></tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>
