@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 3 (Part 2) — The Q Function, the Bellman Equation, and Stochastic Environments</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  section.card h4 { color: #b7d3f5; margin-top: 20px; margin-bottom: 6px; }
+  .why {
+    background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px;
+    overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em;
+    line-height: 1.55; border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; background: #21252e; padding: 1px 5px; border-radius: 4px; }
+  .formula {
+    background: #21252e; border: 1px solid #33384a; border-radius: 6px;
+    padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  .step {
+    background: #1a1d26; border: 1px solid #2e3342; border-radius: 8px;
+    padding: 16px 20px; margin: 14px 0;
+  }
+  .step-num {
+    display: inline-block; background: #2f6fb5; color: #fff; font-weight: bold;
+    border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px;
+    margin-right: 10px; font-family: Georgia, serif;
+  }
+  .resource {
+    background: #211c2c; border-left: 5px solid #8e6fd6; border-radius: 6px;
+    padding: 12px 18px; margin: 18px 0; color: #ded8ef; font-size: 0.95em;
+  }
+  .resource strong { color: #b39ded; }
+  .deep {
+    background: #182420; border: 1px solid #2f5c47; border-radius: 8px;
+    padding: 18px 22px; margin: 20px 0;
+  }
+  .deep h4 { color: #6fc082; margin-top: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>The Q Function, the Bellman Equation, and Stochastic Environments</h1>
+  <p>Course 3, Week 3 (Part 2) — Deep-dive on the state-action value function, a full derivation of the Bellman equation, and random/uncertain transitions</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#q-def">The state-action value function Q(s,a): definition</a></li>
+    <li><a href="#circularity">The slightly circular definition — and why it's okay</a></li>
+    <li><a href="#q-worked">Worked examples: computing Q(s,a) by hand</a></li>
+    <li><a href="#q-full-table">The full Q(s,a) table for the Mars rover</a></li>
+    <li><a href="#best-action">From Q(s,a) to the best action</a></li>
+    <li><a href="#lab">Optional lab: playing with rewards and gamma</a></li>
+    <li><a href="#bellman-motivation">Why we need the Bellman equation at all</a></li>
+    <li><a href="#bellman-notation">Bellman equation notation, piece by piece</a></li>
+    <li><a href="#bellman-eq">The Bellman equation itself</a></li>
+    <li><a href="#bellman-derivation">Full derivation: why the Bellman equation is true</a></li>
+    <li><a href="#bellman-worked">Worked Bellman-equation examples</a></li>
+    <li><a href="#bellman-terminal">The special case of terminal states</a></li>
+    <li><a href="#stochastic">Stochastic (random) environments</a></li>
+    <li><a href="#expected-return">Expected return</a></li>
+    <li><a href="#stochastic-bellman">The Bellman equation under randomness</a></li>
+    <li><a href="#stochastic-lab">Optional lab: the misstep probability</a></li>
+    <li><a href="#summary">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="q-def">
+<h2>1. The state-action value function Q(s,a): definition</h2>
+
+<p>This is described as <em>the</em> key quantity reinforcement learning algorithms compute. It's a function of two inputs — a state s and an action a — and it outputs a single number.</p>
+
+<div class="formula">
+Q(s,a) = the return if you: (1) start in state s, (2) take action a <strong>once</strong>, (3) then behave <strong>optimally</strong> after that.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> imagine grading a single chess move by imagining a grandmaster takes over immediately afterward. Q(s,a) doesn't ask "was this move part of a good overall game" — it asks "if I make exactly this one move right now, and then play perfectly for the rest of the game, how good is the final outcome?" It isolates the value of one specific choice against a backdrop of otherwise-perfect play.
+</div>
+
+<div class="warning">
+  <strong>What Q(s,a) is NOT:</strong> it does not judge whether action a was a <em>good idea</em>. It faithfully reports the return you'd get by taking that action and then playing optimally — even if a is actually a poor choice compared to the alternative. Section 3's worked example makes this concrete: going right from state 2 gives Q(2,→) = 12.5, a perfectly well-defined number, even though right is not the better move from state 2 (going left is, per Section 5).
+</div>
+
+</section>
+
+<section class="card" id="circularity">
+<h2>2. The slightly circular definition — and why it's okay</h2>
+
+<p>There's a real logical wrinkle here worth sitting with, because it's easy to gloss over: Q(s,a) is defined in terms of "behaving optimally after that" — but behaving optimally means <em>already knowing the optimal policy</em>. And if you already know the optimal policy, why would you still need to compute Q(s,a) at all?</p>
+
+<div class="why">
+  <strong>Why this isn't a dead end:</strong> the lecture explicitly flags this as circular-looking but promises it gets resolved once actual RL algorithms are introduced (later in the course, beyond this file's scope). The resolution, in brief: RL algorithms find a way to estimate Q(s,a) <em>before</em> knowing the optimal policy — the policy is then read off from the estimated Q values (Section 5), rather than needing to be known in advance. For now, the material just asks you to accept the definition and see how useful it is once computed, without worrying about how the circularity gets broken.
+</div>
+
+<div class="note">
+  <strong>What to take away for this part of the week:</strong> treat "behave optimally after that" as a given, fixed reference behavior — in the Mars rover example, that reference behavior is a specific, already-known policy (left from states 2, 3, 4; right from state 5). All the Q(s,a) values worked out in this section are computed <em>relative to that particular policy</em>, not derived from nothing.
+</div>
+
+</section>
+
+<section class="card" id="q-worked">
+<h2>3. Worked examples: computing Q(s,a) by hand</h2>
+
+<p>Using the policy "left from 2, 3, 4; right from 5" and γ = 0.5:</p>
+
+<h3>Example 1 — Q(2, →)</h3>
+<div class="step"><span class="step-num">1</span>Start in state 2, take action <strong>right</strong> (once) → you land in state 3.</div>
+<div class="step"><span class="step-num">2</span>From state 3 onward, behave optimally (per the reference policy): go left, left, reaching the reward of 100.</div>
+<div class="step"><span class="step-num">3</span>Reward sequence: 0 (state 2) → 0 (state 3) → 0 (state 2 again) → 100 (state 1).</div>
+<div class="formula">
+Q(2, →) = 0 + (0.5)(0) + (0.5)²(0) + (0.5)³(100) = 12.5
+</div>
+
+<h3>Example 2 — Q(2, ←)</h3>
+<div class="step"><span class="step-num">1</span>Start in state 2, take action <strong>left</strong> (once) → land directly at state 1 (terminal, reward 100).</div>
+<div class="formula">
+Q(2, ←) = 0 + (0.5)(100) = 50
+</div>
+
+<h3>Example 3 — Q(4, ←)</h3>
+<div class="step"><span class="step-num">1</span>Start in state 4, take action <strong>left</strong> → state 3 → (behaving optimally) left → state 2 → left → state 1.</div>
+<div class="step"><span class="step-num">2</span>Reward sequence: 0, 0, 0, 100.</div>
+<div class="formula">
+Q(4, ←) = 0 + (0.5)(0) + (0.5)²(0) + (0.5)³(100) = 12.5
+</div>
+
+<div class="note">
+  <strong>Notice Q(2,→) and Q(4,←) come out equal (12.5).</strong> That's not a coincidence — both describe ending up at state 3 after one action, then behaving optimally from there, so they have the same future path and the same discounting. This hints at something important that Section 9's derivation makes explicit: Q(s,a) can always be broken into "where does this one action land me" plus "what's the best return from there."
+</div>
+
+</section>
+
+<section class="card" id="q-full-table">
+<h2>4. The full Q(s,a) table for the Mars rover</h2>
+
+<p>Carrying out this same calculation for every state and both actions gives the complete table (γ = 0.5, policy = left/left/left/right):</p>
+
+<svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="Georgia, serif">
+    <!-- header row states 1-6 -->
+    <!-- state 1 terminal -->
+    <rect x="20" y="20" width="140" height="140" fill="#fbe9e3" stroke="#1c1f28" stroke-width="2"/>
+    <text x="90" y="70" text-anchor="middle" font-size="16" fill="#1c1f28" font-weight="bold">100</text>
+    <text x="90" y="130" text-anchor="middle" font-size="14" fill="#1c1f28">100</text>
+
+    <rect x="160" y="20" width="140" height="140" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <text x="200" y="55" text-anchor="middle" font-size="15" fill="#c0392b" font-weight="bold">50</text>
+    <text x="260" y="55" text-anchor="middle" font-size="15" fill="#333">12.5</text>
+    <text x="230" y="100" text-anchor="middle" font-size="18" fill="#d98a2b">←</text>
+    <text x="230" y="130" text-anchor="middle" font-size="14" fill="#1c1f28">0</text>
+
+    <rect x="300" y="20" width="140" height="140" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <text x="340" y="55" text-anchor="middle" font-size="15" fill="#c0392b" font-weight="bold">25</text>
+    <text x="400" y="55" text-anchor="middle" font-size="15" fill="#333">6.25</text>
+    <text x="370" y="100" text-anchor="middle" font-size="18" fill="#d98a2b">←</text>
+    <text x="370" y="130" text-anchor="middle" font-size="14" fill="#1c1f28">0</text>
+
+    <rect x="440" y="20" width="140" height="140" fill="#f0ece0" stroke="#1c1f28" stroke-width="2"/>
+    <text x="480" y="55" text-anchor="middle" font-size="15" fill="#c0392b" font-weight="bold">12.5</text>
+    <text x="540" y="55" text-anchor="middle" font-size="15" fill="#333">10</text>
+    <text x="510" y="100" text-anchor="middle" font-size="18" fill="#d98a2b">←</text>
+    <text x="510" y="130" text-anchor="middle" font-size="14" fill="#1c1f28">0</text>
+
+    <rect x="580" y="20" width="140" height="140" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <text x="620" y="55" text-anchor="middle" font-size="15" fill="#333">6.25</text>
+    <text x="680" y="55" text-anchor="middle" font-size="15" fill="#c0392b" font-weight="bold">20</text>
+    <text x="650" y="100" text-anchor="middle" font-size="18" fill="#d98a2b">→</text>
+    <text x="650" y="130" text-anchor="middle" font-size="14" fill="#1c1f28">0</text>
+
+    <rect x="720" y="20" width="140" height="140" fill="#e3ddd0" stroke="#1c1f28" stroke-width="2"/>
+    <text x="790" y="70" text-anchor="middle" font-size="16" fill="#1c1f28" font-weight="bold">40</text>
+    <text x="790" y="130" text-anchor="middle" font-size="14" fill="#1c1f28">40</text>
+
+    <text x="90" y="200" text-anchor="middle" font-size="13" fill="#333">state 1</text>
+    <text x="230" y="200" text-anchor="middle" font-size="13" fill="#333">state 2</text>
+    <text x="370" y="200" text-anchor="middle" font-size="13" fill="#333">state 3</text>
+    <text x="510" y="200" text-anchor="middle" font-size="13" fill="#333">state 4</text>
+    <text x="650" y="200" text-anchor="middle" font-size="13" fill="#333">state 5</text>
+    <text x="790" y="200" text-anchor="middle" font-size="13" fill="#333">state 6</text>
+    <text x="230" y="230" text-anchor="middle" font-size="12" fill="#666" font-style="italic">left value (bold) | right value</text>
+  </g>
+</svg>
+<p class="svg-caption">Left number in each cell = Q(state, ←); right number = Q(state, →). Bold = the higher of the two (the optimal action's value).</p>
+
+<table>
+<tr><th>State</th><th>Q(s, ←)</th><th>Q(s, →)</th><th>Better action</th></tr>
+<tr><td>2</td><td><strong>50</strong></td><td>12.5</td><td>Left</td></tr>
+<tr><td>3</td><td><strong>25</strong></td><td>6.25</td><td>Left</td></tr>
+<tr><td>4</td><td><strong>12.5</strong></td><td>10</td><td>Left</td></tr>
+<tr><td>5</td><td>6.25</td><td><strong>20</strong></td><td>Right</td></tr>
+</table>
+
+</section>
+
+<section class="card" id="best-action">
+<h2>5. From Q(s,a) to the best action</h2>
+
+<div class="formula">
+Best possible return from state s &nbsp;=&nbsp; max<sub>a</sub> Q(s,a)<br><br>
+Best possible action in state s &nbsp;=&nbsp; the action a that achieves max<sub>a</sub> Q(s,a)
+</div>
+
+<p>Looking at the table above: in state 4, Q(4,←) = 12.5 is larger than Q(4,→) = 10, so 12.5 is the best possible return from state 4, and "go left" is the best action there. In state 5, Q(5,→) = 20 beats Q(5,←) = 6.25, so "go right" is best there.</p>
+
+<div class="why">
+  <strong>Why this is the payoff of computing Q(s,a) at all:</strong> once Q(s,a) is known for every state and action, finding the optimal policy no longer requires any further reasoning about the future — you just look at the current state, check Q(s, left) vs. Q(s, right) (or however many actions exist), and pick whichever is larger. All the "thinking ahead" is already baked into the Q values themselves.
+</div>
+
+<div class="formula">
+π(s) = argmax<sub>a</sub> Q(s,a)
+</div>
+
+<div class="note">
+  <strong>Terminology note:</strong> in the reinforcement learning literature, this Q function (computed using the truly optimal policy) is sometimes written Q* and called the <strong>optimal Q function</strong>. The lecture mentions this only so the terms aren't confusing if encountered elsewhere — for this course, "Q function" and "Q*" refer to the same thing.
+</div>
+
+</section>
+
+<section class="card" id="lab">
+<h2>6. Optional lab: playing with rewards and gamma</h2>
+
+<p>An accompanying Jupyter notebook (<code>State-action value function example.ipynb</code>) lets you change <code>terminal_left_reward</code>, <code>terminal_right_reward</code>, <code>gamma</code>, and (for the stochastic section later) <code>misstep_prob</code>, then re-run <code>generate_visualization(...)</code> to see the optimal policy and full Q(s,a) table recompute automatically.</p>
+
+<table>
+<tr><th>Change made</th><th>Effect observed</th></tr>
+<tr><td>terminal_right_reward: 40 → 10</td><td>The right-side reward becomes too small to be worth reaching — the optimal policy becomes "always go left," even from state 5 which is right next to the (now unattractive) right terminal</td></tr>
+<tr><td>gamma: 0.5 → 0.9 (more patient)</td><td>From state 5, going left (toward the reward of 100, discounted by 0.9<sup>4</sup> = 65.61) now beats going right (toward 40, discounted by 0.9 = 36) — the rover becomes willing to wait longer for the bigger prize</td></tr>
+<tr><td>gamma: 0.9 → 0.3 (very impatient)</td><td>Even from state 4, the rover no longer has the "patience" to head toward the reward of 100 — it instead heads for the closer, smaller reward of 40</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters:</strong> this is the clearest possible demonstration that γ isn't a cosmetic constant — it can literally flip which action is optimal in a given state, without changing the state, the actions, or any reward value. The same rover, same rewards, same starting point, produces a completely different "personality" of behavior purely as a function of how much future reward is discounted.
+</div>
+
+</section>
+
+<section class="card" id="bellman-motivation">
+<h2>7. Why we need the Bellman equation at all</h2>
+
+<p>Section 1–6 computed Q(s,a) by brute force: write out the entire future reward sequence from that state onward and sum the discounted terms by hand. That works fine for a 6-state toy example, but it's clearly impractical for any real problem — you can't hand-enumerate every future reward sequence for a helicopter or a chess game.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the Bellman equation gives a way to express Q(s,a) <em>recursively</em> — in terms of the Q-values of other states — rather than requiring the entire infinite future to be summed out explicitly every time. This recursive structure is what actual reinforcement learning algorithms exploit to compute Q(s,a) without brute-force enumeration.
+</div>
+
+</section>
+
+<section class="card" id="bellman-notation">
+<h2>8. Bellman equation notation, piece by piece</h2>
+
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td><strong>s</strong></td><td>the current state</td></tr>
+<tr><td><strong>a</strong></td><td>the current action (taken in state s)</td></tr>
+<tr><td><strong>R(s)</strong></td><td>the reward of the current state — e.g. R(1) = 100, R(2) = 0, ..., R(6) = 40</td></tr>
+<tr><td><strong>s′</strong></td><td>the state you land in after taking action a from state s (e.g. from state 4, going left lands you in s′ = 3)</td></tr>
+<tr><td><strong>a′</strong></td><td>the action you might take in the new state s′</td></tr>
+</table>
+
+<div class="note">
+  <strong>Naming convention:</strong> unprimed symbols (s, a) always refer to <em>right now</em>; primed symbols (s′, a′) always refer to <em>the next state and the action taken there</em>. This convention is used consistently throughout the Bellman equation and its derivation.
+</div>
+
+</section>
+
+<section class="card" id="bellman-eq">
+<h2>9. The Bellman equation itself</h2>
+
+<div class="formula">
+<strong>Q(s,a) = R(s) + γ · max<sub>a′</sub> Q(s′, a′)</strong>
+</div>
+
+<table>
+<tr><th>Term</th><th>Interpretation</th></tr>
+<tr><td>R(s)</td><td>the <strong>immediate reward</strong> — what you get right away, just for being in state s</td></tr>
+<tr><td>γ · max<sub>a′</sub> Q(s′, a′)</td><td>the discounted <strong>best possible return from the next state</strong> s′ onward</td></tr>
+</table>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of planning a road trip cost. "Total cost of the trip starting from here" = "cost of the very next leg of the journey" + "cost of the rest of the trip, starting from wherever that next leg ends." You don't need to know the whole trip's cost in one giant calculation — you only need to know today's leg, plus a (recursively defined) number representing everything after today. The Bellman equation applies exactly this decomposition to returns: reward right now, plus the discounted value of the best possible future starting from wherever you land next.
+</div>
+
+</section>
+
+<section class="card" id="bellman-derivation">
+<h2>10. Full derivation: why the Bellman equation is true</h2>
+
+<p>This is worth working through carefully once, since "why is this true" is more valuable long-term than just memorizing the formula.</p>
+
+<div class="deep">
+<h4>Step-by-step derivation</h4>
+
+<div class="step"><span class="step-num">1</span><strong>Start from the definition.</strong> By definition, Q(s,a) is the full discounted return starting from state s, taking action a, then behaving optimally:
+<div class="formula">Q(s,a) = R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + γ³R<sub>4</sub> + ⋯</div>
+</div>
+
+<div class="step"><span class="step-num">2</span><strong>Split off the very first reward.</strong> R<sub>1</sub> is just R(s) — the reward for the state you're currently in. Factor γ out of everything else:
+<div class="formula">Q(s,a) = R(s) + γ [ R<sub>2</sub> + γR<sub>3</sub> + γ²R<sub>4</sub> + ⋯ ]</div>
+</div>
+
+<div class="step"><span class="step-num">3</span><strong>Recognize the bracketed term.</strong> After taking action a from s, you land in state s′. The rewards R<sub>2</sub>, R<sub>3</sub>, R<sub>4</sub>, ... are <em>exactly</em> the sequence of rewards you'd see if you started fresh from s′ and behaved optimally from there onward. That is precisely the definition of the best possible return from s′:
+<div class="formula">R<sub>2</sub> + γR<sub>3</sub> + γ²R<sub>4</sub> + ⋯ = max<sub>a′</sub> Q(s′, a′)</div>
+</div>
+
+<div class="step"><span class="step-num">4</span><strong>Substitute back.</strong> Replacing the bracketed term with max<sub>a′</sub> Q(s′,a′) gives exactly the Bellman equation:
+<div class="formula">Q(s,a) = R(s) + γ · max<sub>a′</sub> Q(s′, a′)</div>
+</div>
+</div>
+
+<div class="why">
+  <strong>Why step 3 is the heart of the whole derivation:</strong> it relies on the Markov property from Part 1 (Section 8) — once you know you're in state s′, it doesn't matter <em>how</em> you got there (via s and action a, in this case); the best possible future from s′ onward is always max<sub>a′</sub> Q(s′,a′), full stop. That's what allows "the rest of the return" to be replaced by a clean, self-contained quantity instead of needing to track the whole history.
+</div>
+
+</section>
+
+<section class="card" id="bellman-worked">
+<h2>11. Worked Bellman-equation examples</h2>
+
+<p>Recomputing the same two examples from Section 3, now using the Bellman equation directly instead of summing an infinite series by hand:</p>
+
+<h3>Q(2, →) via Bellman</h3>
+<div class="step"><span class="step-num">1</span>s = 2, a = →, so s′ = 3 (going right from state 2 lands you in state 3).</div>
+<div class="formula">
+Q(2,→) = R(2) + 0.5 · max<sub>a′</sub> Q(3, a′) = 0 + 0.5 × max(25, 6.25) = 0 + 0.5 × 25 = <strong>12.5</strong>
+</div>
+
+<h3>Q(4, ←) via Bellman</h3>
+<div class="step"><span class="step-num">1</span>s = 4, a = ←, so s′ = 3 (going left from state 4 also lands you in state 3).</div>
+<div class="formula">
+Q(4,←) = R(4) + 0.5 · max<sub>a′</sub> Q(3, a′) = 0 + 0.5 × max(25, 6.25) = 0 + 0.5 × 25 = <strong>12.5</strong>
+</div>
+
+<div class="note">
+  <strong>Both match the brute-force answers from Section 3 exactly</strong> — 12.5 and 12.5 — confirming the equation is doing the same job as summing the whole future series, just without having to write the whole series out. Also notice why Q(2,→) and Q(4,←) came out equal back in Section 3: both actions land in the exact same next state (s′ = 3), so the Bellman equation trivially gives them the same value — R(2) = R(4) = 0, and both use the same max<sub>a′</sub> Q(3,a′) term.
+</div>
+
+</section>
+
+<section class="card" id="bellman-terminal">
+<h2>12. The special case of terminal states</h2>
+
+<div class="formula">
+Q(s,a) = R(s) &nbsp;&nbsp;(for terminal states — the max<sub>a′</sub> Q(s′,a′) term simply disappears)
+</div>
+
+<div class="why">
+  <strong>Why:</strong> in a terminal state, there is no s′ — the process ends, so there's nothing for the second term of the Bellman equation to refer to. That's why Q(s,a) at states 1 and 6 is just 100 and 40 respectively, regardless of which action is nominally taken there.
+</div>
+
+</section>
+
+<section class="card" id="stochastic">
+<h2>13. Stochastic (random) environments</h2>
+
+<p>Everything so far assumed that commanding "go left" always, reliably, results in going left. Real systems are rarely this obedient — a real Mars rover might hit a rockslide or slippery terrain and end up moving in the direction opposite to the one commanded.</p>
+
+<div class="formula">
+Command: go left &nbsp;→&nbsp; 90% chance of actually going left, 10% chance of accidentally going right<br>
+Command: go right &nbsp;→&nbsp; 90% chance of actually going right, 10% chance of accidentally going left
+</div>
+
+<svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowst" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2f6fb5"/>
+    </marker>
+    <marker id="arrowst2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#c0392b"/>
+    </marker>
+  </defs>
+  <g font-family="Georgia, serif">
+    <rect x="330" y="20" width="140" height="90" fill="#f0ece0" stroke="#1c1f28" stroke-width="2"/>
+    <text x="400" y="55" text-anchor="middle" font-size="24">🤖</text>
+    <text x="400" y="90" text-anchor="middle" font-size="14" fill="#1c1f28">state 4</text>
+
+    <text x="400" y="150" text-anchor="middle" font-size="14" fill="#1c1f28" font-weight="bold">command: go left</text>
+
+    <line x1="330" y1="180" x2="180" y2="220" stroke="#2f6fb5" stroke-width="3" marker-end="url(#arrowst)"/>
+    <text x="200" y="200" font-size="14" fill="#2f6fb5" font-weight="bold">0.9</text>
+    <text x="150" y="245" text-anchor="middle" font-size="13" fill="#1c1f28">→ state 3 (intended)</text>
+
+    <line x1="470" y1="180" x2="620" y2="220" stroke="#c0392b" stroke-width="3" marker-end="url(#arrowst2)"/>
+    <text x="600" y="200" font-size="14" fill="#c0392b" font-weight="bold">0.1</text>
+    <text x="650" y="245" text-anchor="middle" font-size="13" fill="#1c1f28">→ state 5 (misstep!)</text>
+  </g>
+</svg>
+<p class="svg-caption">Commanding "left" from state 4 succeeds 90% of the time; 10% of the time the rover slips and ends up moving right instead.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> once actions have uncertain outcomes, the whole notion of "the return" from following a policy stops being a single fixed number. Running the exact same policy twice from the exact same starting state can produce two completely different reward sequences, depending on when (if ever) a misstep happens. The lecture material walks through this explicitly — following "left, left, left" from state 4 might succeed every time and yield rewards 0,0,0,100, or might slip once midway and take a longer, different path, or might even slip on the very first step and end up heading toward the <em>other</em> terminal reward entirely.
+</div>
+
+</section>
+
+<section class="card" id="expected-return">
+<h2>14. Expected return</h2>
+
+<p>Since the return itself is now a random quantity (it depends on which sequence of missteps happens to occur), maximizing "the return" no longer makes sense as a well-defined goal — there isn't one fixed number to maximize. Instead, the goal becomes maximizing the <strong>expected</strong> (average) return.</p>
+
+<div class="formula">
+Expected Return = Average( R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + γ³R<sub>4</sub> + ⋯ ) = E[ R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + γ³R<sub>4</sub> + ⋯ ]
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> this is exactly the same idea as expected value in a casino game. You can't say in advance exactly how much you'll win on any single hand — that depends on the random cards dealt — but you can compute (and try to maximize) the <em>average</em> amount you'd win if you played the same strategy thousands of times. "Expected" is statistics-speak for "average" here, nothing more exotic.
+</div>
+
+<div class="note">
+  <strong>Updated goal of reinforcement learning:</strong> in a stochastic environment, the goal becomes — choose a policy π(s) = a that tells us what action to take in state s, so as to maximize the <em>expected</em> return, rather than a single guaranteed return.
+</div>
+
+</section>
+
+<section class="card" id="stochastic-bellman">
+<h2>15. The Bellman equation under randomness</h2>
+
+<div class="formula">
+Q(s,a) = R(s) + γ · E[ max<sub>a′</sub> Q(s′, a′) ]
+</div>
+
+<p>The equation keeps exactly the same shape as before — immediate reward plus discounted future value — with one change: since s′ is now random (a given action from state s might lead to different next states depending on chance), an expectation (average) operator E[...] wraps the future-value term.</p>
+
+<div class="why">
+  <strong>Why only this one change:</strong> the deterministic-case derivation in Section 10 still holds conceptually — Q(s,a) is still "reward now, plus discounted value of the best future from wherever you land." The only thing that's changed is that "wherever you land" (s′) is no longer a single guaranteed outcome, so the "value of the future" term has to be averaged over all the states you might land in, weighted by how likely each one is (e.g. 0.9 × [value if s′ = 3] + 0.1 × [value if s′ = 5] for the misstep example in Section 13).
+</div>
+
+</section>
+
+<section class="card" id="stochastic-lab">
+<h2>16. Optional lab: the misstep probability</h2>
+
+<p>The same notebook from Section 6 includes a <code>misstep_prob</code> parameter (0 by default, meaning fully deterministic). Setting it above 0 makes the simulated rover's actions unreliable.</p>
+
+<table>
+<tr><th>misstep_prob</th><th>Effect on Q(s,a) values and optimal return</th></tr>
+<tr><td>0.1</td><td>Q values and the optimal return at every state decrease somewhat, compared to the deterministic case — you have less control over the robot, so the guaranteed value of being in any state goes down</td></tr>
+<tr><td>0.4</td><td>Values decrease further — with 40% of actions going the "wrong" way, the rover's degree of control has dropped substantially, and this is reflected directly in lower Q(s,a) and lower optimal (expected) returns throughout</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters intuitively:</strong> Q(s,a) values dropping as misstep probability rises is a very natural finding — the less reliably your actions translate into intended outcomes, the less any state is "worth" to you, even holding the reward structure and discount factor fixed. This is a clean, hands-on way to see that uncertainty itself has a cost in an RL problem, visible directly in the numbers.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>17. Summary table</h2>
+<table>
+<tr><th>Concept</th><th>Role</th></tr>
+<tr><td>Q(s,a) / state-action value function</td><td>The return if you start in s, take action a once, then behave optimally afterward</td></tr>
+<tr><td>The circularity</td><td>Q(s,a)'s definition assumes optimal future behavior, which sounds like it requires already knowing the optimal policy — resolved by later algorithms that estimate Q(s,a) directly, without first knowing π</td></tr>
+<tr><td>max<sub>a</sub> Q(s,a)</td><td>The best possible return achievable from state s</td></tr>
+<tr><td>π(s) = argmax<sub>a</sub> Q(s,a)</td><td>How to extract the optimal policy once Q(s,a) is known for every state/action</td></tr>
+<tr><td>Q* / optimal Q function</td><td>Alternate name for Q(s,a) computed under the truly optimal policy, used in the wider RL literature</td></tr>
+<tr><td>Bellman equation</td><td>Q(s,a) = R(s) + γ · max<sub>a′</sub> Q(s′,a′) — expresses Q recursively (reward now + discounted best future) instead of requiring the full infinite reward series to be summed</td></tr>
+<tr><td>R(s)</td><td>Immediate reward of the current state</td></tr>
+<tr><td>s′, a′</td><td>The next state (after taking action a from s) and an action considered in that next state</td></tr>
+<tr><td>Terminal-state case</td><td>Q(s,a) = R(s) — the recursive second term vanishes since there is no s′</td></tr>
+<tr><td>Stochastic environment</td><td>An environment where an action's outcome is random (e.g. a 10% chance of "misstep" in the opposite direction)</td></tr>
+<tr><td>Expected return</td><td>The average return across many trials of the same policy — the correct quantity to maximize once outcomes are random</td></tr>
+<tr><td>Stochastic Bellman equation</td><td>Q(s,a) = R(s) + γ · E[max<sub>a′</sub> Q(s′,a′)] — same structure, with an expectation over the random next state s′</td></tr>
+<tr><td>misstep_prob</td><td>Lab parameter controlling how often a commanded action goes the "wrong" way; higher values lower Q(s,a) and the optimal expected return throughout</td></tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>
