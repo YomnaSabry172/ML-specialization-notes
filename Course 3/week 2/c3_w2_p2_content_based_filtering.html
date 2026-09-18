@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 2 (Part 2) — Recommender Systems: Content-Based Filtering, Scaling to Large Catalogs, and Ethics</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  section.card h4 { color: #b7d3f5; margin-top: 20px; margin-bottom: 6px; }
+  .why {
+    background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px;
+    overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em;
+    line-height: 1.55; border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; background: #21252e; padding: 1px 5px; border-radius: 4px; }
+  pre code { background: none; padding: 0; }
+  .formula {
+    background: #21252e; border: 1px solid #33384a; border-radius: 6px;
+    padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  hr.sep { border: none; border-top: 1px solid #2e3342; margin: 30px 0; }
+  .step {
+    background: #1a1d26; border: 1px solid #2e3342; border-radius: 8px;
+    padding: 16px 20px; margin: 14px 0;
+  }
+  .step-num {
+    display: inline-block; background: #2f6fb5; color: #fff; font-weight: bold;
+    border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px;
+    margin-right: 10px; font-family: Georgia, serif;
+  }
+  .resource {
+    background: #211c2c; border-left: 5px solid #8e6fd6; border-radius: 6px;
+    padding: 12px 18px; margin: 18px 0; color: #ded8ef; font-size: 0.95em;
+  }
+  .resource strong { color: #b39ded; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Content-Based Filtering, Scaling to Large Catalogs, and Ethics</h1>
+  <p>Course 3, Week 2 (Part 2) — Concept, Deep Learning Architecture, TensorFlow Implementation, Retrieval &amp; Ranking, and Responsible Design</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#recap">Where Part 1 left off, and what changes now</a></li>
+    <li><a href="#cbf-concept">Content-based filtering: the core idea</a></li>
+    <li><a href="#features">User features and item features</a></li>
+    <li><a href="#learn-to-match">Learning to match: v_u and v_m</a></li>
+    <li><a href="#dl-architecture">Deep learning architecture (twin networks)</a></li>
+    <li><a href="#cost">The cost function for content-based filtering</a></li>
+    <li><a href="#similar-items">Finding similar items (again)</a></li>
+    <li><a href="#tf-impl">TensorFlow implementation, step by step</a></li>
+    <li><a href="#large-catalog">Recommending from a large catalog: retrieval &amp; ranking</a></li>
+    <li><a href="#tradeoff">The retrieval/ranking trade-off</a></li>
+    <li><a href="#ethics">Ethical use of recommender systems</a></li>
+    <li><a href="#summary">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="recap">
+<h2>1. Where Part 1 left off, and what changes now</h2>
+
+<p>Part 1 covered <strong>collaborative filtering</strong>: given a matrix of ratings from many users on many items, learn both the item feature vectors <code>x^(i)</code> and the per-user parameters <code>w^(j), b^(j)</code> purely from the pattern of who-rated-what. No outside information about users or items was ever used — the algorithm only "collaborates" across users' overlapping ratings.</p>
+
+<div class="formula">
+Collaborative filtering &nbsp;→&nbsp; recommend based on <strong>ratings of similar users</strong><br>
+Content-based filtering &nbsp;→&nbsp; recommend based on <strong>features of the user</strong> and <strong>features of the item</strong>, matched together
+</div>
+
+<div class="note">
+<strong>What stays the same:</strong> the notation <code>r(i,j) = 1</code> if user j rated item i, and <code>y(i,j)</code> for that rating, carries over unchanged. What's different is that now we <em>also</em> have a feature vector describing the user and a feature vector describing the item, and the whole algorithm is built around using them.
+</div>
+
+</section>
+
+<section class="card" id="cbf-concept">
+<h2>2. Content-based filtering: the core idea</h2>
+
+<p>Content-based filtering recommends items by looking at <strong>features of the user</strong> and <strong>features of the item</strong> and trying to find a good match between them — rather than only looking at the pattern of ratings across many users the way collaborative filtering does.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> collaborative filtering has no way to use anything except the ratings matrix itself. If a brand-new movie has zero ratings, or a brand-new user has rated nothing, collaborative filtering has almost nothing to work with (this is the cold-start problem from Part 1). Content-based filtering sidesteps that by using descriptive information that exists independently of the ratings — a movie's genre exists whether or not anyone has rated it yet.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> collaborative filtering is like a matchmaker who only ever asks "who liked the same things as you?" Content-based filtering is a matchmaker who actually reads your dating profile (age, interests, preferences) and reads the other person's profile, and tries to reason about <em>why</em> the two of you might be compatible — using the content of each profile, not just a history of who-liked-who.
+</div>
+
+</section>
+
+<section class="card" id="features">
+<h2>3. User features and item features</h2>
+
+<p>Every user gets a feature vector <code>x_u^(j)</code>, and every item gets a feature vector <code>x_m^(i)</code>. These two vectors can be completely different lengths — nothing requires them to match in size.</p>
+
+<table>
+<tr><th>User features (x_u)</th><th>Example encoding</th></tr>
+<tr><td>Age</td><td>a number</td></tr>
+<tr><td>Gender</td><td>one-hot (e.g. male / female / unknown)</td></tr>
+<tr><td>Country</td><td>one-hot over ~200 countries</td></tr>
+<tr><td>Which of the top 1000 movies the user has watched</td><td>1000 binary flags</td></tr>
+<tr><td>Average rating the user has given per genre</td><td>one number per genre</td></tr>
+</table>
+
+<table>
+<tr><th>Movie / item features (x_m)</th><th>Example encoding</th></tr>
+<tr><td>Year of release</td><td>a number</td></tr>
+<tr><td>Genre(s)</td><td>one-hot or multi-hot</td></tr>
+<tr><td>Critic reviews</td><td>one or more derived numeric features</td></tr>
+<tr><td>Average rating of the movie</td><td>a number</td></tr>
+</table>
+
+<div class="note">
+  <strong>A subtlety worth pausing on:</strong> features like "average rating the user gave to romance movies" or "average rating this movie has received" are <em>computed from the ratings themselves</em>, yet they still count as valid content features. There's nothing circular or wrong about this — you're just summarizing the rating history into a compact number rather than using the raw ratings matrix the way collaborative filtering does directly.
+</div>
+
+<div class="why">
+  <strong>Why sizes can differ:</strong> <code>x_u</code> might be 1500 numbers long (lots of behavioral history) while <code>x_m</code> is only 50 numbers long (basic movie metadata) — that's completely fine at the input stage. It only becomes a constraint once you get to the output vectors v_u and v_m (Section 4), which <em>do</em> have to match in size because you're about to take their dot product.
+</div>
+
+</section>
+
+<section class="card" id="learn-to-match">
+<h2>4. Learning to match: v_u and v_m</h2>
+
+<p>Recall the collaborative filtering prediction rule from Part 1: <code>w^(j) &middot; x^(i) + b^(j)</code>. Content-based filtering modifies this in two ways: it drops the bias term <code>b^(j)</code> entirely (this turns out not to hurt performance), and it replaces <code>w^(j)</code> and <code>x^(i)</code> with two new vectors that are both <em>computed</em> from features rather than treated as free parameters or given features directly.</p>
+
+<div class="formula">
+prediction(user j, movie i) &nbsp;=&nbsp; v_u<sup>(j)</sup> &middot; v_m<sup>(i)</sup>
+</div>
+
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td><code>v_u^(j)</code></td><td>a vector computed from <code>x_u^(j)</code>, meant to capture user j's preferences</td></tr>
+<tr><td><code>v_m^(i)</code></td><td>a vector computed from <code>x_m^(i)</code>, meant to capture movie i's characteristics</td></tr>
+</table>
+
+<div class="analogy">
+  <strong>Analogy:</strong> think of v_u as a taste profile — "4.9 out of 5 on romance, 0.1 on action, 3.0 on documentaries" — and v_m as a matching content profile for the movie — "4.5 romance-ness, 0.2 action-ness, 3.5 something else." The dot product rewards a movie and a user for pointing in the <em>same direction</em> in this taste space; a high romance score in both multiplies together into a large positive contribution, while a mismatch (high in one, near-zero in the other) contributes almost nothing.
+</div>
+
+<div class="warning">
+  <strong>The one hard constraint:</strong> v_u and v_m must be the <em>same length</em> as each other (e.g. both length 32), even though the raw feature vectors x_u and x_m that produced them can be completely different lengths. A dot product is only defined between vectors of matching dimension.
+</div>
+
+<p>The open question this leaves: given raw features x_u and x_m of possibly very different sizes, how do you actually compute v_u and v_m so that they land in the same 32-dimensional space and so that their dot product is a good rating predictor? That's what Section 5 answers.</p>
+
+</section>
+
+<section class="card" id="dl-architecture">
+<h2>5. Deep learning architecture (twin networks)</h2>
+
+<p>The standard, commercially-used way to compute v_u and v_m is to run each raw feature vector through its own neural network — a <strong>user network</strong> and a <strong>movie (item) network</strong> — each ending in an output layer of exactly 32 units, so both networks' outputs land in the same 32-dimensional space no matter how different their inputs were.</p>
+
+<svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2f6fb5"/>
+    </marker>
+  </defs>
+  <!-- User network -->
+  <text x="20" y="30" font-family="Georgia, serif" font-size="16" fill="#1c1f28" font-weight="bold">User network</text>
+  <text x="20" y="90" font-family="Georgia, serif" font-size="15" fill="#1c1f28">x_u</text>
+  <line x1="45" y1="85" x2="90" y2="85" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrow2)"/>
+  <rect x="95" y="35" width="60" height="100" rx="8" fill="#e8f0fb" stroke="#2f6fb5"/>
+  <text x="125" y="90" text-anchor="middle" font-size="12" fill="#1c1f28">256, 128</text>
+  <line x1="155" y1="85" x2="200" y2="85" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrow2)"/>
+  <rect x="205" y="55" width="55" height="60" rx="8" fill="#f7e9d8" stroke="#d98a2b"/>
+  <text x="232" y="90" text-anchor="middle" font-size="12" fill="#1c1f28">32</text>
+  <line x1="260" y1="85" x2="305" y2="85" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrow2)"/>
+  <text x="310" y="90" font-family="Georgia, serif" font-size="15" fill="#1c1f28" font-weight="bold">v_u</text>
+
+  <!-- Movie network -->
+  <text x="20" y="200" font-family="Georgia, serif" font-size="16" fill="#1c1f28" font-weight="bold">Movie (item) network</text>
+  <text x="20" y="260" font-family="Georgia, serif" font-size="15" fill="#1c1f28">x_m</text>
+  <line x1="45" y1="255" x2="90" y2="255" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrow2)"/>
+  <rect x="95" y="205" width="60" height="100" rx="8" fill="#e8f0fb" stroke="#2f6fb5"/>
+  <text x="125" y="260" text-anchor="middle" font-size="12" fill="#1c1f28">256, 128</text>
+  <line x1="155" y1="255" x2="200" y2="255" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrow2)"/>
+  <rect x="205" y="225" width="55" height="60" rx="8" fill="#f7e9d8" stroke="#d98a2b"/>
+  <text x="232" y="260" text-anchor="middle" font-size="12" fill="#1c1f28">32</text>
+  <line x1="260" y1="255" x2="305" y2="255" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrow2)"/>
+  <text x="310" y="260" font-family="Georgia, serif" font-size="15" fill="#1c1f28" font-weight="bold">v_m</text>
+
+  <!-- Dot product -->
+  <line x1="345" y1="90" x2="410" y2="160" stroke="#4a9d5c" stroke-width="2"/>
+  <line x1="345" y1="260" x2="410" y2="175" stroke="#4a9d5c" stroke-width="2"/>
+  <circle cx="420" cy="168" r="22" fill="#eaf6ec" stroke="#4a9d5c" stroke-width="2"/>
+  <text x="420" y="173" text-anchor="middle" font-size="16" fill="#1c1f28">&middot;</text>
+  <line x1="442" y1="168" x2="500" y2="168" stroke="#4a9d5c" stroke-width="2" marker-end="url(#arrow2)"/>
+  <text x="510" y="173" font-family="Georgia, serif" font-size="15" fill="#1c1f28" font-weight="bold">prediction (rating, or probability if sigmoid applied)</text>
+
+  <!-- Note both same output size -->
+  <text x="410" y="400" text-anchor="middle" font-size="13" fill="#6a6a6a" font-style="italic">Hidden layers can differ in count/width between the two networks —</text>
+  <text x="410" y="420" text-anchor="middle" font-size="13" fill="#6a6a6a" font-style="italic">only the final output size (here, 32) must match between v_u and v_m.</text>
+</svg>
+<p class="svg-caption">The user network and movie network, drawn as one combined architecture ending in a dot product.</p>
+
+<div class="step"><span class="step-num">1</span><strong>User network:</strong> takes x_u (age, gender, country, watch history, ...) through a few Dense layers, ending in an output layer of 32 units → v_u.</div>
+<div class="step"><span class="step-num">2</span><strong>Movie network:</strong> takes x_m (year, genre, reviews, average rating, ...) through its own Dense layers — which can have a different number of layers or units than the user network — ending in an output layer of 32 units → v_m.</div>
+<div class="step"><span class="step-num">3</span><strong>Combine:</strong> take the dot product v_u &middot; v_m as the predicted rating. For binary labels (did the user like / click / favorite the item), apply a sigmoid to the dot product: <code>g(v_u &middot; v_m)</code> gives the predicted probability that y(i,j) = 1.</div>
+
+<div class="why">
+  <strong>Why draw two separate networks as "one architecture":</strong> the lecture material makes a point of this — neural networks are easy to compose. You can take two independently-designed networks (different depths, different widths, tailored to their own very different input types) and bolt them together at the end with a simple operation like a dot product, and train the whole thing jointly. This same idea of combining sub-networks reappears throughout deep learning wherever you have two different kinds of input that need to be compared or matched.
+</div>
+
+<div class="note">
+  <strong>No separate training procedure:</strong> there isn't a "train the user network first, then the movie network." Both networks' parameters are trained <em>together</em>, using one shared cost function (Section 6) — gradient descent updates every layer in both networks simultaneously based on how well the final dot product matches the true ratings.
+</div>
+
+</section>
+
+<section class="card" id="cost">
+<h2>6. The cost function for content-based filtering</h2>
+
+<div class="formula">
+J &nbsp;=&nbsp; &sum;<sub>(i,j): r(i,j)=1</sub> (v_u<sup>(j)</sup> &middot; v_m<sup>(i)</sup> &minus; y<sup>(i,j)</sup>)² &nbsp;+&nbsp; NN regularization term
+</div>
+
+<p>This is deliberately close to the collaborative filtering cost function from Part 1 — sum the squared error between predicted and actual rating, over only the (i, j) pairs where a rating actually exists (<code>r(i,j) = 1</code>), plus a regularization term (the usual neural-network weight-penalty, applied to the parameters of both networks) to discourage overfitting.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the entire content-based filtering system — both networks' worth of weights — is trained by minimizing this <em>one</em> cost function with gradient descent (or Adam, see Section 8). There's no hand-crafted rule for what v_u or v_m "should" contain; the training process is what discovers vectors such that their dot products line up with real ratings.
+</div>
+
+</section>
+
+<section class="card" id="similar-items">
+<h2>7. Finding similar items (again)</h2>
+
+<p>Exactly as in collaborative filtering (Part 1, Section 9), once you've trained the movie network and computed v_m<sup>(i)</sup> for every movie, you can find movies similar to movie i by looking for other movies k with small squared distance between their learned vectors.</p>
+
+<div class="formula">
+distance(k, i) &nbsp;=&nbsp; ||v_m<sup>(k)</sup> &minus; v_m<sup>(i)</sup>||²
+</div>
+
+<div class="note">
+  <strong>Contrast with Part 1:</strong> in collaborative filtering this same idea used the learned item features <code>x^(k)</code> and <code>x^(i)</code> directly (there was no separate v — the learned x <em>was</em> the representation). Here, x_m is the raw, human-readable feature vector (year, genre, reviews...) and v_m is what the movie network computes <em>from</em> x_m — so it's v_m, not x_m, that plays the role of "the learned representation" this time.
+</div>
+
+<div class="note">
+  <strong>Can be pre-computed:</strong> because v_m for every movie only depends on that movie's own features (not on any particular user), you can compute the full similar-items table for your entire catalog offline, overnight, and just look results up instantly when a user is browsing. This pre-computability becomes important again in Section 9.
+</div>
+
+</section>
+
+<section class="card" id="tf-impl">
+<h2>8. TensorFlow implementation, step by step</h2>
+
+<p>This mirrors the pattern from Part 1's TensorFlow section (declare the model, define how data flows through it, pick an optimizer, train) but here the "model" is the two-tower architecture from Section 5, built with the ordinary <code>Sequential</code>/Functional Keras API rather than hand-written <code>GradientTape</code> loops, since content-based filtering's forward pass <em>is</em> just an ordinary stack of Dense layers (twice) plus a dot product — unlike collaborative filtering's cost function, which didn't fit the standard layer-stack pattern.</p>
+
+<div class="step"><span class="step-num">1</span><strong>Define the user network and item (movie) network</strong> as two ordinary <code>Sequential</code> models. Both end in a Dense layer of 32 units with no activation — that final layer <em>is</em> v_u / v_m, so it's left as raw numbers rather than passed through relu or sigmoid.</div>
+<pre><code>user_NN = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(32)
+])
+
+item_NN = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(32)
+])
+</code></pre>
+
+<div class="step"><span class="step-num">2</span><strong>Wire up the inputs</strong> and pass them through each network, then <strong>L2-normalize</strong> each output vector to length 1.</div>
+<pre><code># create the user input and point to the base network
+input_user = tf.keras.layers.Input(shape=(num_user_features))
+vu = user_NN(input_user)
+vu = tf.linalg.l2_normalize(vu, axis=1)
+
+# create the item input and point to the base network
+input_item = tf.keras.layers.Input(shape=(num_item_features))
+vm = item_NN(input_item)
+vm = tf.linalg.l2_normalize(vm, axis=1)
+</code></pre>
+
+<div class="note">
+  <strong>Why normalize to length 1?</strong> The lecture flags this as an extra step that "makes the algorithm work a bit better" — without it, the dot product's magnitude is free to grow simply by the network learning large-magnitude vectors, rather than by genuinely capturing direction/alignment between user taste and item content. Normalizing to unit length forces the dot product to depend only on the <em>angle</em> between v_u and v_m (their cosine similarity), which is a cleaner signal of "how well matched are these two."
+</div>
+
+<div class="step"><span class="step-num">3</span><strong>Take the dot product</strong> using Keras's dedicated <code>Dot</code> layer (distinct from a plain <code>Dense</code> layer — this one has no trainable weights, it purely computes v_u &middot; v_m for each pair fed to it).</div>
+<pre><code># measure the similarity of the two vector outputs
+output = tf.keras.layers.Dot(axes=1)([vu, vm])
+</code></pre>
+
+<div class="step"><span class="step-num">4</span><strong>Assemble the full model</strong> by telling Keras what the inputs and output are, then compile with mean squared error.</div>
+<pre><code># specify the inputs and output of the model
+model = Model([input_user, input_item], output)
+
+# Specify the cost function
+cost_fn = tf.keras.losses.MeanSquaredError()
+</code></pre>
+
+<div class="why">
+  <strong>Why this is simpler than Part 1's TensorFlow section:</strong> collaborative filtering needed a hand-written cost function plus an explicit <code>GradientTape</code> loop because its structure (a shared X, W, b jointly indexed by both movies and users) doesn't correspond to any standard Keras layer stack. Content-based filtering's forward pass — two towers of Dense layers meeting at a Dot layer — <em>is</em> exactly what Keras's ordinary Model/Sequential machinery is built for, so it can be trained with the standard <code>model.compile()</code> / <code>model.fit()</code> workflow instead.
+</div>
+
+</section>
+
+<section class="card" id="large-catalog">
+<h2>9. Recommending from a large catalog: retrieval &amp; ranking</h2>
+
+<p>A real streaming site might have thousands of movies; an ad system might choose from millions of ads; a music service might have tens of millions of songs; a shopping site might have tens of millions of products. Running the full user-network-then-dot-product computation against <em>every single item</em> every time a user loads the page is computationally infeasible at that scale.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> the fix isn't a different model — it's a different <em>pipeline</em>. Large-scale recommender systems split the work into two stages: a cheap, broad <strong>retrieval</strong> step that narrows millions of items down to a few hundred plausible candidates, followed by an expensive, precise <strong>ranking</strong> step that only has to run the full neural network on that much smaller shortlist.
+</div>
+
+<svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2f6fb5"/>
+    </marker>
+  </defs>
+  <rect x="20" y="30" width="230" height="140" rx="10" fill="#e8f0fb" stroke="#2f6fb5" stroke-width="2"/>
+  <text x="135" y="55" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c1f28">Retrieval</text>
+  <text x="35" y="80" font-size="12" fill="#1c1f28">• similar to last 10 watched</text>
+  <text x="35" y="100" font-size="12" fill="#1c1f28">• top 10 of top 3 genres</text>
+  <text x="35" y="120" font-size="12" fill="#1c1f28">• top 20 in user's country</text>
+  <text x="35" y="145" font-size="12" fill="#1c1f28" font-style="italic">→ full catalog (millions)</text>
+  <text x="35" y="163" font-size="12" fill="#1c1f28" font-style="italic">→ ~ hundreds of candidates</text>
+
+  <line x1="250" y1="100" x2="320" y2="100" stroke="#2f6fb5" stroke-width="3" marker-end="url(#arrow3)"/>
+  <text x="285" y="90" text-anchor="middle" font-size="11" fill="#1c1f28">dedupe +</text>
+  <text x="285" y="115" text-anchor="middle" font-size="11" fill="#1c1f28">remove seen</text>
+
+  <rect x="330" y="30" width="230" height="140" rx="10" fill="#f7e9d8" stroke="#d98a2b" stroke-width="2"/>
+  <text x="445" y="55" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c1f28">Ranking</text>
+  <text x="345" y="80" font-size="12" fill="#1c1f28">• run full v_u &middot; v_m</text>
+  <text x="345" y="100" font-size="12" fill="#1c1f28">  neural network on each</text>
+  <text x="345" y="120" font-size="12" fill="#1c1f28">  candidate (hundreds, not</text>
+  <text x="345" y="140" font-size="12" fill="#1c1f28">  millions — now feasible)</text>
+  <text x="345" y="163" font-size="12" fill="#1c1f28" font-style="italic">→ ranked list</text>
+
+  <line x1="560" y1="100" x2="630" y2="100" stroke="#2f6fb5" stroke-width="3" marker-end="url(#arrow3)"/>
+
+  <rect x="640" y="55" width="220" height="90" rx="10" fill="#eaf6ec" stroke="#4a9d5c" stroke-width="2"/>
+  <text x="750" y="85" text-anchor="middle" font-size="14" font-weight="bold" fill="#1c1f28">Display ranked</text>
+  <text x="750" y="105" text-anchor="middle" font-size="14" font-weight="bold" fill="#1c1f28">items to user</text>
+
+  <text x="450" y="230" text-anchor="middle" font-size="13" fill="#333" font-style="italic">Optimization: since v_m for every item can be pre-computed offline,</text>
+  <text x="450" y="250" text-anchor="middle" font-size="13" fill="#333" font-style="italic">the ranking step only needs to run the user network ONCE (to get v_u for</text>
+  <text x="450" y="270" text-anchor="middle" font-size="13" fill="#333" font-style="italic">the current user) and then take its dot product with the pre-computed v_m's.</text>
+</svg>
+<p class="svg-caption">The two-step pipeline: retrieval narrows the catalog broadly and cheaply; ranking scores that shortlist precisely.</p>
+
+<h3>Retrieval step — generate a broad candidate list</h3>
+<p>Goal: cast a wide net. It's fine (even expected) that many retrieved items turn out to be ones the user won't like — the only real failure mode at this stage is <em>missing</em> the good options. Example retrieval rules from the lecture:</p>
+<div class="step"><span class="step-num">1</span>For each of the last 10 movies the user watched, find the 10 most similar movies (using the pre-computed <code>||v_m^(k) − v_m^(i)||²</code> distances from Section 7).</div>
+<div class="step"><span class="step-num">2</span>For the user's top 3 most-viewed genres, find the top 10 movies in each genre.</div>
+<div class="step"><span class="step-num">3</span>Find the top 20 movies in the user's country.</div>
+<p>Combine everything retrieved into one list, removing duplicates and removing items the user has already watched or purchased. This whole step is fast and can produce on the order of hundreds of candidates.</p>
+
+<h3>Ranking step — score the shortlist precisely</h3>
+<p>Take the (much smaller) list from retrieval and run it through the trained model: feed in the user feature vector and each candidate item's feature vector, compute the predicted rating (or probability, for binary labels) for every user-item pair, and sort by that score. Display the top results to the user.</p>
+
+<div class="note">
+  <strong>The key computational shortcut:</strong> if v_m has already been pre-computed for every item in the catalog (Section 7's point about pre-computability), the ranking step doesn't need to re-run the movie network at all — it only needs <em>one</em> forward pass through the user network (to get v_u for whoever is currently on the site) and then a fast dot product against each candidate's already-known v_m. This is what makes the ranking step tractable even though it's the "expensive, precise" half of the pipeline.
+</div>
+
+</section>
+
+<section class="card" id="tradeoff">
+<h2>10. The retrieval/ranking trade-off</h2>
+
+<p>The one knob you control is <strong>how many items to retrieve</strong> before handing them to ranking — e.g. 100 vs. 500 vs. 1000.</p>
+
+<table>
+<tr><th>Retrieve more items</th><th>Retrieve fewer items</th></tr>
+<tr><td>Better recommendation quality (ranking has more good candidates to choose from)</td><td>Faster response time</td></tr>
+<tr><td>Slower, since ranking must score every retrieved candidate</td><td>Risk of missing a genuinely good item that retrieval didn't surface</td></tr>
+</table>
+
+<div class="why">
+  <strong>How to actually decide the number:</strong> don't guess — run offline experiments. Check whether retrieving more items (say, 500 instead of 100) meaningfully raises <code>P(y(i,j) = 1)</code> — i.e., whether the extra candidates you'd be adding are actually ones the model predicts the user will rate highly / engage with. If going from 100 → 500 barely moves that number, it's not worth the added latency. If it moves it a lot, the slower response may be worth it.
+</div>
+
+<div class="note">
+  <strong>Why this two-step design matters commercially:</strong> it's precisely this split — broad-and-cheap retrieval followed by narrow-and-precise ranking — that lets today's large-scale recommender systems be both fast <em>and</em> accurate simultaneously, despite catalogs of millions of items. Neither goal is achievable alone: ranking all items precisely is too slow; retrieving without a ranking step is too imprecise.
+</div>
+
+</section>
+
+<section class="card" id="ethics">
+<h2>11. Ethical use of recommender systems</h2>
+
+<p>How you define the <em>goal</em> the recommender system optimizes for has real consequences — some choices are clearly fine, others deserve real scrutiny.</p>
+
+<table>
+<tr><th>Possible optimization goal</th><th>Concern level</th></tr>
+<tr><td>Movies most likely to be rated 5 stars by the user</td><td>Generally fine</td></tr>
+<tr><td>Products most likely to be purchased</td><td>Generally fine</td></tr>
+<tr><td>Ads most likely to be clicked on, weighted by advertiser bid</td><td>⚠ Worth scrutiny</td></tr>
+<tr><td>Products that generate the largest profit for the company</td><td>⚠ Worth scrutiny</td></tr>
+<tr><td>Videos that lead to maximum watch time</td><td>⚠ Worth scrutiny</td></tr>
+</table>
+
+<h3>Worked example: advertising as an amplifier</h3>
+<p>The advertising industry can amplify either very good or very harmful businesses, through the same feedback loop mechanism, depending on what's being amplified:</p>
+
+<svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow4" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#4a9d5c"/>
+    </marker>
+    <marker id="arrow5" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#c0392b"/>
+    </marker>
+  </defs>
+  <!-- Virtuous loop -->
+  <text x="215" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c1f28">Travel industry (virtuous loop)</text>
+  <ellipse cx="215" cy="170" rx="150" ry="120" fill="none" stroke="#4a9d5c" stroke-width="2" stroke-dasharray="0"/>
+  <text x="215" y="75" text-anchor="middle" font-size="13" fill="#1c1f28">Good travel experiences</text>
+  <path d="M 340 170 A 150 120 0 0 1 260 275" fill="none" stroke="#4a9d5c" stroke-width="2" marker-end="url(#arrow4)"/>
+  <text x="330" y="230" text-anchor="middle" font-size="13" fill="#1c1f28">More profitable</text>
+  <path d="M 170 275 A 150 120 0 0 1 90 170" fill="none" stroke="#4a9d5c" stroke-width="2" marker-end="url(#arrow4)"/>
+  <text x="90" y="230" text-anchor="middle" font-size="13" fill="#1c1f28">Bid higher for ads</text>
+  <path d="M 90 100 A 150 120 0 0 1 170 75" fill="none" stroke="#4a9d5c" stroke-width="2" marker-end="url(#arrow4)"/>
+  <text x="130" y="110" text-anchor="middle" font-size="12" fill="#1c1f28">more traffic</text>
+
+  <!-- Vicious loop -->
+  <text x="685" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c1f28">Payday loans (harmful loop)</text>
+  <ellipse cx="685" cy="170" rx="150" ry="120" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="0"/>
+  <text x="685" y="75" text-anchor="middle" font-size="13" fill="#1c1f28">Squeeze customers more</text>
+  <path d="M 810 170 A 150 120 0 0 1 730 275" fill="none" stroke="#c0392b" stroke-width="2" marker-end="url(#arrow5)"/>
+  <text x="800" y="230" text-anchor="middle" font-size="13" fill="#1c1f28">More profit</text>
+  <path d="M 640 275 A 150 120 0 0 1 560 170" fill="none" stroke="#c0392b" stroke-width="2" marker-end="url(#arrow5)"/>
+  <text x="560" y="230" text-anchor="middle" font-size="13" fill="#1c1f28">Bid higher for ads</text>
+  <path d="M 560 100 A 150 120 0 0 1 640 75" fill="none" stroke="#c0392b" stroke-width="2" marker-end="url(#arrow5)"/>
+  <text x="600" y="110" text-anchor="middle" font-size="12" fill="#1c1f28">more traffic</text>
+</svg>
+<p class="svg-caption">The same ad-bidding mechanism creates a virtuous cycle for a good-faith business and a harmful cycle for an exploitative one.</p>
+
+<div class="why">
+  <strong>Why the mechanism itself is neutral but the outcome isn't:</strong> a business that's good at serving customers becomes more profitable, which lets it bid higher for ads, which drives it more traffic, which reinforces the cycle — good for a travel company built on real value. But the identical mechanism rewards a payday-loan company that is simply <em>efficient at extracting money from vulnerable customers</em>: efficiency at exploitation is still efficiency, so it too becomes more profitable, bids higher, and gets more traffic. The recommender/ad system can't tell "profitable because it serves people well" apart from "profitable because it exploits people well" unless something is explicitly built in to distinguish them.
+</div>
+
+<h3>Other problematic patterns and possible ameliorations</h3>
+
+<table>
+<tr><th>Problem</th><th>Possible amelioration</th><th>Why it's still hard</th></tr>
+<tr><td>Maximizing watch-time/engagement can amplify conspiracy theories and toxic content, since that content is often highly engaging</td><td>Filter out clearly harmful content (hate speech, fraud, scams, certain violent content)</td><td>Defining exactly what counts as "problematic content" to filter is itself a genuinely difficult, contestable line to draw</td></tr>
+<tr><td>Ad systems amplifying exploitative businesses (payday loans, etc.)</td><td>Refuse ads from exploitative businesses</td><td>Defining "exploitative" precisely enough to apply consistently is hard</td></tr>
+<tr><td>Users often don't realize a site is optimizing for the <em>company's</em> profit rather than the user's actual interest</td><td>Be transparent with users about what criteria are driving recommendations</td><td>Requires companies to voluntarily disclose business-sensitive optimization choices</td></tr>
+</table>
+
+<div class="warning">
+  <strong>The honest takeaway from the lecture:</strong> there's no clean, easy technical fix for most of these problems — they require judgment calls (what counts as "exploitative," what counts as content worth filtering), and the material explicitly frames this as something that should involve diverse perspectives, open discussion, and ongoing debate rather than a one-time rule anyone can just implement and be done with.
+</div>
+
+<div class="resource">
+  <strong>Going further (not required, but useful if you want more depth):</strong> the lecture doesn't cite specific external readings, but if you want to explore the amplification-of-harmful-content problem in more depth, searching for reporting on "recommender system radicalization" or "engagement-optimization and misinformation" (e.g. coverage of YouTube's or social platforms' recommendation algorithms) will surface real case studies that make the abstract "engagement vs. harm" trade-off concrete.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>12. Summary table</h2>
+<table>
+<tr><th>Concept</th><th>Role</th></tr>
+<tr><td>Content-based filtering</td><td>Recommend by matching features of the user against features of the item, instead of relying only on the ratings matrix</td></tr>
+<tr><td>x_u, x_m</td><td>Raw, human-interpretable feature vectors for a user and an item — can differ in length from each other</td></tr>
+<tr><td>v_u, v_m</td><td>Learned vectors of matching length (e.g. 32), computed from x_u and x_m respectively, whose dot product predicts the rating</td></tr>
+<tr><td>Twin neural networks</td><td>A user network and a movie network, each ending in a 32-unit layer, trained jointly with one shared cost function</td></tr>
+<tr><td>Cost function J</td><td>Squared error between v_u·v_m and y(i,j), summed over rated pairs, plus NN regularization — nearly identical in shape to collaborative filtering's cost</td></tr>
+<tr><td>L2 normalization</td><td>Scaling v_u and v_m to length 1 before the dot product, so the score reflects direction/match rather than raw magnitude</td></tr>
+<tr><td>Keras Dot layer</td><td>A parameter-free layer that computes v_u·v_m; lets content-based filtering use the standard Model/compile/fit workflow, unlike collaborative filtering's custom GradientTape loop</td></tr>
+<tr><td>Retrieval step</td><td>Cheaply generate a broad candidate list (~hundreds) from a huge catalog, favoring coverage over precision</td></tr>
+<tr><td>Ranking step</td><td>Run the full model only on the retrieved shortlist to produce an accurate, ordered recommendation list</td></tr>
+<tr><td>Retrieval/ranking trade-off</td><td>More retrieved items → better recommendations but slower; tune the count using offline experiments on predicted engagement</td></tr>
+<tr><td>Ethical design</td><td>The optimization target you choose (ratings vs. engagement vs. profit) has real consequences; some targets can create harmful feedback loops that reward exploitation as efficiently as they reward genuine value</td></tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>
