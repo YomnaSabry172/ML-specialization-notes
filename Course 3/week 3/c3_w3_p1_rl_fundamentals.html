@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 3 (Part 1) — Reinforcement Learning: Return, Policy, and the MDP Framework</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  section.card h4 { color: #b7d3f5; margin-top: 20px; margin-bottom: 6px; }
+  .why {
+    background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px;
+    overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em;
+    line-height: 1.55; border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; background: #21252e; padding: 1px 5px; border-radius: 4px; }
+  .formula {
+    background: #21252e; border: 1px solid #33384a; border-radius: 6px;
+    padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  .step {
+    background: #1a1d26; border: 1px solid #2e3342; border-radius: 8px;
+    padding: 16px 20px; margin: 14px 0;
+  }
+  .step-num {
+    display: inline-block; background: #2f6fb5; color: #fff; font-weight: bold;
+    border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px;
+    margin-right: 10px; font-family: Georgia, serif;
+  }
+  .resource {
+    background: #211c2c; border-left: 5px solid #8e6fd6; border-radius: 6px;
+    padding: 12px 18px; margin: 18px 0; color: #ded8ef; font-size: 0.95em;
+  }
+  .resource strong { color: #b39ded; }
+  .coming-next {
+    background: #26232f; border: 1px dashed #6a6480; border-radius: 6px;
+    padding: 12px 18px; margin: 18px 0; color: #c7c1d8; font-size: 0.92em; font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Reinforcement Learning: Return, Policy, and the MDP Framework</h1>
+  <p>Course 3, Week 3 (Part 1) — Core vocabulary, the discounted return, and comparing RL problems side by side</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#intro">Why a new framework? What reinforcement learning is for</a></li>
+    <li><a href="#mars-rover">The running example: the Mars rover</a></li>
+    <li><a href="#goal">The goal of reinforcement learning</a></li>
+    <li><a href="#return">The return: rewarding now vs. later</a></li>
+    <li><a href="#discount-factor">The discount factor, gamma</a></li>
+    <li><a href="#return-examples">Worked examples: how actions change the return</a></li>
+    <li><a href="#policy">The policy: a strategy for every state</a></li>
+    <li><a href="#mdp">The Markov Decision Process (MDP)</a></li>
+    <li><a href="#comparison">Comparing RL problems: Mars rover vs. helicopter vs. chess</a></li>
+    <li><a href="#next">What's coming next</a></li>
+    <li><a href="#summary">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="intro">
+<h2>1. Why a new framework? What reinforcement learning is for</h2>
+
+<p>Everything covered so far in the specialization — supervised learning, collaborative filtering, content-based filtering — shares one thing in common: you're given a fixed dataset of correct answers (labels, ratings) and you train a model to predict them. <strong>Reinforcement learning (RL)</strong> is a different setup entirely: there's no dataset of "correct actions" to imitate. Instead, there's an agent that takes actions in a world, and the world responds with a <strong>reward</strong> signal telling the agent roughly how good or bad that action was — and the agent has to figure out, through trial and consequence, what sequence of actions leads to the best outcomes.</p>
+
+<div class="why">
+  <strong>Why this matters:</strong> in many real problems — flying a helicopter, playing chess, controlling a robot — nobody can hand-label "the correct control input for this exact helicopter orientation." It's far easier to say "this outcome is good" or "this outcome is bad" (crashing is bad, reaching the goal is good) than to specify the correct action for every possible situation in advance. RL is built specifically for problems where you can define what a good <em>outcome</em> looks like, even if you can't specify the correct action directly.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> training a dog. You can't write down the exact muscle movements you want the dog to make. What you <em>can</em> do is give it a treat when it does something you like and withhold it when it doesn't — and over repeated attempts, the dog works out a strategy that earns the most treats. RL formalizes this "reward-shapes-behavior" idea into an algorithm.
+</div>
+
+</section>
+
+<section class="card" id="mars-rover">
+<h2>2. The running example: the Mars rover</h2>
+
+<p>The whole week's discussion is anchored to one simplified example: a Mars rover that can be in one of <strong>6 states</strong>, laid out in a line.</p>
+
+<svg viewBox="0 0 900 180" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="Georgia, serif">
+    <rect x="20" y="20" width="140" height="100" fill="#fbe9e3" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="160" y="20" width="140" height="100" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="300" y="20" width="140" height="100" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="440" y="20" width="140" height="100" fill="#f0ece0" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="580" y="20" width="140" height="100" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="720" y="20" width="140" height="100" fill="#e3ddd0" stroke="#1c1f28" stroke-width="2"/>
+    <text x="90" y="75" text-anchor="middle" font-size="22" fill="#1c1f28" font-weight="bold">100</text>
+    <text x="230" y="75" text-anchor="middle" font-size="22" fill="#1c1f28" font-weight="bold">0</text>
+    <text x="370" y="75" text-anchor="middle" font-size="22" fill="#1c1f28" font-weight="bold">0</text>
+    <text x="510" y="60" text-anchor="middle" font-size="26">🤖</text>
+    <text x="510" y="90" text-anchor="middle" font-size="16" fill="#1c1f28" font-weight="bold">0</text>
+    <text x="650" y="75" text-anchor="middle" font-size="22" fill="#1c1f28" font-weight="bold">0</text>
+    <text x="790" y="75" text-anchor="middle" font-size="22" fill="#1c1f28" font-weight="bold">40</text>
+    <text x="90" y="145" text-anchor="middle" font-size="14" fill="#333">state 1</text>
+    <text x="230" y="145" text-anchor="middle" font-size="14" fill="#333">state 2</text>
+    <text x="370" y="145" text-anchor="middle" font-size="14" fill="#333">state 3</text>
+    <text x="510" y="145" text-anchor="middle" font-size="14" fill="#333">state 4 (rover starts here)</text>
+    <text x="650" y="145" text-anchor="middle" font-size="14" fill="#333">state 5</text>
+    <text x="790" y="145" text-anchor="middle" font-size="14" fill="#333">state 6</text>
+  </g>
+</svg>
+<p class="svg-caption">The Mars rover world: 6 states, two terminal states (1 and 6) with rewards 100 and 40, all other states give reward 0.</p>
+
+<table>
+<tr><th>Term</th><th>Meaning in the Mars rover example</th></tr>
+<tr><td><strong>State (s)</strong></td><td>Which of the 6 positions the rover currently occupies</td></tr>
+<tr><td><strong>Action (a)</strong></td><td>Move left, or move right</td></tr>
+<tr><td><strong>Reward (R)</strong></td><td>100 for reaching state 1, 40 for reaching state 6, 0 everywhere else</td></tr>
+<tr><td><strong>Terminal states</strong></td><td>States 1 and 6 — once the rover arrives there, the process ends</td></tr>
+</table>
+
+<div class="note">
+  <strong>Note the asymmetry:</strong> state 1's reward (100) is larger than state 6's reward (40) — so all else being equal, reaching state 1 is the more valuable outcome. But state 6 might be closer, meaning it can be reached in fewer steps. This tension between "which outcome is bigger" and "which outcome is closer" is exactly what the return (Section 4) is built to weigh.
+</div>
+
+</section>
+
+<section class="card" id="goal">
+<h2>3. The goal of reinforcement learning</h2>
+
+<div class="formula">
+Find a policy π that tells you what action (a = π(s)) to take in every state s, so as to <strong>maximize the return</strong>.
+</div>
+
+<p>This single sentence is the goal of everything in this week's material. Two pieces are still undefined here — "return" and "policy" — and the rest of this file builds up exactly what they mean.</p>
+
+</section>
+
+<section class="card" id="return">
+<h2>4. The return: rewarding now vs. later</h2>
+
+<p>If the rover just collected rewards over time, you could evaluate an approach by adding them all up. But rewards received <em>sooner</em> are generally treated as more valuable than the same-sized reward received <em>later</em> — so the rewards are added up with each one multiplied by a shrinking weight the further into the future it is.</p>
+
+<div class="formula">
+Return &nbsp;=&nbsp; R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + γ³R<sub>4</sub> + ⋯ &nbsp;&nbsp;(until a terminal state)
+</div>
+
+<p>Here R<sub>1</sub>, R<sub>2</sub>, R<sub>3</sub>, ... are the rewards received at each step going forward from wherever you currently are, and γ (gamma) is the <strong>discount factor</strong> — a number slightly less than 1 that shrinks the weight given to rewards the further away in time they are.</p>
+
+<div class="analogy">
+  <strong>Analogy:</strong> this is exactly like the time-value of money — a dollar today is worth more to you than a dollar a year from now, so a financial return calculation discounts future dollars by some interest-rate-like factor. The discount factor γ plays that same role here: a reward of 100 four steps from now is worth less <em>right now</em> than a reward of 100 immediately.
+</div>
+
+</section>
+
+<section class="card" id="discount-factor">
+<h2>5. The discount factor, gamma</h2>
+
+<p>γ is a number close to 1 (common choices in the lecture: 0.9, 0.99, 0.999, or for the simplified example, 0.5) that determines how strongly future rewards are discounted relative to immediate ones.</p>
+
+<table>
+<tr><th>γ value</th><th>Effect</th></tr>
+<tr><td>Close to 1 (e.g. 0.999)</td><td>The agent is patient — a reward far in the future still counts almost as much as an immediate one</td></tr>
+<tr><td>Smaller (e.g. 0.5)</td><td>The agent is impatient — rewards lose value quickly the further away they are, so the agent strongly prefers quick payoffs</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why this matters practically:</strong> γ isn't just a mathematical convenience — it encodes how "impatient" the agent's behavior will be. A financial application (e.g. an RL agent managing investments) might use a γ tied to a real interest rate. A robotics application often uses γ very close to 1 (like 0.999) because delaying the reward by a handful of time steps shouldn't meaningfully change how good an outcome is considered.
+</div>
+
+</section>
+
+<section class="card" id="return-examples">
+<h2>6. Worked examples: how actions change the return</h2>
+
+<p>The return is not a fixed property of a state — it depends entirely on the sequence of actions taken from that point onward. The lecture material makes this concrete with the Mars rover using γ = 0.5.</p>
+
+<h3>Example A — always move left from state 4</h3>
+<p>Rewards received going forward: 0 (state 3), 0 (state 2), 100 (state 1).</p>
+<div class="formula">
+Return = 0 + (0.5)(0) + (0.5)²(0) + (0.5)³(100) = 0.125 × 100 = 12.5
+</div>
+
+<h3>Example B — always move right from state 4</h3>
+<p>Rewards received going forward: 0 (state 5), 40 (state 6).</p>
+<div class="formula">
+Return = 0 + (0.5)²(40) = 10
+</div>
+
+<div class="note">
+  <strong>Reading the "Example of Return" table:</strong> the slide shows the return computed <em>at every state</em>, assuming the rover always moves left thereafter: state 2's return is 50, state 3's is 25, state 4's is 12.5, state 5's is 6.25 — each one is exactly half the return of the state before it, because each extra step away from the reward multiplies by another factor of γ = 0.5. This is a useful pattern to notice: moving one step further from a reward, under a fixed discount factor, always scales the return down by exactly γ.
+</div>
+
+<h3>Example C — different actions from different states</h3>
+<p>The lecture also shows a case where the rover moves right from states 2 and 3, but left from state 4 — i.e., the action taken depends on which state the rover is in, not a single fixed direction. This is the natural lead-in to the idea of a <em>policy</em> (Section 7): the "always left" and "always right" cases above are just two particular (very simple) policies among many possible ones.</p>
+
+<div class="warning">
+  <strong>Common point of confusion:</strong> the reward for a step (R<sub>t</sub>) and the return are not the same thing. The reward is what you get at one specific step. The return is the <em>discounted sum</em> of all rewards from now until the terminal state. A single 0-reward step can still be part of a path with a large overall return, if a big reward is coming up soon after.
+</div>
+
+</section>
+
+<section class="card" id="policy">
+<h2>7. The policy: a strategy for every state</h2>
+
+<div class="formula">
+π(s) = a
+</div>
+
+<p>A <strong>policy</strong> π is a function that maps every state s to the action a you should take when you're in that state. It's the complete strategy — not just what to do right now, but what to do in <em>every</em> situation you might find yourself in.</p>
+
+<svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="Georgia, serif">
+    <!-- one example policy row -->
+    <rect x="20" y="20" width="140" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="160" y="20" width="140" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="300" y="20" width="140" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="440" y="20" width="140" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="580" y="20" width="140" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="720" y="20" width="140" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <text x="90" y="65" text-anchor="middle" font-size="18" font-weight="bold">100</text>
+    <text x="230" y="60" text-anchor="middle" font-size="22" fill="#d98a2b">←</text>
+    <text x="370" y="60" text-anchor="middle" font-size="22" fill="#d98a2b">←</text>
+    <text x="510" y="60" text-anchor="middle" font-size="22" fill="#d98a2b">←</text>
+    <text x="650" y="60" text-anchor="middle" font-size="22" fill="#d98a2b">→</text>
+    <text x="790" y="65" text-anchor="middle" font-size="18" font-weight="bold">40</text>
+    <text x="450" y="130" text-anchor="middle" font-size="14" fill="#333" font-style="italic">One possible policy: go toward whichever terminal reward gives the larger return from that state</text>
+  </g>
+</svg>
+<p class="svg-caption">A policy assigns one action to every non-terminal state — here, left from states 2, 3, 4, and right from state 5.</p>
+
+<div class="step"><span class="step-num">1</span>π(2) = ←, π(3) = ←, π(4) = ←, π(5) = → is one example policy shown in the lecture — states closer to the left reward head left, the one state closer to the right reward heads right.</div>
+<div class="step"><span class="step-num">2</span>Different policies are possible for the same world — "always left," "always right," and mixed strategies are all valid policies; they just achieve different returns.</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> a policy is like a complete rulebook, not a single instruction. "If it's raining, take an umbrella; if it's sunny, wear sunglasses" is a policy — it specifies what to do in every situation you might encounter, decided in advance, rather than a one-off choice made in the moment.
+</div>
+
+<div class="why">
+  <strong>Why the goal is phrased in terms of a policy, not a single action:</strong> the goal stated in Section 3 — find π that maximizes the return — is really the entire aim of reinforcement learning. Every algorithm in this week's material is, in some form, a method for discovering a good π.
+</div>
+
+</section>
+
+<section class="card" id="mdp">
+<h2>8. The Markov Decision Process (MDP)</h2>
+
+<p>The formal name for this whole setup — an agent, a set of states, actions, rewards, and a discount factor — is a <strong>Markov Decision Process</strong>.</p>
+
+<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowmdp" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2f6fb5"/>
+    </marker>
+  </defs>
+  <g font-family="Georgia, serif">
+    <rect x="330" y="30" width="240" height="90" rx="12" fill="#e8f0fb" stroke="#2f6fb5" stroke-width="2"/>
+    <text x="450" y="65" text-anchor="middle" font-size="20" fill="#1c1f28" font-weight="bold">Agent</text>
+    <text x="450" y="95" text-anchor="middle" font-size="20" fill="#1c1f28" font-style="italic">π</text>
+    <text x="450" y="150" text-anchor="middle" font-size="24">🤖</text>
+
+    <rect x="330" y="300" width="240" height="90" rx="12" fill="#e8f0fb" stroke="#2f6fb5" stroke-width="2"/>
+    <text x="450" y="335" text-anchor="middle" font-size="19" fill="#1c1f28" font-weight="bold">Environment /</text>
+    <text x="450" y="360" text-anchor="middle" font-size="19" fill="#1c1f28" font-weight="bold">World</text>
+
+    <!-- environment -> agent (state, reward) -->
+    <line x1="150" y1="75" x2="150" y2="345" stroke="#2f6fb5" stroke-width="2"/>
+    <line x1="150" y1="345" x2="325" y2="345" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrowmdp)"/>
+    <line x1="150" y1="75" x2="325" y2="75" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrowmdp)"/>
+    <text x="30" y="205" font-size="16" fill="#1c1f28">state s</text>
+    <text x="30" y="228" font-size="16" fill="#1c1f28">reward R</text>
+
+    <!-- agent -> environment (action) -->
+    <line x1="570" y1="75" x2="770" y2="75" stroke="#2f6fb5" stroke-width="2"/>
+    <line x1="770" y1="75" x2="770" y2="345" stroke="#2f6fb5" stroke-width="2"/>
+    <line x1="770" y1="345" x2="575" y2="345" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrowmdp)"/>
+    <text x="790" y="215" font-size="16" fill="#1c1f28">action a</text>
+  </g>
+</svg>
+<p class="svg-caption">The agent-environment loop: the agent observes a state and reward, chooses an action according to its policy π, and the environment responds with a new state and reward — repeating indefinitely (or until a terminal state).</p>
+
+<div class="why">
+  <strong>Why "Markov":</strong> the name refers to the Markov property — the idea that the future only depends on the <em>current</em> state, not on the full history of how the agent got there. Once you know the rover is in state 4, it doesn't matter whether it arrived there from state 3 or state 5 — the future unfolds the same way either way. This is what makes the framework tractable: the agent never needs to remember its whole past, only where it currently is.
+</div>
+
+<div class="resource">
+  <strong>Going further (optional):</strong> the lecture introduces the MDP by name but doesn't derive its formal mathematical definition (the tuple of states, actions, transition probabilities, rewards, and discount factor). If you want the fuller formal treatment, Sutton &amp; Barto's <em>Reinforcement Learning: An Introduction</em> (freely available online, the standard reference text in the field) covers MDPs rigorously in its early chapters — useful background, though not required to follow this course.
+</div>
+
+</section>
+
+<section class="card" id="comparison">
+<h2>9. Comparing RL problems: Mars rover vs. helicopter vs. chess</h2>
+
+<p>The same five ingredients — states, actions, rewards, discount factor, return — describe wildly different problems. Seeing them lined up side by side is meant to show that the <em>framework</em> is general, even though each application fills it in very differently.</p>
+
+<table>
+<tr><th></th><th>Mars rover</th><th>Autonomous helicopter</th><th>Chess</th></tr>
+<tr><td><strong>States</strong></td><td>6 discrete positions</td><td>The helicopter's position (and orientation, velocity, etc.)</td><td>The arrangement of pieces on the board</td></tr>
+<tr><td><strong>Actions</strong></td><td>Move left / move right</td><td>How to move the control stick</td><td>Any legal move</td></tr>
+<tr><td><strong>Rewards</strong></td><td>100, 0, or 40</td><td>+1 for flying well, −1000 for crashing</td><td>+1 for winning, 0 for a draw, −1 for losing</td></tr>
+<tr><td><strong>Discount factor γ</strong></td><td>0.5 (in this simplified example)</td><td>0.99</td><td>0.995</td></tr>
+<tr><td><strong>Return</strong></td><td>R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + ⋯</td><td>R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + ⋯</td><td>R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + ⋯</td></tr>
+<tr><td><strong>Goal</strong></td><td>Find π(s) = a</td><td>Find π(s) = a</td><td>Find π(s) = a</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why look at these together:</strong> notice that the <em>form</em> of the return and the <em>form</em> of the goal (find π(s) = a) are identical across all three — only the specific states, actions, rewards, and γ change. This is the payoff of having a general framework: the same algorithms (introduced in the parts of the week that follow) can, in principle, be applied to a tiny 6-state toy problem and to a task as complex as chess, just by plugging in a different state space, action space, and reward structure.
+</div>
+
+<div class="note">
+  <strong>Notice the discount factors get closer to 1 as the task gets more delayed-consequence-heavy:</strong> the helicopter (0.99) and chess (0.995) both use γ much closer to 1 than the toy rover example (0.5). This tracks with Section 5's point — tasks where a decision now might only pay off (or backfire) many steps later need a patient agent that doesn't discount those future consequences away too quickly.
+</div>
+
+</section>
+
+<section class="card" id="next">
+<h2>10. What's coming next</h2>
+
+<div class="coming-next">
+This week's material continues directly into the <strong>state-action value function</strong> (commonly written Q(s, a)) — the idea of Q(s,a) as "the return you'd get if you started in state s, took action a once, and then behaved optimally after that," and how the best possible action in a state is the one that maximizes Q(s,a). That's a big enough idea to deserve its own focused treatment, so it's intentionally left out of this file and will be covered fully in the next part once you send that material.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>11. Summary table</h2>
+<table>
+<tr><th>Concept</th><th>Role</th></tr>
+<tr><td>Reinforcement learning</td><td>Learn a strategy by trial and reward, rather than by imitating labeled correct answers</td></tr>
+<tr><td>State (s)</td><td>The current situation the agent is in</td></tr>
+<tr><td>Action (a)</td><td>A choice the agent can make from a given state</td></tr>
+<tr><td>Reward (R)</td><td>The immediate feedback signal received after an action (or upon reaching a state)</td></tr>
+<tr><td>Terminal state</td><td>A state where the process ends (e.g. states 1 and 6 for the Mars rover)</td></tr>
+<tr><td>Discount factor (γ)</td><td>A number &lt; 1 that shrinks the weight of rewards the further in the future they occur</td></tr>
+<tr><td>Return</td><td>R<sub>1</sub> + γR<sub>2</sub> + γ²R<sub>3</sub> + ⋯ — the discounted sum of all future rewards from now until termination; depends on the actions taken</td></tr>
+<tr><td>Policy (π)</td><td>A function π(s) = a specifying which action to take in every possible state</td></tr>
+<tr><td>Goal of RL</td><td>Find the policy π that maximizes the return</td></tr>
+<tr><td>Markov Decision Process (MDP)</td><td>The formal name for the agent–environment loop; "Markov" means the future depends only on the current state, not on history</td></tr>
+<tr><td>Framework generality</td><td>The same return/policy/MDP structure applies whether the problem is a 6-state toy example or a task as complex as chess or helicopter control</td></tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>
