@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Course 3, Week 3 (Part 3) — Continuous State Spaces, the Lunar Lander, and Deep Q-Learning (DQN)</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14161c;
+    color: #dcdad3;
+    margin: 0;
+    line-height: 1.65;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1f44, #16386b 60%, #1f4e8c);
+    color: #fff;
+    padding: 42px 8vw 34px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 2.1em; }
+  header p { margin: 0; color: #cfe0f7; font-size: 1.05em; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 8vw 80px; }
+  .toc {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-top: -22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; color: #7fb0f0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc a { color: #7fb0f0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section.card {
+    background: #1c1f28;
+    border: 1px solid #33384a;
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-top: 34px;
+  }
+  section.card h2 {
+    color: #7fb0f0;
+    border-bottom: 2px solid #2e3342;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  section.card h3 { color: #9cc3f2; margin-top: 26px; }
+  section.card h4 { color: #b7d3f5; margin-top: 20px; margin-bottom: 6px; }
+  .why {
+    background: #2c2618; border-left: 5px solid #d98a2b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #e8dfce;
+  }
+  .why strong { color: #e5a94f; }
+  .analogy {
+    background: #1c2a1e; border-left: 5px solid #4a9d5c; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #dbe8dc;
+  }
+  .analogy strong { color: #6fc082; }
+  .note {
+    background: #1a2432; border-left: 5px solid #2f6fb5; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #d8e3f0;
+  }
+  .note strong { color: #7fb0f0; }
+  .warning {
+    background: #2c1c1a; border-left: 5px solid #c0392b; border-radius: 6px;
+    padding: 14px 18px; margin: 18px 0; color: #f0d8d5;
+  }
+  .warning strong { color: #e8695b; }
+  pre {
+    background: #21252e; color: #d8dae0; padding: 16px 18px; border-radius: 8px;
+    overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.88em;
+    line-height: 1.55; border: 1px solid #33384a;
+  }
+  code { font-family: 'Courier New', monospace; color: #d8dae0; background: #21252e; padding: 1px 5px; border-radius: 4px; }
+  .formula {
+    background: #21252e; border: 1px solid #33384a; border-radius: 6px;
+    padding: 12px 18px; text-align: center; font-size: 1.05em; margin: 14px 0; color: #dcdad3;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #33384a; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #21252e; color: #7fb0f0; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px auto; background: #f7f7f5; border-radius: 6px; }
+  .svg-caption { text-align: center; font-style: italic; color: #9a978d; font-size: 0.9em; margin-top: -8px; }
+  .step {
+    background: #1a1d26; border: 1px solid #2e3342; border-radius: 8px;
+    padding: 16px 20px; margin: 14px 0;
+  }
+  .step-num {
+    display: inline-block; background: #2f6fb5; color: #fff; font-weight: bold;
+    border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px;
+    margin-right: 10px; font-family: Georgia, serif;
+  }
+  .resource {
+    background: #211c2c; border-left: 5px solid #8e6fd6; border-radius: 6px;
+    padding: 12px 18px; margin: 18px 0; color: #ded8ef; font-size: 0.95em;
+  }
+  .resource strong { color: #b39ded; }
+  .algo {
+    background: #1a1d26; border: 1px solid #2e3342; border-radius: 8px;
+    padding: 18px 22px; margin: 18px 0; font-family: 'Courier New', monospace; font-size: 0.92em;
+    line-height: 1.8; color: #dcdad3;
+  }
+  .algo .indent1 { padding-left: 24px; }
+  .algo .indent2 { padding-left: 48px; }
+  .brief {
+    background: #21252e; border: 1px dashed #4a5568; border-radius: 8px;
+    padding: 14px 20px; margin: 18px 0; font-size: 0.93em; color: #c5c9d3;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Continuous State Spaces, the Lunar Lander, and Deep Q-Learning</h1>
+  <p>Course 3, Week 3 (Part 3) — From discrete toy examples to real control problems, and the full DQN algorithm</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#discrete-vs-continuous">Discrete vs. continuous state spaces</a></li>
+    <li><a href="#continuous-examples">Continuous-state examples: truck and helicopter</a></li>
+    <li><a href="#lunar-lander-setup">The lunar lander: actions, state, and reward</a></li>
+    <li><a href="#lunar-lander-goal">The lunar lander as an MDP</a></li>
+    <li><a href="#neural-network-q">Approximating Q(s,a) with a neural network</a></li>
+    <li><a href="#training-set">Building a training set from Bellman's equation</a></li>
+    <li><a href="#dqn-algorithm">The full DQN algorithm</a></li>
+    <li><a href="#improved-architecture">Refinement 1: a more efficient network architecture</a></li>
+    <li><a href="#epsilon-greedy">Refinement 2: the ε-greedy policy</a></li>
+    <li><a href="#minibatch">Refinement 3: mini-batching</a></li>
+    <li><a href="#soft-updates">Refinement 4: soft updates</a></li>
+    <li><a href="#state-of-rl">A brief, honest note on the state of RL today</a></li>
+    <li><a href="#summary">Summary table</a></li>
+  </ol>
+</div>
+
+<section class="card" id="discrete-vs-continuous">
+<h2>1. Discrete vs. continuous state spaces</h2>
+
+<p>Every example used so far (the Mars rover) had a <strong>discrete</strong> state space — the rover could only be in one of exactly 6 positions, numbered 1 through 6. Most real robots aren't confined to a small numbered set of positions; they can occupy any of an unlimited range of positions along a continuum. That's a <strong>continuous state space</strong>.</p>
+
+<svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+  <g font-family="Georgia, serif">
+    <text x="30" y="30" font-size="18" fill="#1c1f28" font-weight="bold">Discrete state</text>
+    <rect x="20" y="50" width="120" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="140" y="50" width="120" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="260" y="50" width="120" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="380" y="50" width="120" height="80" fill="#f0ece0" stroke="#1c1f28" stroke-width="2"/>
+    <text x="440" y="95" text-anchor="middle" font-size="22">🤖</text>
+    <rect x="500" y="50" width="120" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <rect x="620" y="50" width="120" height="80" fill="#fff" stroke="#1c1f28" stroke-width="2"/>
+    <text x="80" y="150" text-anchor="middle" font-size="13" fill="#333">1</text>
+    <text x="200" y="150" text-anchor="middle" font-size="13" fill="#333">2</text>
+    <text x="320" y="150" text-anchor="middle" font-size="13" fill="#333">3</text>
+    <text x="440" y="150" text-anchor="middle" font-size="13" fill="#333">4</text>
+    <text x="560" y="150" text-anchor="middle" font-size="13" fill="#333">5</text>
+    <text x="680" y="150" text-anchor="middle" font-size="13" fill="#333">6</text>
+    <text x="400" y="185" text-anchor="middle" font-size="13" fill="#666" font-style="italic">state = one of exactly 6 whole numbers</text>
+
+    <text x="30" y="230" font-size="18" fill="#1c1f28" font-weight="bold">Continuous state</text>
+    <line x1="20" y1="250" x2="720" y2="250" stroke="#1c1f28" stroke-width="3"/>
+    <circle cx="330" cy="250" r="6" fill="#2f6fb5"/>
+    <text x="330" y="275" text-anchor="middle" font-size="13" fill="#333">e.g. 2.7 km along a 0–6 km line — any real number is valid</text>
+  </g>
+</svg>
+<p class="svg-caption">Discrete: a small fixed set of labeled positions. Continuous: any real number within a valid range.</p>
+
+<div class="why">
+  <strong>Why this distinction matters:</strong> everything covered so far — Q(s,a) tables, the Bellman equation written out state by state, the little 6-row diagrams — implicitly assumed you could list every state and store a number for each one. That approach breaks down completely once a state is a continuous vector: there are infinitely many possible states, so you cannot build a table with one row per state. This is precisely the gap that motivates using a <strong>neural network</strong> to approximate Q(s,a) instead of a table (Section 5 onward) — a function approximator can generalize across states it has never exactly seen before, which a lookup table cannot.
+</div>
+
+</section>
+
+<section class="card" id="continuous-examples">
+<h2>2. Continuous-state examples: truck and helicopter</h2>
+
+<p>Two examples illustrate how a continuous state is represented as a <strong>vector of numbers</strong>, rather than a single discrete label:</p>
+
+<h3>Self-driving car / truck</h3>
+<div class="formula">
+s = [ x, y, θ, ẋ, ẏ, θ̇ ]
+</div>
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>x, y</td><td>position on the ground plane</td></tr>
+<tr><td>θ (theta)</td><td>orientation — which way the truck is facing (0–360°)</td></tr>
+<tr><td>ẋ, ẏ</td><td>velocity in the x and y directions (the dot notation means "rate of change")</td></tr>
+<tr><td>θ̇ (theta-dot)</td><td>how quickly the orientation is changing — the turning rate</td></tr>
+</table>
+
+<h3>Autonomous helicopter</h3>
+<div class="formula">
+s = [ x, y, z, φ, θ, ω, ẋ, ẏ, ż, φ̇, θ̇, ω̇ ] &nbsp;&nbsp;(12 numbers)
+</div>
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>x, y, z</td><td>position — north-south, east-west, and height above ground</td></tr>
+<tr><td>φ (roll)</td><td>tilting left/right</td></tr>
+<tr><td>θ (pitch)</td><td>tilting forward/backward</td></tr>
+<tr><td>ω (yaw)</td><td>compass heading — north, east, south, west</td></tr>
+<tr><td>ẋ, ẏ, ż</td><td>velocity in each direction</td></tr>
+<tr><td>φ̇, θ̇, ω̇</td><td>angular velocity — how fast roll, pitch, and yaw are each changing</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why list all 12 numbers instead of a simpler summary:</strong> the policy needs enough information to make a genuinely good control decision, and a helicopter's behavior depends on both where it is <em>and</em> how it's currently moving/rotating. Position alone doesn't tell you whether the helicopter is about to tip over — the roll angle and its rate of change do. This full 12-number vector is fed as input to the policy on every decision.
+</div>
+
+</section>
+
+<section class="card" id="lunar-lander-setup">
+<h2>3. The lunar lander: actions, state, and reward</h2>
+
+<p>The week's practice lab is a simulated <strong>lunar lander</strong> — a small spacecraft falling toward the moon's surface that must be steered safely down onto a landing pad marked by two flags.</p>
+
+<h3>Actions (4 total)</h3>
+<table>
+<tr><th>Action</th><th>Effect</th></tr>
+<tr><td><strong>Nothing</strong></td><td>No thrust — gravity and inertia pull the lander down</td></tr>
+<tr><td><strong>Left</strong></td><td>Fire the left thruster — pushes the lander to the right</td></tr>
+<tr><td><strong>Main</strong></td><td>Fire the main (downward) engine — slows descent</td></tr>
+<tr><td><strong>Right</strong></td><td>Fire the right thruster — pushes the lander to the left</td></tr>
+</table>
+
+<h3>State (8 numbers)</h3>
+<div class="formula">
+s = [ x, y, ẋ, ẏ, θ, θ̇, l, r ]
+</div>
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>x, y</td><td>horizontal position and altitude</td></tr>
+<tr><td>ẋ, ẏ</td><td>horizontal and vertical velocity</td></tr>
+<tr><td>θ, θ̇</td><td>tilt angle and how fast it's tilting</td></tr>
+<tr><td>l, r</td><td>binary flags (0 or 1) — is the left leg grounded? Is the right leg grounded?</td></tr>
+</table>
+
+<div class="note">
+  <strong>Why l and r are included as their own binary variables:</strong> the lecture explains this is because a small difference in exact positioning matters a lot for whether the lander has actually landed — a leg touching the ground vs. not touching it is close to a discrete, binary fact, even though the rest of the state is continuous. Rather than trying to infer "has it landed" purely from y and ẏ, the state vector just includes that fact directly.
+</div>
+
+<h3>Reward function</h3>
+<table>
+<tr><th>Event</th><th>Reward</th></tr>
+<tr><td>Reaching the landing pad</td><td>Between 100 and 140, depending on how well it landed relative to the pad's center</td></tr>
+<tr><td>Moving toward the pad</td><td>Small positive reward</td></tr>
+<tr><td>Moving away from the pad</td><td>Small negative reward</td></tr>
+<tr><td>Crashing</td><td>−100</td></tr>
+<tr><td>Achieving a soft landing (no crash)</td><td>+100</td></tr>
+<tr><td>Each leg (left or right) grounded</td><td>+10 per leg</td></tr>
+<tr><td>Firing the main engine</td><td>−0.3 per use</td></tr>
+<tr><td>Firing a side thruster (left or right)</td><td>−0.03 per use</td></tr>
+</table>
+
+<div class="why">
+  <strong>Why the reward function is this elaborate:</strong> the lecture is explicit that this is a "moderately complex" reward function, deliberately shaped by its designers to encourage exactly the behaviors wanted (landing gently, in the right spot, without wasting fuel) and discourage the ones that aren't (crashing, drifting away, firing thrusters needlessly). This is offered as a general lesson for anyone building their own RL application: it usually takes real thought to translate "what I want" into a reward function, but that translation is still typically far easier than trying to hand-specify the exact correct action for every possible state directly.
+</div>
+
+</section>
+
+<section class="card" id="lunar-lander-goal">
+<h2>4. The lunar lander as an MDP</h2>
+
+<div class="formula">
+Learn a policy π that, given state s, picks action a = π(s) so as to maximize the return, using γ = 0.985.
+</div>
+
+<div class="note">
+  <strong>Why γ = 0.985, close to 1:</strong> this echoes the pattern from Part 1's comparison table (helicopter γ = 0.99, chess γ = 0.995) — a landing sequence unfolds over many time steps, and a good or bad outcome (a safe landing, or a crash) is often only determined by the cumulative effect of many small decisions. A discount factor close to 1 keeps the agent "patient" enough to properly value how today's thruster choice affects the landing many steps later.
+</div>
+
+</section>
+
+<section class="card" id="neural-network-q">
+<h2>5. Approximating Q(s,a) with a neural network</h2>
+
+<p>Since there's no way to build a lookup table over a continuous state space, the approach is to train a <strong>neural network</strong> to input a state-action pair and output an approximation of Q(s,a).</p>
+
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrownn" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2f6fb5"/>
+    </marker>
+  </defs>
+  <g font-family="Georgia, serif">
+    <text x="20" y="40" font-size="14" fill="#1c1f28">x = (s, a):</text>
+    <text x="20" y="60" font-size="12" fill="#333">8 state numbers</text>
+    <text x="20" y="78" font-size="12" fill="#333">+ 4 one-hot action numbers</text>
+    <text x="20" y="96" font-size="12" fill="#333">= 12 inputs</text>
+    <line x1="150" y1="70" x2="200" y2="70" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrownn)"/>
+    <rect x="205" y="20" width="70" height="100" rx="8" fill="#e8f0fb" stroke="#2f6fb5"/>
+    <text x="240" y="75" text-anchor="middle" font-size="12" fill="#1c1f28">64, 64</text>
+    <line x1="275" y1="70" x2="330" y2="70" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrownn)"/>
+    <rect x="335" y="45" width="55" height="50" rx="8" fill="#f7e9d8" stroke="#d98a2b"/>
+    <text x="362" y="75" text-anchor="middle" font-size="12" fill="#1c1f28">1</text>
+    <line x1="390" y1="70" x2="440" y2="70" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrownn)"/>
+    <text x="450" y="75" font-size="15" fill="#1c1f28" font-weight="bold">Q(s,a)</text>
+
+    <text x="450" y="140" font-size="13" fill="#666" font-style="italic">"Original" architecture: one action fed in per forward pass —</text>
+    <text x="450" y="160" font-size="13" fill="#666" font-style="italic">4 separate runs needed to compare all 4 actions from one state.</text>
+  </g>
+</svg>
+<p class="svg-caption">The state (8 numbers) and the action, one-hot encoded (4 numbers), are concatenated into a 12-number input vector.</p>
+
+<table>
+<tr><th>Input piece</th><th>Encoding</th></tr>
+<tr><td>State s</td><td>The 8 raw numbers — x, y, ẋ, ẏ, θ, θ̇, l, r</td></tr>
+<tr><td>Action a</td><td>One-hot: e.g. "nothing" → [1,0,0,0], "left" → [0,1,0,0], etc.</td></tr>
+</table>
+
+<div class="analogy">
+  <strong>Analogy:</strong> this reframes reinforcement learning as an ordinary supervised regression problem in disguise. Instead of "input a photo, output a cat/dog label," it's "input a (state, action) pair, output a single number — how good is this pair." Section 6 explains exactly where the target numbers (the y values) for this regression come from, since — unlike ordinary supervised learning — there's no pre-existing labeled dataset to draw them from.
+</div>
+
+</section>
+
+<section class="card" id="training-set">
+<h2>6. Building a training set from Bellman's equation</h2>
+
+<p>The Bellman equation gives exactly what's needed to create <code>(x, y)</code> training pairs, by treating its right-hand side as the target value the network should learn to predict:</p>
+
+<div class="formula">
+Q(s,a) = R(s) + γ · max<sub>a′</sub> Q(s′,a′) &nbsp;&nbsp;&nbsp;→&nbsp;&nbsp;&nbsp; x = (s,a), &nbsp; y = R(s) + γ · max<sub>a′</sub> Q(s′,a′)
+</div>
+
+<div class="step"><span class="step-num">1</span><strong>Generate experience.</strong> Take actions in the lunar lander simulator (initially at random, since there's no good policy yet) and observe tuples of (state, action, reward, next state) — written (s, a, R(s), s′).</div>
+<div class="step"><span class="step-num">2</span><strong>Turn each tuple into one training example.</strong> The first two elements (s, a) become the input x. The last two elements (R(s), s′) are enough to compute the target y, using the Bellman equation's right-hand side.</div>
+<div class="step"><span class="step-num">3</span><strong>Where does Q(s′,a′) inside the target come from, if Q isn't known yet?</strong> Initially, from a totally random guess — the neural network's own (randomly initialized) current output. This is the same "resolve the circularity" idea flagged back when Q(s,a) was first defined (Part 2, Section 2): you don't need a good Q function to get started, just <em>some</em> Q function, which then gets refined over many iterations.</div>
+
+<div class="warning">
+  <strong>The key conceptual leap:</strong> this is reinforcement learning wearing supervised learning's clothes. Once x and y are defined this way, training the network to predict y from x is <em>literally</em> the same mean-squared-error regression procedure used for ordinary supervised learning — the reinforcement learning part is entirely in how the (x, y) pairs get generated (by acting in the environment and applying the Bellman equation), not in how the network itself gets trained.
+</div>
+
+</section>
+
+<section class="card" id="dqn-algorithm">
+<h2>7. The full DQN algorithm</h2>
+
+<p><strong>DQN</strong> stands for <strong>Deep Q-Network</strong> — using a deep neural network to learn the Q function. This is the full loop, assembled from Section 6's ingredients:</p>
+
+<div class="algo">
+Initialize neural network randomly as a guess of Q(s,a).<br>
+<strong>Repeat</strong> {<br>
+<span class="indent1">Take actions in the lunar lander. Get (s, a, R(s), s′).</span><br>
+<span class="indent1">Store the 10,000 most recent (s, a, R(s), s′) tuples &nbsp;<em>(the "replay buffer")</em></span><br>
+<span class="indent1">Train model:</span><br>
+<span class="indent2">Create a training set of ~10,000 examples using</span><br>
+<span class="indent2">&nbsp;&nbsp;x = (s,a) &nbsp;and&nbsp; y = R(s) + γ · max<sub>a′</sub> Q(s′,a′)</span><br>
+<span class="indent2">Train Q<sub>new</sub> such that Q<sub>new</sub>(s,a) ≈ y</span><br>
+<span class="indent1">Set Q = Q<sub>new</sub></span><br>
+}
+</div>
+
+<h3>What's a "replay buffer"?</h3>
+<div class="note">
+  <strong>Why only the 10,000 most recent tuples:</strong> the simulator generates far more experience than could reasonably be kept forever — potentially hundreds of thousands of steps. Keeping only a fixed-size rolling window of the most recent experience caps memory use while still providing a large, reasonably fresh training set to learn from on every round. This fixed-size rolling window of past experience is what's called a <strong>replay buffer</strong> in the reinforcement learning literature.
+</div>
+
+<h3>Why the loop actually improves Q over time</h3>
+<div class="why">
+  <strong>Why this converges (intuitively):</strong> on each pass, the current (possibly bad) Q is used to compute target values y, and a new network Q<sub>new</sub> is trained to match those targets. Even though the very first Q is a random guess, R(s) — the actual reward — is always real, correct information baked into every target. Repeating this process means the "real reward" signal keeps getting propagated backward through the Bellman recursion on every iteration, so successive versions of Q become progressively better estimates of the true Q function, even though no single step required already knowing the right answer.
+</div>
+
+<div class="resource">
+  <strong>Going further (optional):</strong> the original DQN algorithm was introduced by Mnih et al. (DeepMind), first demonstrated learning to play Atari games directly from pixels. If you want the original technical treatment beyond what's covered in this course, searching "Human-level control through deep reinforcement learning Mnih 2015" (published in Nature) will surface the paper this algorithm is based on.
+</div>
+
+</section>
+
+<section class="card" id="improved-architecture">
+<h2>8. Refinement 1: a more efficient network architecture</h2>
+
+<p>The Section 5 architecture takes a single (state, action) pair as input and outputs one Q value. To compare all 4 possible actions from a given state, that requires running the network <strong>4 separate times</strong> — once per action.</p>
+
+<div class="formula">
+Improved: input just the 8-number state s &nbsp;→&nbsp; output all 4 Q-values at once: Q(s,nothing), Q(s,left), Q(s,main), Q(s,right)
+</div>
+
+<svg viewBox="0 0 900 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowia" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2f6fb5"/>
+    </marker>
+  </defs>
+  <g font-family="Georgia, serif">
+    <text x="20" y="40" font-size="14" fill="#1c1f28">s (8 numbers)</text>
+    <line x1="150" y1="65" x2="200" y2="65" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrowia)"/>
+    <rect x="205" y="15" width="70" height="100" rx="8" fill="#e8f0fb" stroke="#2f6fb5"/>
+    <text x="240" y="70" text-anchor="middle" font-size="12" fill="#1c1f28">64, 64</text>
+    <line x1="275" y1="65" x2="330" y2="65" stroke="#2f6fb5" stroke-width="2" marker-end="url(#arrowia)"/>
+    <rect x="335" y="15" width="60" height="100" rx="8" fill="#f7e9d8" stroke="#d98a2b"/>
+    <text x="365" y="70" text-anchor="middle" font-size="12" fill="#1c1f28">4 units</text>
+    <text x="410" y="30" font-size="13" fill="#1c1f28">→ Q(s, nothing)</text>
+    <text x="410" y="55" font-size="13" fill="#1c1f28">→ Q(s, left)</text>
+    <text x="410" y="80" font-size="13" fill="#1c1f28">→ Q(s, main)</text>
+    <text x="410" y="105" font-size="13" fill="#1c1f28">→ Q(s, right)</text>
+
+    <text x="450" y="170" text-anchor="middle" font-size="13" fill="#666" font-style="italic">One forward pass gives every action's Q-value simultaneously —</text>
+    <text x="450" y="190" text-anchor="middle" font-size="13" fill="#666" font-style="italic">pick whichever output is largest to choose the action.</text>
+  </g>
+</svg>
+<p class="svg-caption">The state alone is the input; the four output units each correspond to one of the four possible actions.</p>
+
+<div class="why">
+  <strong>Why this is faster, in two separate ways:</strong> (1) When picking an action, you now need only <strong>one</strong> forward pass through the network per state, instead of four. (2) When computing the Bellman target y = R(s) + γ · max<sub>a′</sub>Q(s′,a′) during training, you need Q(s′,a′) for every a′ to take the max — this improved architecture gives you all of those values from a single forward pass on s′, rather than four separate passes. Both the action-selection step and the target-computation step inside training get cheaper.
+</div>
+
+<div class="note">
+  <strong>Note:</strong> this architecture change is described as what most real implementations of DQN actually use — it's presented as a practical efficiency improvement, not a change to the underlying math or the Bellman equation itself.
+</div>
+
+</section>
+
+<section class="card" id="epsilon-greedy">
+<h2>9. Refinement 2: the ε-greedy policy</h2>
+
+<p>While the DQN algorithm is still running (and Q is still a rough, evolving guess), it still needs to take actions in the simulator to generate more experience. How should it choose those actions?</p>
+
+<table>
+<tr><th>Option</th><th>Description</th><th>Problem</th></tr>
+<tr><td><strong>Option 1</strong></td><td>Always pick the action that maximizes the current Q(s,a)</td><td>If Q was initialized so that, say, Q(s, main) always looks low purely by chance, the agent will <em>never</em> try firing the main thruster — and therefore can never discover that it's actually sometimes the right move</td></tr>
+<tr><td><strong>Option 2 (ε-greedy)</strong></td><td>With probability 0.95, pick the action that maximizes Q(s,a) ("greedy," exploiting current knowledge). With probability 0.05 (ε), pick an action completely at random ("exploring")</td><td>Solves Option 1's problem — occasional random actions let the agent discover that its own current beliefs about the Q function might be wrong</td></tr>
+</table>
+
+<div class="analogy">
+  <strong>Analogy:</strong> this is the classic explore-vs-exploit dilemma — like choosing between your favorite restaurant (reliably good, "exploit") and trying somewhere new (might be better, might be worse, but you'll never find out otherwise, "explore"). An ε-greedy policy mostly exploits, but forces in a small, steady dose of exploration so good options never discovered by chance don't stay undiscovered forever.
+</div>
+
+<div class="warning">
+  <strong>The naming is famously confusing:</strong> the lecture explicitly flags that "ε-greedy" sounds like it should mean "greedy ε fraction of the time," but it actually means the <em>opposite</em> — greedy (1 − ε) of the time, and random (exploring) only ε of the time. Many practitioners have pointed out that "(1 − ε)-greedy" would be the more accurate name, but "ε-greedy" is the name that has stuck in the field regardless.
+</div>
+
+<h3>Decaying ε over time</h3>
+<div class="note">
+  <strong>A common trick:</strong> start ε high (e.g. 1.0 — meaning almost entirely random actions at the very beginning of training, when Q's guesses are worthless anyway) and gradually decrease it (e.g. down to 0.01) as training progresses. Early on there's nothing to lose by exploring heavily since the current Q estimate isn't trustworthy yet; later on, once Q has become a reasonably good estimate, it makes more sense to mostly exploit it and explore only rarely.
+</div>
+
+<div class="why">
+  <strong>Why RL tuning is described as more finicky than supervised learning:</strong> the lecture makes an explicit, practical comparison — get a learning rate slightly wrong in supervised learning, and training might take 3× longer, which is annoying but survivable. Get ε (or other RL hyperparameters) noticeably wrong, and the algorithm might take 10× or 100× longer to learn, or fail to learn a good policy at all. This is attributed to reinforcement learning algorithms being comparatively less mature than supervised learning ones — worth knowing going in, so a slow or unstable first attempt at the lunar lander lab isn't mistaken for a fundamental mistake in the approach.
+</div>
+
+</section>
+
+<section class="card" id="minibatch">
+<h2>10. Refinement 3: mini-batching</h2>
+
+<p>This is actually a general supervised-learning idea (it applies to ordinary linear regression too), reused here inside the DQN loop.</p>
+
+<div class="why">
+  <strong>The problem it solves:</strong> if your training set were, say, 100 million examples (imagine a national housing census as the analogy used in the lecture), every single step of gradient descent would require averaging the cost over all 100 million examples before taking one tiny update step. That's extremely slow — you barely move the parameters for a huge amount of computation.
+</div>
+
+<div class="formula">
+Instead of using all m examples every step, use a smaller random subset m′ (e.g. 1,000) each time.
+</div>
+
+<table>
+<tr><th></th><th>Batch gradient descent</th><th>Mini-batch gradient descent</th></tr>
+<tr><td>Examples per step</td><td>All m (e.g. 100 million, or all 10,000 replay-buffer tuples)</td><td>A smaller subset m′ (e.g. 1,000)</td></tr>
+<tr><td>Path toward the minimum</td><td>Smooth, reliable — heads straight toward the minimum on every step</td><td>Noisier — sometimes even briefly heads the "wrong" way by chance — but trends toward the minimum on average</td></tr>
+<tr><td>Speed per step</td><td>Slow (each step scans the whole dataset)</td><td>Fast (each step only scans the mini-batch)</td></tr>
+</table>
+
+<div class="analogy">
+  <strong>Analogy:</strong> polling an entire country's opinion before making any decision is thorough but painfully slow; polling a smaller random sample lets you decide much faster, with a bit more noise in each individual read — but averaged over many quick decisions, you still end up heading in the right overall direction.
+</div>
+
+<div class="note">
+  <strong>Applied to DQN specifically:</strong> even though the replay buffer holds 10,000 tuples, each training round can use a smaller mini-batch (e.g. 1,000) rather than all 10,000 to build that round's training set — trading a bit of noise per update for substantially faster iterations.
+</div>
+
+</section>
+
+<section class="card" id="soft-updates">
+<h2>11. Refinement 4: soft updates</h2>
+
+<p>The plain algorithm's last line — <code>Set Q = Q<sub>new</sub></code> — replaces the entire old network with the newly trained one in one abrupt step.</p>
+
+<div class="warning">
+  <strong>The problem:</strong> Q<sub>new</sub> was just trained on one noisy mini-batch and might, purely by bad luck, turn out to be a <em>worse</em> estimate of the true Q function than the one it's replacing. Overwriting Q completely with a potentially-worse Q<sub>new</sub> can make the whole learning process unstable — oscillating or even diverging instead of steadily improving.
+</div>
+
+<div class="formula">
+W = 0.01 · W<sub>new</sub> + 0.99 · W &nbsp;&nbsp;&nbsp;&nbsp; B = 0.01 · B<sub>new</sub> + 0.99 · B
+</div>
+
+<p>Instead of fully overwriting the parameters, a soft update blends in only a small fraction (here, 1%) of the newly trained parameters, keeping 99% of the previous values.</p>
+
+<div class="note">
+  <strong>Where the "hard update" sits as a special case:</strong> setting the blend weights to 1 and 0 instead of 0.01 and 0.99 (i.e. W = 1·W<sub>new</sub> + 0·W) recovers exactly the original, abrupt <code>Set Q = Q<sub>new</sub></code> behavior. The soft update is a strict generalization — 0.01/0.99 is just one particular, much gentler choice of blend weights, and those two numbers are hyperparameters you could tune, as long as they add up to 1.
+</div>
+
+<div class="analogy">
+  <strong>Analogy:</strong> this is like updating a running average rather than replacing your best estimate with whatever the newest single measurement says. One noisy reading barely moves a running average, whereas letting a single noisy reading completely overwrite your prior estimate leaves you exposed to being thrown off course by one unlucky data point.
+</div>
+
+<div class="why">
+  <strong>Why this helps convergence:</strong> the lecture states plainly that soft updates make the algorithm converge more reliably, and make oscillation or divergence less likely — a smoother, more gradual path for Q's parameters to travel, rather than a series of potentially-jarring full replacements.
+</div>
+
+</section>
+
+<section class="card" id="state-of-rl">
+<h2>12. A brief, honest note on the state of RL today</h2>
+
+<div class="brief">
+The lecture closes the week with a grounded, non-hyped perspective, worth summarizing briefly: a lot of reinforcement learning's research excitement comes from <strong>simulated</strong> environments (games, physics simulators), which are considerably easier to get working than real robots or real-world systems — many practitioners have found that an algorithm working well in simulation is no guarantee it will transfer smoothly to a physical system. Relatedly, despite heavy media coverage, RL today has <strong>far fewer practical applications</strong> than supervised or unsupervised learning — for most real-world projects, supervised or unsupervised learning is the far more likely right tool. That said, RL remains a major pillar of machine learning with real research momentum and future potential, and is well worth having in your toolkit even if it's reached for less often day-to-day than supervised learning.
+</div>
+
+</section>
+
+<section class="card" id="summary">
+<h2>13. Summary table</h2>
+<table>
+<tr><th>Concept</th><th>Role</th></tr>
+<tr><td>Continuous state space</td><td>A state represented by a vector of real-valued numbers rather than one of a small discrete set — requires function approximation instead of a lookup table</td></tr>
+<tr><td>Lunar lander</td><td>Simulated control task: land a spacecraft safely between two flags using 4 possible thruster actions, an 8-number state, and a shaped reward function</td></tr>
+<tr><td>Q-network (original architecture)</td><td>Inputs a 12-number (state + one-hot action) vector, outputs a single Q(s,a) estimate; requires 4 forward passes to compare all actions</td></tr>
+<tr><td>Training target (via Bellman)</td><td>x = (s,a), y = R(s) + γ·max<sub>a′</sub>Q(s′,a′) — turns RL into an ordinary supervised regression problem once (x,y) pairs are generated</td></tr>
+<tr><td>Replay buffer</td><td>A rolling store of the most recent (s,a,R(s),s′) tuples (e.g. 10,000), used to build each round's training set</td></tr>
+<tr><td>DQN (Deep Q-Network)</td><td>The full loop: act in the environment → build a training set via Bellman's equation → train Q<sub>new</sub> → update Q → repeat</td></tr>
+<tr><td>Improved architecture</td><td>Input just the state, output all action-Q-values at once — one forward pass instead of four, for both action selection and Bellman target computation</td></tr>
+<tr><td>ε-greedy policy</td><td>Act greedily (maximize current Q) most of the time; act randomly with small probability ε to keep exploring; name is historical and slightly misleading</td></tr>
+<tr><td>Exploration vs. exploitation</td><td>The general tension between trying new things to learn more vs. using current knowledge to act optimally now</td></tr>
+<tr><td>Mini-batching</td><td>Use a random subset of the training data per gradient descent step instead of the full set — much faster per step, noisier path, still converges on average; applies to supervised learning too</td></tr>
+<tr><td>Soft updates</td><td>Blend a small fraction of newly trained parameters into the existing ones (e.g. 1% new / 99% old) instead of a full overwrite — improves stability and convergence</td></tr>
+<tr><td>State of RL (brief)</td><td>Strong in simulation, harder to transfer to real-world systems; fewer practical applications today than supervised/unsupervised learning, but still an important, actively developing pillar of ML</td></tr>
+</table>
+</section>
+
+</div>
+</body>
+</html>
